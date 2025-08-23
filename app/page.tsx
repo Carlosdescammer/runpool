@@ -1,6 +1,7 @@
 // app/page.tsx
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
+import WeeklyRecapPreview from '@/components/WeeklyRecapPreview';
 
 export default function Home() {
   return (
@@ -30,18 +31,7 @@ export default function Home() {
             </div>
           </div>
           <div className="grid place-items-center">
-            <div className="w-full max-w-[420px] rounded-2xl border border-zinc-200 bg-[var(--rp-surface)] p-4 shadow-md">
-              <div className="h-2 w-16 rounded-full bg-zinc-200" />
-              <div className="h-4" />
-              <div className="grid gap-2.5">
-                <div className="h-9 rounded-lg bg-zinc-100" />
-                <div className="h-9 rounded-lg bg-zinc-100" />
-                <div className="h-9 rounded-lg bg-zinc-100" />
-                <div className="grid h-40 place-items-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400">
-                  Leaderboard preview
-                </div>
-              </div>
-            </div>
+            <WeeklyRecapPreview />
           </div>
         </div>
       </Card>

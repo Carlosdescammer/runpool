@@ -7,13 +7,14 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'edge';
 
 type LeaderboardRow = { user_id: string; name: string | null; miles: number };
-type Challenge = { id: string; group_id: string; week_start: string; week_end: string; status: 'OPEN'|'CLOSED' };
+type Challenge = { id: string; group_id: string; week_start: string; week_end: string; status: 'OPEN'|'CLOSED'; pot?: number };
 type Group = { id: string; name: string };
 type Recap = {
   group: Group | null;
   challenge: { id: string; week_start: string; week_end: string };
   summary: { participants: number; totalMiles: number; avgMiles: number };
   top3: LeaderboardRow[];
+  pot: number | null;
 };
 
 function getAdminClient() {
@@ -23,18 +24,25 @@ function getAdminClient() {
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
-async function computeRecap(limitChallenges = 10): Promise<{ error: string | null; recaps: Recap[] }> {
+async function computeRecap(limitChallenges = 10, groupId?: string): Promise<{ error: string | null; recaps: Recap[] }> {
   const admin = getAdminClient();
   if (!admin) {
     return { error: 'Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL', recaps: [] };
   }
 
-  const { data: challenges, error: chErr } = await admin
+  let query = admin
     .from('challenges')
-    .select('id, group_id, week_start, week_end, status')
+    .select('id, group_id, week_start, week_end, status, pot')
     .eq('status', 'CLOSED')
-    .order('week_end', { ascending: false })
-    .limit(limitChallenges);
+    .order('week_end', { ascending: false });
+
+  if (groupId) {
+    query = query.eq('group_id', groupId).limit(1);
+  } else {
+    query = query.limit(limitChallenges);
+  }
+
+  const { data: challenges, error: chErr } = await query;
   if (chErr) return { error: chErr.message, recaps: [] };
 
   const recaps: Recap[] = [];
@@ -59,6 +67,7 @@ async function computeRecap(limitChallenges = 10): Promise<{ error: string | nul
         avgMiles: Number(avgMiles.toFixed(1)),
       },
       top3,
+      pot: typeof ch.pot === 'number' ? ch.pot : (ch.pot ? Number(ch.pot) : null),
     };
     recaps.push(recap);
   }
@@ -115,9 +124,10 @@ export async function POST(req: Request) {
   }
   const url = new URL(req.url);
   const limit = Number(url.searchParams.get('limit') || '10');
+  const groupId = url.searchParams.get('group_id') || undefined;
   const sendFlag = url.searchParams.get('send') === '1';
   const testToParam = url.searchParams.get('to');
-  const result = await computeRecap(Number.isFinite(limit) && limit > 0 ? limit : 10);
+  const result = await computeRecap(Number.isFinite(limit) && limit > 0 ? limit : 10, groupId ?? undefined);
   const status = result.error ? 500 : 200;
   const payload: { status: 'ok'|'error'; error: string | null; recaps: Recap[]; sent?: { group: string; ok: boolean; error: string | null }[] } =
     { status: result.error ? 'error' : 'ok', error: result.error, recaps: result.recaps };
