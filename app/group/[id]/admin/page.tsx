@@ -18,6 +18,23 @@ export default function Admin() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [activeInvites, setActiveInvites] = useState<Array<{ token: string; expires_at: string | null; created_at?: string | null }>>([]);
   const [expiredInvites, setExpiredInvites] = useState<Array<{ token: string; expires_at: string | null; created_at?: string | null }>>([]);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [copyAnimating, setCopyAnimating] = useState(false);
+
+  const copyWithAnim = useCallback(async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setCopyAnimating(true);
+      setTimeout(() => setCopyAnimating(false), 800);
+      setTimeout(() => {
+        // Clear the copied key after animation completes
+        setCopiedKey((k) => (k === key ? null : k));
+      }, 1200);
+    } catch (e) {
+      setMsg('Unable to copy');
+    }
+  }, []);
 
   // Client-side guard: ensure current user is admin/owner
   useEffect(() => {
@@ -250,9 +267,13 @@ export default function Admin() {
           <div style={{ marginTop:12, padding:12, border:'1px dashed #bbb', borderRadius:8 }}>
             <div style={{ fontWeight:600, marginBottom:6 }}>Invite Link</div>
             <div style={{ fontSize:14, wordBreak:'break-all' }}>{inviteUrl}</div>
-            <button onClick={()=>navigator.clipboard.writeText(inviteUrl)}
-                    style={{ marginTop:8, padding:'6px 10px', borderRadius:6, border:'1px solid #ddd' }}>
-              Copy
+            <button
+              onClick={()=>copyWithAnim(inviteUrl, 'main')}
+              style={{ marginTop:8, padding:'6px 10px', borderRadius:6, border:'1px solid #ddd',
+                       transform: copiedKey==='main' && copyAnimating ? 'scale(1.05)' : 'scale(1)',
+                       transition: 'transform 180ms ease' }}
+            >
+              {copiedKey==='main' && copyAnimating ? 'Copied!' : 'Copy'}
             </button>
           </div>
         )}
@@ -264,8 +285,14 @@ export default function Admin() {
                 <div key={inv.token} style={{ border:'1px solid #eee', borderRadius:8, padding:10, display:'flex', gap:8, alignItems:'center', justifyContent:'space-between' }}>
                   <div style={{ fontSize:14, wordBreak:'break-all' }}>{`${window.location.origin}/join?token=${inv.token}`}</div>
                   <div style={{ display:'flex', gap:8 }}>
-                    <button onClick={()=>navigator.clipboard.writeText(`${window.location.origin}/join?token=${inv.token}`)}
-                            style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ddd' }}>Copy</button>
+                    <button
+                      onClick={()=>copyWithAnim(`${window.location.origin}/join?token=${inv.token}`, inv.token)}
+                      style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ddd',
+                               transform: copiedKey===inv.token && copyAnimating ? 'scale(1.05)' : 'scale(1)',
+                               transition: 'transform 180ms ease' }}
+                    >
+                      {copiedKey===inv.token && copyAnimating ? 'Copied!' : 'Copy'}
+                    </button>
                     <button onClick={()=>revokeInvite(inv.token)}
                             style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #fca5a5', background:'#fee2e2', color:'#991b1b' }}>Revoke</button>
                   </div>
