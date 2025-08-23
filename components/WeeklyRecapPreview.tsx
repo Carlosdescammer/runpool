@@ -36,7 +36,7 @@ export default function WeeklyRecapPreview() {
             .select('group_id')
             .eq('user_id', user.id)
             .limit(1);
-          if (m && m.length > 0) groupId = (m[0] as any).group_id as string;
+          if (m && m.length > 0) groupId = (m[0] as { group_id: string }).group_id;
         }
 
         const url = new URL('/api/weekly-recap', window.location.origin);
@@ -49,8 +49,9 @@ export default function WeeklyRecapPreview() {
         if (json.status !== 'ok') throw new Error(json.error || 'Failed to load recap');
         const r = (json.recaps?.[0] as Recap | undefined) ?? null;
         if (alive) setRecap(r);
-      } catch (e: any) {
-        if (alive) setError(e?.message || 'Error loading recap');
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Error loading recap';
+        if (alive) setError(message);
       } finally {
         if (alive) setLoading(false);
       }

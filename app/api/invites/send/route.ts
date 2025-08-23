@@ -130,7 +130,8 @@ export async function POST(req: Request) {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message || 'Unexpected error' }), { status: 500, headers: { 'content-type': 'application/json' } });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unexpected error';
+    return new Response(JSON.stringify({ error: message }), { status: 500, headers: { 'content-type': 'application/json' } });
   }
 }
