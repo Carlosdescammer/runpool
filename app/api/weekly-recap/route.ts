@@ -4,11 +4,17 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export const runtime = 'edge' as const;
+export const runtime = 'edge';
 
 type LeaderboardRow = { user_id: string; name: string | null; miles: number };
 type Challenge = { id: string; group_id: string; week_start: string; week_end: string; status: 'OPEN'|'CLOSED' };
 type Group = { id: string; name: string };
+type Recap = {
+  group: Group | null;
+  challenge: { id: string; week_start: string; week_end: string };
+  summary: { participants: number; totalMiles: number; avgMiles: number };
+  top3: LeaderboardRow[];
+};
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
@@ -17,7 +23,7 @@ function getAdminClient() {
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
-async function computeRecap(limitChallenges = 10) {
+async function computeRecap(limitChallenges = 10): Promise<{ error: string | null; recaps: Recap[] }> {
   const admin = getAdminClient();
   if (!admin) {
     return { error: 'Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL', recaps: [] };
@@ -31,7 +37,7 @@ async function computeRecap(limitChallenges = 10) {
     .limit(limitChallenges);
   if (chErr) return { error: chErr.message, recaps: [] };
 
-  const recaps: any[] = [];
+  const recaps: Recap[] = [];
   for (const ch of (challenges ?? []) as Challenge[]) {
     const [{ data: group }, { data: rows }] = await Promise.all([
       admin.from('groups').select('id, name').eq('id', ch.group_id).single(),
@@ -44,8 +50,8 @@ async function computeRecap(limitChallenges = 10) {
     const avgMiles = participants ? totalMiles / participants : 0;
     const top3 = lb.slice(0, 3);
 
-    const recap = {
-      group: group as Group | null,
+    const recap: Recap = {
+      group: (group as Group | null) ?? null,
       challenge: { id: ch.id, week_start: ch.week_start, week_end: ch.week_end },
       summary: {
         participants,
@@ -78,8 +84,8 @@ async function sendResendEmail(to: string[], subject: string, html: string) {
   return { ok: true, data };
 }
 
-function recapHtml(groupName: string, period: string, recap: any) {
-  const top = (recap.top3 as any[]).map((r: any, i: number) => `<li>#${i + 1} ${r.name ?? r.user_id} — ${r.miles} miles</li>`).join('');
+function recapHtml(groupName: string, period: string, recap: Recap): string {
+  const top = recap.top3.map((r: LeaderboardRow, i: number) => `<li>#${i + 1} ${r.name ?? r.user_id} — ${r.miles} miles</li>`).join('');
   return `
   <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5; color:#111">
     <h2 style="margin:0 0 8px 0">${groupName} — Weekly Recap</h2>
@@ -113,7 +119,8 @@ export async function POST(req: Request) {
   const testToParam = url.searchParams.get('to');
   const result = await computeRecap(Number.isFinite(limit) && limit > 0 ? limit : 10);
   const status = result.error ? 500 : 200;
-  const payload: any = { status: result.error ? 'error' : 'ok', ...result };
+  const payload: { status: 'ok'|'error'; error: string | null; recaps: Recap[]; sent?: { group: string; ok: boolean; error: string | null }[] } =
+    { status: result.error ? 'error' : 'ok', error: result.error, recaps: result.recaps };
 
   // Optional: send recap emails via Resend when explicitly requested (send=1)
   if (!result.error && sendFlag && (process.env.RESEND_API_KEY && process.env.RESEND_FROM)) {

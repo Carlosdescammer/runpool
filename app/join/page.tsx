@@ -21,11 +21,9 @@ type GroupInfo = {
 export default function Join() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
-  const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [inviterName, setInviterName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [authEmail, setAuthEmail] = useState<string | null>(null);
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
 
   // Forms
@@ -50,7 +48,6 @@ export default function Join() {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id ?? null;
       setUserId(uid);
-      setAuthEmail(auth.user?.email ?? null);
 
       // Load invite via security-definer RPC (limited fields)
       const { data: invRows, error: invErr } = await supabase.rpc('get_invite_public', { p_token: t });
@@ -61,8 +58,7 @@ export default function Join() {
       // Check expiry
       const expired = inv.expires_at ? Date.now() > Date.parse(inv.expires_at) : false;
       if (expired) { setStatus('This invite has expired. Ask the admin to send a new one.'); setLoading(false); return; }
-      setInvite(inv as InviteInfo);
-      setInvitedEmail((inv as any).invited_email ?? null);
+      setInvitedEmail((inv as InviteInfo).invited_email ?? null);
 
       // Load group
       const { data: g } = await supabase
@@ -97,31 +93,11 @@ export default function Join() {
       }
     } catch {}
     setBusy(true);
-    // Prefer email-validated RPC; fallback to legacy if unavailable
-    let data: any = null; let error: any = null;
-    try {
-      const res = await supabase.rpc('join_group_with_token_email', { p_token: token });
-      data = res.data; error = res.error;
-      if (error && (error.message?.includes('does not exist') || error.code === 'PGRST204')) {
-        // Fallback
-        const legacy = await supabase.rpc('join_group_with_token', { p_token: token });
-        data = legacy.data; error = legacy.error;
-      }
-    } catch {
-      const legacy = await supabase.rpc('join_group_with_token', { p_token: token });
-      data = legacy.data; error = legacy.error;
-    }
+    // Use email-locked RPC only (DB has been updated)
+    const { data, error } = await supabase.rpc('join_group_with_token_email', { p_token: token });
     setBusy(false);
     if (error) { setStatus(error.message); return; }
     window.location.href = `/group/${data}?joined=1`;
-  }
-
-  async function afterAuthJoin() {
-    // Ensure profile display name exists
-    if (displayName && userId) {
-      await supabase.from('user_profiles').upsert({ id: userId, name: displayName });
-    }
-    await joinNow();
   }
 
   async function handleSignup() {
@@ -134,7 +110,6 @@ export default function Join() {
     // If not, we must ask the user to confirm; Supabase returns no session.
     if (data.session) {
       setUserId(data.user?.id ?? null);
-      setAuthEmail(data.user?.email ?? null);
       await supabase.from('user_profiles').upsert({ id: data.user?.id, name: displayName });
       await joinNow();
     } else {
@@ -148,7 +123,6 @@ export default function Join() {
     const { error } = await supabase.auth.signInWithPassword({ email: emailIn, password: passwordIn });
     setBusy(false);
     if (error) { setStatus(error.message); return; }
-    setAuthEmail(emailIn);
     await joinNow();
   }
 

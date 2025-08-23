@@ -1,4 +1,3 @@
-// @ts-nocheck
 // supabase/functions/weekly-recap/index.ts
 // Pending: Weekly recap email function (Deno)
 // Deploy with: supabase functions deploy weekly-recap

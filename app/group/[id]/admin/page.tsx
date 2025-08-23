@@ -17,7 +17,6 @@ export default function Admin() {
   const [weekStart, setWeekStart] = useState<string>(new Date().toISOString().slice(0,10));
   const [weekEnd, setWeekEnd] = useState<string>(new Date(Date.now()+6*86400000).toISOString().slice(0,10));
   const [msg, setMsg] = useState('');
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [activeInvites, setActiveInvites] = useState<InviteRow[]>([]);
   const [expiredInvites, setExpiredInvites] = useState<InviteRow[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -35,7 +34,7 @@ export default function Admin() {
         // Clear the copied key after animation completes
         setCopiedKey((k) => (k === key ? null : k));
       }, 1200);
-    } catch (e) {
+    } catch {
       setMsg('Unable to copy');
     }
   }, []);
@@ -63,17 +62,11 @@ export default function Admin() {
       for (const email of emails) {
         const token = crypto.randomUUID().replace(/-/g, '');
         const exp = new Date(Date.now() + 14*24*3600*1000).toISOString();
-        // Try to insert with invited_email; if the column doesn't exist yet, fallback to legacy insert
+        // Insert email-locked invite only (no legacy fallback)
         const { error } = await supabase.from('invites').insert({
           token, group_id: groupId, created_by: user.id, expires_at: exp, invited_email: email
-        } as any);
-        if (error) {
-          // Fallback without invited_email for backward compatibility
-          const { error: fallbackErr } = await supabase.from('invites').insert({
-            token, group_id: groupId, created_by: user.id, expires_at: exp
-          });
-          if (fallbackErr) { setMsg(fallbackErr.message); break; }
-        }
+        });
+        if (error) { setMsg(error.message); break; }
         const mailErr = await sendMagicLink(email, token);
         if (mailErr) { setMsg(mailErr.message ?? 'Failed to send some invites'); break; }
       }
@@ -149,27 +142,6 @@ export default function Admin() {
     setActiveInvites(active);
     setExpiredInvites(expired);
   }, [groupId]);
-
-  async function generateInvite() {
-    setMsg('Generating invite…');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setMsg('Sign in first.'); return; }
-    try {
-      const token = crypto.randomUUID().replace(/-/g, '');
-      const exp = new Date(Date.now() + 14*24*3600*1000).toISOString();
-      const { error } = await supabase.from('invites').insert({
-        token, group_id: groupId, created_by: user.id, expires_at: exp
-      });
-      if (error) { setMsg(error.message); return; }
-      const link = `${window.location.origin}/join?token=${token}`;
-      setInviteUrl(link);
-      setMsg('Invite created.');
-      await loadInvites();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      setMsg(message);
-    }
-  }
 
   useEffect(() => {
     // Load invites after mount or when group changes
@@ -328,29 +300,7 @@ export default function Admin() {
           </button>
         </div>
         <div style={{ height:12 }} />
-        <details style={{ border:'1px solid #eee', borderRadius:8, padding:12 }}>
-          <summary style={{ cursor:'pointer', fontWeight:700 }}>Legacy: Generate invite link (non-email)</summary>
-          <div style={{ height:8 }} />
-          <button onClick={generateInvite}
-                  style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#111827', color:'#fff', fontWeight:700 }}>
-            Generate invite link
-          </button>
-          {inviteUrl && (
-            <div style={{ marginTop:12, padding:12, border:'1px dashed #bbb', borderRadius:8 }}>
-              <div style={{ fontWeight:600, marginBottom:6 }}>Invite Link</div>
-              <div style={{ fontSize:14, wordBreak:'break-all' }}>{inviteUrl}</div>
-              <button
-                onClick={()=>copyWithAnim(inviteUrl, 'main')}
-                style={{ marginTop:8, padding:'6px 10px', borderRadius:6, border:'1px solid #ddd',
-                         transform: copiedKey==='main' && copyAnimating ? 'scale(1.05)' : 'scale(1)',
-                         transition: 'transform 180ms ease' }}
-              >
-                {copiedKey==='main' && copyAnimating ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          )}
-          <div style={{ color:'#6B7280', fontSize:12, marginTop:8 }}>Use email invites above for a more secure, personalized flow.</div>
-        </details>
+        {/* Legacy non-email invite UI removed to enforce email-locked invites only */}
         {activeInvites.length > 0 && (
           <div style={{ marginTop:12 }}>
             <div style={{ fontWeight:600, marginBottom:6 }}>Active invites</div>

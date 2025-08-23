@@ -240,18 +240,61 @@ export default function GroupPage() {
             <button onClick={()=>setShowWelcome(false)}
                     aria-label="Dismiss"
                     style={{ position:'absolute', right:10, top:10, border:'1px solid #ddd', borderRadius:8, background:'#fff', padding:'4px 8px' }}>✕</button>
-            <div style={{ fontWeight:800, marginBottom:6 }}>Welcome to {group.name}!</div>
-            <div style={{ color:'#374151' }}>
-              <div style={{ marginBottom:6 }}>
-                <strong>Rules:</strong> {group.rule || 'See admin for details.'}
-              </div>
-              <div style={{ marginBottom:6 }}>
-                <strong>What to do next:</strong>
-                <ul style={{ margin:'6px 0 0 18px' }}>
-                  <li>Scroll down to "Submit Weekly Data" and add your miles and optional proof.</li>
-                  <li>Check the Leaderboard to see how everyone is doing.</li>
-                  <li>Come back each week to stay in the challenge.</li>
-                </ul>
+            <div style={{ fontWeight:900, marginBottom:8, fontSize:18 }}>Run Pool — Simple Rules</div>
+            <div style={{ color:'#111827', lineHeight:1.4 }}>
+              <ol style={{ margin:'0 0 0 18px', padding:0, display:'grid', gap:8 }}>
+                <li>
+                  <strong>What this is</strong>
+                  <div>A weekly running game with friends. Do the miles, show proof, and share the prize.</div>
+                </li>
+                <li>
+                  <strong>Roles</strong>
+                  <div>Coach: made the group and sets the weekly rule.</div>
+                  <div>Banker: trusted person who holds the money (Apple Pay/Venmo).</div>
+                  <div>Players: everyone who joins.</div>
+                </li>
+                <li>
+                  <strong>This week’s rule (example)</strong>
+                  <div>Goal: <em>Run at least 5 miles between Mon–Sun 11:59 PM.</em> The rule stays the same all week. Changes apply next week.</div>
+                </li>
+                <li>
+                  <strong>How to join each week</strong>
+                  <div>Tap “Enter This Week.” Send the entry fee to the Banker. You’re in for this week’s game.</div>
+                </li>
+                <li>
+                  <strong>Do the run + show proof</strong>
+                  <div>Run anytime during the week. Upload one clear screenshot from a tracker (Apple Fitness, Strava, Nike Run Club, Garmin, etc.).</div>
+                  <div>Your proof must show: <em>distance</em>, <em>date</em>, <em>your name/initials</em> (if the app shows it).</div>
+                </li>
+                <li>
+                  <strong>End of week (what happens)</strong>
+                  <div><strong>PASS</strong> = you met the goal with valid proof. <strong>FAIL</strong> = you didn’t meet the goal or didn’t upload proof.</div>
+                  <div>Prize = money from the FAIL players. Winners split the prize equally.</div>
+                  <div>If nobody passes → prize carries to next week. If everyone passes → no prize; fun only.</div>
+                </li>
+                <li>
+                  <strong>Leaderboard</strong>
+                  <div>Updates as proofs come in. Shows miles and PASS/FAIL. It’s public to the group.</div>
+                </li>
+                <li>
+                  <strong>Deadlines (don’t miss them)</strong>
+                  <div>Proof upload closes Sun 11:59 PM. Late = FAIL. No exceptions.</div>
+                </li>
+                <li>
+                  <strong>Fair play (no drama)</strong>
+                  <div>One account per person. Real runs only. No treadmill “keyboard miles.”</div>
+                  <div>Blurry or cropped proof = FAIL. Coach can reject suspicious proofs.</div>
+                </li>
+                <li>
+                  <strong>Money basics (kept offline)</strong>
+                  <div>Banker holds the money. The app only tracks who entered and who won. Payouts are sent by the Banker after results are posted.</div>
+                </li>
+              </ol>
+              <div style={{ marginTop:10, paddingTop:10, borderTop:'1px dashed #D1D5DB', color:'#374151' }}>
+                <div style={{ fontWeight:800, marginBottom:4 }}>Quick example</div>
+                <div>Entry: $25. 12 players enter.</div>
+                <div>Results: 7 PASS, 5 FAIL.</div>
+                <div>Prize = 5 × $25 = $125 → split by 7 winners ≈ $17 each (leftover cents roll to next week).</div>
               </div>
             </div>
           </div>
@@ -266,11 +309,17 @@ export default function GroupPage() {
             </div>
             {challenge && (
               <div style={{ padding:'10px 14px', border:'1px solid #e5e7eb', borderRadius:10 }}>
-                Pot: <strong>${challenge.pot}</strong>
+                Pot: <strong>{`$${challenge.pot}`}</strong>
               </div>
             )}
+            <button
+              onClick={()=>setShowWelcome(true)}
+              aria-label="View Rules"
+              style={{ padding:'10px 14px', minHeight:44, fontSize:16, border:'1px solid #e5e7eb', borderRadius:10, background:'#FFFFFF', fontWeight:700 }}>
+              View Rules
+            </button>
             {isAdmin && (
-              <a href={`/group/${groupId}/admin`} style={{ marginLeft:12, textDecoration:'none' }}>
+              <a href={`/group/${groupId}/admin`} style={{ textDecoration:'none' }}>
                 <div style={{ padding:'10px 14px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
                   Admin
                 </div>

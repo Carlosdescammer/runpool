@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Ignore Deno edge functions (not part of Next.js TS env)
+      "supabase/functions/**",
     ],
   },
 ];
