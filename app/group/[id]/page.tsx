@@ -51,6 +51,9 @@ export default function GroupPage() {
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [joinLink, setJoinLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteExpiresDays, setInviteExpiresDays] = useState<number>(14);
+  const [inviteSending, setInviteSending] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -127,6 +130,46 @@ export default function GroupPage() {
       .order('miles', { ascending: false });
     setLeaderboard(rows ?? []);
     setLoadingBoard(false);
+  }
+
+  async function sendInvite() {
+    try {
+      if (!isAdmin) { toast.error('Only admins can send invites'); return; }
+      if (!groupId) { toast.error('Missing group'); return; }
+      const email = inviteEmail.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        toast.error('Enter a valid email');
+        return;
+      }
+      setInviteSending(true);
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) { toast.error('Please sign in again'); setInviteSending(false); return; }
+      const res = await fetch('/api/invites/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ group_id: groupId, email, expires_in_days: inviteExpiresDays }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (json && (json.error as string)) || `Failed to send invite (${res.status})`;
+        toast.error(msg);
+        setInviteSending(false);
+        return;
+      }
+      const inviteUrl = (json && (json.invite_url as string)) || `${window.location.origin}/join`;
+      try { await navigator.clipboard.writeText(inviteUrl); } catch {}
+      toast.success('Invite sent');
+      setInviteEmail('');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unexpected error';
+      toast.error(msg);
+    } finally {
+      setInviteSending(false);
+    }
   }
 
   // Realtime: subscribe to proofs changes for current challenge to refresh leaderboard
@@ -408,6 +451,36 @@ export default function GroupPage() {
             <Button onClick={copyInvite} variant="secondary" size="sm" className="w-full sm:w-auto">{copied ? 'Copied' : 'Copy link'}</Button>
           </div>
         </Card>
+
+        {isAdmin && (
+          <Card className="p-4">
+            <div className="mb-2 text-lg font-extrabold">Invite via Email</div>
+            <div className="text-sm text-zinc-700">Send a join link to a player.</div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="person@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                type="email"
+                className="min-w-0 w-full sm:flex-1"
+              />
+              <Input
+                placeholder="Days"
+                value={String(inviteExpiresDays)}
+                onChange={(e) => setInviteExpiresDays(() => {
+                  const n = Number(e.target.value);
+                  if (!Number.isFinite(n)) return 14;
+                  return Math.max(1, Math.min(60, Math.trunc(n)));
+                })}
+                type="number"
+                className="w-24"
+              />
+              <Button onClick={sendInvite} disabled={inviteSending} variant="primary" className="w-full sm:w-auto">
+                {inviteSending ? 'Sending…' : 'Send Invite'}
+              </Button>
+            </div>
+          </Card>
+        )}
 
         <Card className="p-4">
           <div className="mb-2 text-lg font-extrabold">Submit Weekly Data</div>
