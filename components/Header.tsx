@@ -39,11 +39,11 @@ export default function Header() {
       borderBottom:'1px solid #eee',
       minHeight: 56,
     }}>
-      <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+      <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
           <Link href="/" style={{ color:'var(--rp-text)', textDecoration:'none', fontWeight:800 }}>Run Pool</Link>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           {adminGroupId && (
             <Link href={`/group/${adminGroupId}`} style={{ textDecoration:'none' }}>
               <span style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, lineHeight:'24px', fontSize:16, borderRadius:10, fontWeight:700, display:'inline-flex', alignItems:'center' }}>← Back</span>

@@ -38,3 +38,9 @@ body {
 /* Prevent iOS zoom on small inputs and ensure comfy tap targets */
 input, select, textarea { font-size: 16px; }
 button, a[role="button"], .btn { min-height: 44px; font-size: 16px; }
+
+/* Avoid accidental horizontal scrolling on small screens */
+html, body { overflow-x: hidden; }
+
+/* Predictable sizing */
+*, *::before, *::after { box-sizing: border-box; }

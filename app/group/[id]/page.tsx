@@ -368,23 +368,23 @@ export default function GroupPage() {
         )}
 
         {group && (
-          <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <Card className="flex flex-wrap items-center justify-start gap-3 p-4 md:justify-between">
             <div>
               <h1 className="m-0 text-[22px] font-extrabold">{group.name}</h1>
               <div className="text-zinc-700">{group.rule}</div>
               {challenge && <div className="text-sm text-zinc-700">Week: {period}</div>}
             </div>
             {challenge && (
-              <Badge variant="outline" className="rounded-xl px-3 py-2">
+              <Badge variant="outline" className="rounded-xl px-3 py-2 order-3 w-full sm:order-none sm:w-auto">
                 Pot: <span className="font-bold">${challenge.pot}</span>
               </Badge>
             )}
-            <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary">
+            <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary" className="w-full sm:w-auto">
               View Rules
             </Button>
             {isAdmin && (
               <a href={`/group/${groupId}/admin`} className="no-underline">
-                <Button variant="primary">Admin</Button>
+                <Button variant="primary" className="w-full sm:w-auto">Admin</Button>
               </a>
             )}
           </Card>
@@ -404,9 +404,9 @@ export default function GroupPage() {
               <Badge variant="secondary" className="rounded-full">Deadline: {deadlineLabel}</Badge>
             )}
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <Input readOnly value={joinLink} className="flex-1" />
-            <Button onClick={copyInvite} variant="secondary" size="sm">{copied ? 'Copied' : 'Copy link'}</Button>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Input readOnly value={joinLink} className="min-w-0 w-full sm:flex-1" />
+            <Button onClick={copyInvite} variant="secondary" size="sm" className="w-full sm:w-auto">{copied ? 'Copied' : 'Copy link'}</Button>
           </div>
         </Card>
 
@@ -424,9 +424,9 @@ export default function GroupPage() {
             <input
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="text-sm"
+              className="text-sm w-full sm:w-auto"
             />
-            <Button onClick={submitProof} variant="primary">Submit</Button>
+            <Button onClick={submitProof} variant="primary" className="w-full sm:w-auto">Submit</Button>
           </div>
           <div className="mt-2 text-xs text-zinc-600">{status}</div>
         </Card>
