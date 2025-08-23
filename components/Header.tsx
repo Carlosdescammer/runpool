@@ -23,6 +23,8 @@ export default function Header() {
 
   const isSignedIn = !!userId;
   const showSignIn = !isSignedIn && pathname !== '/signin';
+  const adminMatch = pathname?.match(/^\/group\/([^/]+)\/admin$/);
+  const adminGroupId = adminMatch?.[1] ?? null;
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -34,20 +36,29 @@ export default function Header() {
       background: '#fff', color: '#111', padding: '12px 16px', position:'sticky', top:0, zIndex:20,
       borderBottom:'1px solid #eee'
     }}>
-      <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <Link href="/" style={{ color:'#111', textDecoration:'none', fontWeight:800 }}>Run Pool</Link>
-        {isSignedIn ? (
-          <button onClick={signOut}
-                  style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, fontWeight:700, border:'none', cursor:'pointer' }}>
-            Sign Out
-          </button>
-        ) : (
-          showSignIn && (
-            <Link href="/signin" style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, textDecoration:'none', fontWeight:700 }}>
-              Sign In
+      <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <Link href="/" style={{ color:'#111', textDecoration:'none', fontWeight:800 }}>Run Pool</Link>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {adminGroupId && (
+            <Link href={`/group/${adminGroupId}`} style={{ textDecoration:'none' }}>
+              <span style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, fontWeight:700 }}>← Back</span>
             </Link>
-          )
-        )}
+          )}
+          {isSignedIn ? (
+            <button onClick={signOut}
+                    style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, fontWeight:700, border:'none', cursor:'pointer' }}>
+              Sign Out
+            </button>
+          ) : (
+            showSignIn && (
+              <Link href="/signin" style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, textDecoration:'none', fontWeight:700 }}>
+                Sign In
+              </Link>
+            )
+          )}
+        </div>
       </div>
     </header>
   );
