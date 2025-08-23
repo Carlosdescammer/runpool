@@ -90,6 +90,24 @@ export default function GroupPage() {
     setLeaderboard(rows ?? []);
   }
 
+  // Realtime: subscribe to proofs changes for current challenge to refresh leaderboard
+  useEffect(() => {
+    if (!challenge?.id) return;
+    const channel = supabase
+      .channel(`leaderboard_${challenge.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proofs', filter: `challenge_id=eq.${challenge.id}` },
+        () => {
+          loadLeaderboard(challenge.id);
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [challenge?.id]);
+
   // Compute rank deltas (vs previous render snapshot) and top-3 threshold animations
   useEffect(() => {
     if (!leaderboard || leaderboard.length === 0 || !groupId) return;
@@ -210,8 +228,11 @@ export default function GroupPage() {
   }
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', padding:'24px 16px',
-                  background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
+    <div style={{
+      minHeight: '100svh',
+      padding: 'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
+      background: 'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))'
+    }}>
       <div style={{ maxWidth: 1000, margin:'0 auto', display:'grid', gap:16 }}>
         {showWelcome && group && (
           <div style={{ background:'#EEF2FF', border:'1px solid #E5E7EB', borderRadius:12, padding:16,
@@ -237,7 +258,7 @@ export default function GroupPage() {
         )}
         {group && (
           <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:12, padding:16,
-                        boxShadow:'0 10px 30px rgba(0,0,0,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        boxShadow:'0 10px 30px rgba(0,0,0,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
             <div>
               <h1 style={{ fontSize:22, fontWeight:800, margin:0 }}>{group.name}</h1>
               <div style={{ color:'#6B7280' }}>{group.rule}</div>
@@ -264,10 +285,11 @@ export default function GroupPage() {
           <div style={{ fontWeight:800, marginBottom:8 }}>Submit Weekly Data</div>
           <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
             <input placeholder="Miles e.g. 5.2" value={miles} onChange={e=>setMiles(e.target.value)}
-                   style={{ padding:10, border:'1px solid #ddd', borderRadius:8 }} />
+                   type="text" inputMode="decimal"
+                   style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
             <input type="file" onChange={e=>setFile(e.target.files?.[0] ?? null)} />
             <button onClick={submitProof}
-                    style={{ padding:'10px 14px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
+                    style={{ padding:'12px 16px', minHeight:44, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
               Submit
             </button>
           </div>
@@ -280,7 +302,8 @@ export default function GroupPage() {
           <div style={{ padding:12, borderBottom:'1px solid #eee', fontWeight:800 }}>
             Leaderboard {challenge ? `— ${period}` : ''}
           </div>
-          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth: 560 }}>
             <thead>
               <tr style={{ background:'#f5f5f5', color:'#555' }}>
                 <th style={{ textAlign:'left', padding:10 }}>Rank</th>
@@ -359,6 +382,7 @@ export default function GroupPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

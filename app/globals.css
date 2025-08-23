@@ -1,0 +1,12 @@
+/* Global mobile-friendly defaults for app/ tree */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Respect bottom safe area (home indicator) */
+body { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Prevent iOS zoom on small inputs and improve tap targets */
+input, select, textarea { font-size: 16px; }
+button, a[role="button"], .btn { min-height: 44px; font-size: 16px; }

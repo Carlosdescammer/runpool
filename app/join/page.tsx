@@ -163,8 +163,13 @@ export default function Join() {
   }, [inviterName]);
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', display:'grid', placeItems:'center', padding:'24px 16px',
-                  background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
+    <div style={{
+      minHeight:'100svh',
+      display:'grid',
+      placeItems:'center',
+      padding:'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
+      background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))'
+    }}>
       <div style={{ width:'100%', maxWidth:720, background:'#fff', border:'1px solid #eee', borderRadius:12,
                      boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
         {/* Invite header */}
@@ -199,21 +204,21 @@ export default function Join() {
           <div style={{ textAlign:'center' }}>
             <div style={{ color:'#6B7280', marginBottom:10 }}>You are signed in. Accept the invite to join this group.</div>
             <button onClick={joinNow} disabled={busy}
-                    style={{ padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800, width:240 }}>
+                    style={{ padding:'14px 16px', minHeight:44, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800, width:260 }}>
               {busy ? 'Joining…' : 'Join group'}
             </button>
           </div>
         ) : (
           <div>
             {/* Toggle */}
-            <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
+            <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
               <button onClick={()=>setMode('signup')}
-                      style={{ padding:'8px 12px', borderRadius:8, border:'1px solid #ddd',
+                      style={{ padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, border:'1px solid #ddd',
                                background: mode==='signup' ? '#7C3AED' : '#fff', color: mode==='signup' ? '#fff' : '#111' }}>
                 Create account
               </button>
               <button onClick={()=>setMode('signin')}
-                      style={{ padding:'8px 12px', borderRadius:8, border:'1px solid #ddd',
+                      style={{ padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, border:'1px solid #ddd',
                                background: mode==='signin' ? '#7C3AED' : '#fff', color: mode==='signin' ? '#fff' : '#111' }}>
                 I already have an account
               </button>
@@ -224,15 +229,17 @@ export default function Join() {
               <div style={{ display:'grid', gap:10 }}>
                 <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Display name</label>
                 <input placeholder="e.g. Jamie" value={displayName} onChange={e=>setDisplayName(e.target.value)}
-                       style={{ padding:12, border:'1px solid #ddd', borderRadius:8 }} />
+                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
                 <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Email</label>
                 <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-                       placeholder="you@example.com" style={{ padding:12, border:'1px solid #ddd', borderRadius:8 }} />
+                       placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next"
+                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
                 <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Password</label>
                 <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
-                       placeholder="••••••••" style={{ padding:12, border:'1px solid #ddd', borderRadius:8 }} />
+                       placeholder="••••••••" autoComplete="new-password" enterKeyHint="done"
+                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
                 <button onClick={handleSignup} disabled={busy}
-                        style={{ marginTop:4, padding:'12px 16px', borderRadius:10, background:'#111827', color:'#fff', fontWeight:800 }}>
+                        style={{ marginTop:4, padding:'14px 16px', minHeight:48, fontSize:16, borderRadius:10, background:'#111827', color:'#fff', fontWeight:800 }}>
                   {busy ? 'Creating account…' : 'Create account & Join'}
                 </button>
               </div>
@@ -240,12 +247,14 @@ export default function Join() {
               <div style={{ display:'grid', gap:10 }}>
                 <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Email</label>
                 <input type="email" value={emailIn} onChange={e=>setEmailIn(e.target.value)}
-                       placeholder="you@example.com" style={{ padding:12, border:'1px solid #ddd', borderRadius:8 }} />
+                       placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next"
+                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
                 <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Password</label>
                 <input type="password" value={passwordIn} onChange={e=>setPasswordIn(e.target.value)}
-                       placeholder="••••••••" style={{ padding:12, border:'1px solid #ddd', borderRadius:8 }} />
+                       placeholder="••••••••" autoComplete="current-password" enterKeyHint="done"
+                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
                 <button onClick={handleSignin} disabled={busy}
-                        style={{ marginTop:4, padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800 }}>
+                        style={{ marginTop:4, padding:'14px 16px', minHeight:48, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800 }}>
                   {busy ? 'Signing in…' : 'Sign in & Join'}
                 </button>
               </div>

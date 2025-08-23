@@ -10,6 +10,8 @@ export default function Home() {
       fontWeight: 700 as const,
       textDecoration: 'none',
       display: 'inline-block',
+      minHeight: 44,
+      fontSize: 16,
     },
     primary: { background: '#7C3AED', color: '#fff', boxShadow: '0 8px 20px rgba(124,58,237,0.25)' },
     ghost:   { border: '1px solid #e5e7eb', color: '#111', background: '#fff' },
@@ -20,19 +22,24 @@ export default function Home() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 24 }}>
+    <div style={{
+      display: 'grid',
+      gap: 24,
+      minHeight: '100svh',
+      padding: 'calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
+    }}>
       {/* HERO */}
       <section
         style={{
           borderRadius: 16,
-          padding: '56px 24px',
+          padding: 'clamp(32px, 8vw, 56px) 24px',
           background: 'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))',
         }}
       >
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gap: 24, alignItems: 'center',
                       gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
           <div>
-            <h1 style={{ fontSize: 44, lineHeight: 1.1, margin: 0, fontWeight: 900 }}>Run Pool</h1>
+            <h1 style={{ fontSize: 'clamp(28px, 8vw, 44px)', lineHeight: 1.1, margin: 0, fontWeight: 900 }}>Run Pool</h1>
             <p style={{ margin: '14px 0 24px', fontSize: 18, color: '#374151' }}>
               Create a group, set weekly miles, invite with a link, upload proof, and
               watch the live leaderboard. Money is held offline by your group’s banker.

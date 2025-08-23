@@ -23,7 +23,7 @@ export default function Header() {
 
   const isSignedIn = !!userId;
   const showSignIn = !isSignedIn && pathname !== '/signin';
-  const adminMatch = pathname?.match(/^\/group\/([^/]+)\/admin$/);
+  const adminMatch = pathname?.match(/^\/group\/([^/]+)\/admin(?:$|\/)$/);
   const adminGroupId = adminMatch?.[1] ?? null;
 
   async function signOut() {
@@ -33,8 +33,11 @@ export default function Header() {
 
   return (
     <header style={{
-      background: '#fff', color: '#111', padding: '12px 16px', position:'sticky', top:0, zIndex:20,
-      borderBottom:'1px solid #eee'
+      background: '#fff', color: '#111',
+      padding: 'calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))',
+      position:'sticky', top:0, zIndex:20,
+      borderBottom:'1px solid #eee',
+      minHeight: 56,
     }}>
       <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -43,17 +46,19 @@ export default function Header() {
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {adminGroupId && (
             <Link href={`/group/${adminGroupId}`} style={{ textDecoration:'none' }}>
-              <span style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, fontWeight:700 }}>← Back</span>
+              <span style={{ background:'#7C3AED', color:'#fff', padding:'10px 14px', minHeight:44, lineHeight:'24px', fontSize:16, borderRadius:10, fontWeight:700, display:'inline-flex', alignItems:'center' }}>← Back</span>
             </Link>
           )}
           {isSignedIn ? (
-            <button onClick={signOut}
-                    style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, fontWeight:700, border:'none', cursor:'pointer' }}>
-              Sign Out
-            </button>
+            pathname !== '/' && (
+              <button onClick={signOut}
+                      style={{ background:'#7C3AED', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, fontWeight:700, border:'none', cursor:'pointer' }}>
+                Sign Out
+              </button>
+            )
           ) : (
             showSignIn && (
-              <Link href="/signin" style={{ background:'#7C3AED', color:'#fff', padding:'8px 12px', borderRadius:8, textDecoration:'none', fontWeight:700 }}>
+              <Link href="/signin" style={{ background:'#7C3AED', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, textDecoration:'none', fontWeight:700 }}>
                 Sign In
               </Link>
             )

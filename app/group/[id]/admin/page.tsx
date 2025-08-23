@@ -311,15 +311,19 @@ export default function Admin() {
         <div style={{ height:12, borderTop:'1px solid #eee' }} />
         <div style={{ fontWeight:800 }}>Invites</div>
         <div style={{ height:8 }} />
-        <div style={{ border:'1px solid #eee', borderRadius:8, padding:12, background:'#F9FAFB' }}>
-          <div style={{ fontWeight:700, marginBottom:6 }}>Invite by email</div>
-          <div style={{ fontSize:12, color:'#6B7280', marginBottom:8 }}>Enter one or more emails (comma or newline separated). Each person will receive a magic link to join.</div>
-          <textarea value={emailsInput} onChange={e=>setEmailsInput(e.target.value)} rows={3}
+        <div style={{ border:'2px solid #C4B5FD', borderRadius:12, padding:16, background:'#F5F3FF',
+                      boxShadow:'0 1px 0 rgba(124,58,237,0.15), 0 8px 24px rgba(124,58,237,0.08)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, fontWeight:800, marginBottom:8, fontSize:18 }}>
+            <span>📧 Invite by email</span>
+            <span style={{ fontSize:12, background:'#7C3AED', color:'#fff', padding:'2px 6px', borderRadius:6, fontWeight:800 }}>Recommended</span>
+          </div>
+          <div style={{ fontSize:13, color:'#4B5563', marginBottom:10 }}>Enter one or more emails (comma or newline separated). Each person will receive a magic link to join.</div>
+          <textarea value={emailsInput} onChange={e=>setEmailsInput(e.target.value)} rows={4}
                     placeholder="friend1@example.com, friend2@example.com"
-                    style={{ width:'100%', padding:10, border:'1px solid #ddd', borderRadius:8 }} />
-          <div style={{ height:8 }} />
+                    style={{ width:'100%', padding:12, border:'1px solid #C4B5FD', borderRadius:10, background:'#fff' }} />
+          <div style={{ height:10 }} />
           <button onClick={inviteByEmail} disabled={sendingInvites}
-                  style={{ width:'100%', padding:'10px 14px', borderRadius:10, background:'#111827', color:'#fff', fontWeight:700 }}>
+                  style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800 }}>
             {sendingInvites ? 'Sending…' : 'Send invites'}
           </button>
         </div>
