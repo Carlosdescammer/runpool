@@ -1,6 +1,6 @@
 // app/api/weekly-recap/route.ts
 // Weekly recap computation endpoint (scheduler-friendly). Returns a JSON preview of recaps.
-// Email delivery is not wired yet; configure a provider and call from here.
+// Optional Resend email sending with send=1; can be protected via CRON_SECRET.
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -97,12 +97,14 @@ function recapHtml(groupName: string, period: string, recap: any) {
 }
 
 export async function POST(req: Request) {
-  // Optional protection: if CRON_SECRET is set, require matching header
+  // Optional protection: if CRON_SECRET is set, require either Authorization: Bearer <secret> or x-cron-secret header
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
-    const provided = req.headers.get('x-cron-secret');
-    if (provided !== cronSecret) {
-      return new Response(JSON.stringify({ status: 'forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } });
+    const auth = req.headers.get('authorization');
+    const bearerOk = auth === `Bearer ${cronSecret}`;
+    const headerOk = req.headers.get('x-cron-secret') === cronSecret;
+    if (!bearerOk && !headerOk) {
+      return new Response('Unauthorized', { status: 401 });
     }
   }
   const url = new URL(req.url);
