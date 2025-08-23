@@ -92,8 +92,15 @@ export default function Page() {
   }
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', display:'grid', placeItems:'center', padding:'24px 16px',
-                  background:'linear-gradient(180deg, rgba(99,102,241,0.12), rgba(236,72,153,0.12))' }}>
+    <div style={{
+      minHeight: '100svh',
+      display: 'grid',
+      placeItems: 'center',
+      padding: 'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
+      background: 'linear-gradient(180deg, rgba(99,102,241,0.12), rgba(236,72,153,0.12))',
+      WebkitTapHighlightColor: 'transparent',
+      touchAction: 'manipulation',
+    }}>
       <div style={{ width:'100%', maxWidth:440, background:'#fff', border:'1px solid #eee', borderRadius:12,
                      boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
         {userId && (
@@ -103,10 +110,16 @@ export default function Page() {
         <div style={{ height:12 }} />
         <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Email</label>
         <input
+          type="email"
           placeholder="you@example.com"
           value={email}
           onChange={e=>setEmail(e.target.value)}
-          style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
+          autoCapitalize="none"
+          autoCorrect="off"
+          inputMode="email"
+          autoComplete="email"
+          enterKeyHint="next"
+          style={{ marginTop:8, padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
         />
         <div style={{ height:12 }} />
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, flexWrap:'wrap' }}>
@@ -126,11 +139,13 @@ export default function Page() {
           placeholder="••••••••"
           value={password}
           onChange={e=>setPassword(e.target.value)}
-          style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
+          autoComplete="current-password"
+          enterKeyHint="done"
+          style={{ marginTop:8, padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
         />
         <div style={{ height:16 }} />
         <button onClick={passwordSignIn}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
+                style={{ width:'100%', padding:'14px 16px', minHeight:48, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
           Sign in
         </button>
         <div style={{ height:12 }} />
