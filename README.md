@@ -5,10 +5,42 @@ A lightweight group challenge app built with Next.js App Router and Supabase. It
 ## Features
 
 - **Group management**: create, view, and manage groups (`app/group/[id]/`).
-- **Admin controls**: edit group name/rules/entry fee, create weeks, delete group (`app/group/[id]/admin/page.tsx`).
-- **Invite links**: generate copyable invite URLs, list active/expired invites, revoke invites.
+- **Admin controls**: edit group name/rules/entry fee, create weeks, delete group, and a prominent "Back to dashboard" control (`app/group/[id]/admin/page.tsx` + header).
+- **Email invites (primary)**: send magic-link invites by email, show invited email on each invite, resend magic link, revoke; legacy token link generation is available under a collapsed "Legacy" section.
+- **Leaderboard gamification**: color-coded podium for top 3, streak badges, rank change (up/down) indicators, and subtle animations for entering/leaving top 3.
 - **Client-side guards**: admin page checks current user membership role and redirects non-admins.
 - **RLS-secured**: relies on Supabase Row Level Security to enforce permissions.
+
+## Recent Updates (2025-08-23)
+
+- **Prioritized email invite flow** (`app/group/[id]/admin/page.tsx`): textarea for multiple emails; sends Supabase magic-link emails; shows active and expired invites; supports resending per-invite when `invited_email` is known; supports revoking.
+- **Legacy invites de-emphasized**: legacy "Generate invite link" moved into a `<details>` section labeled "Legacy" to steer users toward email invites.
+- **Back to dashboard**:
+  - On-page back button in the admin card header linking to `/group/[id]`.
+  - Global header shows a route-aware "Back" button on `/group/[id]/admin` (with or without trailing slash).
+- **Leaderboard gamification** (`app/group/[id]/page.tsx`):
+  - Podium colors for ranks 1–3.
+  - Streak badges derived from recent challenge participation.
+  - Rank deltas computed using a localStorage snapshot of previous ranks.
+  - Enter/leave top-3 join/drop animations.
+
+## Bugs fixed
+
+- **Invite row typing/compat**: Some projects lacked the `invited_email` column, causing insert/select issues.
+  - Fix: when sending invites, attempt insert with `invited_email` and fall back to legacy insert if the column is missing.
+  - Fix: join page selects `*` from `invites` to avoid column-specific errors and maintain backward compatibility.
+- **Back navigation missing on Admin**: Back button wasn’t visible in some admin routes (e.g., trailing slash).
+  - Fix: added on-page back control and header-level route detection that handles `/group/[id]/admin` and `/group/[id]/admin/`.
+
+## What's next
+
+- **Realtime updates**: live invite list and leaderboard via Supabase Realtime.
+- **Invite UX**: tooltips/docs explaining email vs legacy invites; optional full removal of legacy links.
+- **Email-locked joins**: enforce that only the invited email can use a token to join (join-time validation).
+- **Admin enhancements**: bulk revoke, manual expire, CSV import for emails.
+- **More gamification**: milestone badges, streak decay warnings, confetti for podium changes, animated progress.
+- **Security/RLS**: tighten policies around invites and membership creation.
+
 
 ## Getting Started
 
