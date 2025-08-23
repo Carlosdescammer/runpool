@@ -8,6 +8,7 @@ type InviteInfo = {
   group_id: string;
   created_by: string;
   expires_at: string | null;
+  invited_email?: string | null;
 };
 
 type GroupInfo = {
@@ -24,6 +25,7 @@ export default function Join() {
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [inviterName, setInviterName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
 
   // Forms
   const [mode, setMode] = useState<'signup' | 'signin'>('signup');
@@ -51,7 +53,7 @@ export default function Join() {
       // Load invite
       const { data: inv } = await supabase
         .from('invites')
-        .select('token, group_id, created_by, expires_at')
+        .select('*')
         .eq('token', t)
         .maybeSingle();
       if (!inv) { setStatus('This invite is invalid or was revoked.'); setLoading(false); return; }
@@ -60,6 +62,7 @@ export default function Join() {
       const expired = inv.expires_at ? Date.now() > Date.parse(inv.expires_at) : false;
       if (expired) { setStatus('This invite has expired. Ask the admin to send a new one.'); setLoading(false); return; }
       setInvite(inv as InviteInfo);
+      setInvitedEmail((inv as any).invited_email ?? null);
 
       // Load group
       const { data: g } = await supabase
@@ -84,7 +87,20 @@ export default function Join() {
   async function joinNow() {
     if (!token) { setStatus('Missing invite token.'); return; }
     setBusy(true);
-    const { data, error } = await supabase.rpc('join_group_with_token', { p_token: token });
+    // Prefer email-validated RPC; fallback to legacy if unavailable
+    let data: any = null; let error: any = null;
+    try {
+      const res = await supabase.rpc('join_group_with_token_email', { p_token: token });
+      data = res.data; error = res.error;
+      if (error && (error.message?.includes('does not exist') || error.code === 'PGRST204')) {
+        // Fallback
+        const legacy = await supabase.rpc('join_group_with_token', { p_token: token });
+        data = legacy.data; error = legacy.error;
+      }
+    } catch {
+      const legacy = await supabase.rpc('join_group_with_token', { p_token: token });
+      data = legacy.data; error = legacy.error;
+    }
     setBusy(false);
     if (error) { setStatus(error.message); return; }
     window.location.href = `/group/${data}?joined=1`;
@@ -156,6 +172,11 @@ export default function Join() {
               {typeof group.entry_fee === 'number' && (
                 <div><strong>Entry Fee:</strong> ${group.entry_fee}</div>
               )}
+              {invitedEmail && (
+                <div style={{ marginTop:6, color:'#6B7280' }}>
+                  This invite is for <strong>{invitedEmail}</strong>.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -222,6 +243,24 @@ export default function Join() {
 
         <div style={{ height:12 }} />
         <div style={{ color:'#6B7280', fontSize:12, minHeight:18, textAlign:'center' }}>{status}</div>
+        {/* Rules: Run Pool — Simple Rules */}
+        <div style={{ height:20 }} />
+        <div style={{ borderTop:'1px solid #eee', paddingTop:12 }}>
+          <div style={{ fontWeight:800, marginBottom:6 }}>Run Pool — Simple Rules</div>
+          <div style={{ color:'#374151', fontSize:14, display:'grid', gap:8 }}>
+            <div><strong>1) What this is</strong><br/>A weekly running game with friends. Do the miles, show proof, and share the prize.</div>
+            <div><strong>2) Roles</strong><br/>Coach: made the group and sets the weekly rule.<br/>Banker: trusted person who holds the money (Apple Pay/Venmo).<br/>Players: everyone who joins.</div>
+            <div><strong>3) This week’s rule (example)</strong><br/>Goal: Run at least 5 miles between Mon–Sun 11:59 PM. The rule stays the same all week. Changes apply next week.</div>
+            <div><strong>4) How to join each week</strong><br/>Tap “Enter This Week.” Send the entry fee to the Banker. You’re in for this week’s game.</div>
+            <div><strong>5) Do the run + show proof</strong><br/>Run anytime during the week. Upload one clear screenshot from a tracker (Apple Fitness, Strava, Nike Run Club, Garmin, etc.). Your proof must show: distance, date, your name/initials (if the app shows it).</div>
+            <div><strong>6) End of week (what happens)</strong><br/>PASS = you met the goal with valid proof. FAIL = you didn’t meet the goal or didn’t upload proof. Prize = money from the FAIL players. Winners split the prize equally. If nobody passes → prize carries to next week. If everyone passes → no prize; fun only.</div>
+            <div><strong>7) Leaderboard</strong><br/>Updates as proofs come in. Shows miles and PASS/FAIL. It’s public to the group.</div>
+            <div><strong>8) Deadlines (don’t miss them)</strong><br/>Proof upload closes Sun 11:59 PM. Late = FAIL. No exceptions.</div>
+            <div><strong>9) Fair play (no drama)</strong><br/>One account per person. Real runs only. No treadmill “keyboard miles.” Blurry or cropped proof = FAIL. Coach can reject suspicious proofs.</div>
+            <div><strong>10) Money basics (kept offline)</strong><br/>Banker holds the money. The app only tracks who entered and who won. Payouts are sent by the Banker after results are posted.</div>
+            <div><strong>Quick example</strong><br/>Entry: $25. 12 players enter. Results: 7 PASS, 5 FAIL. Prize = 5 × $25 = $125 → split by 7 winners ≈ $17 each (leftover cents roll to next week).</div>
+          </div>
+        </div>
       </div>
     </div>
   );

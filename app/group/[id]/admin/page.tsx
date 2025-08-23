@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
+type InviteRow = { token: string; expires_at: string | null; created_at?: string | null; invited_email?: string | null };
+
 export default function Admin() {
   const { id: groupId } = useParams<{ id: string }>();
   const [authLoading, setAuthLoading] = useState(true);
@@ -16,10 +18,12 @@ export default function Admin() {
   const [weekEnd, setWeekEnd] = useState<string>(new Date(Date.now()+6*86400000).toISOString().slice(0,10));
   const [msg, setMsg] = useState('');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [activeInvites, setActiveInvites] = useState<Array<{ token: string; expires_at: string | null; created_at?: string | null }>>([]);
-  const [expiredInvites, setExpiredInvites] = useState<Array<{ token: string; expires_at: string | null; created_at?: string | null }>>([]);
+  const [activeInvites, setActiveInvites] = useState<InviteRow[]>([]);
+  const [expiredInvites, setExpiredInvites] = useState<InviteRow[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyAnimating, setCopyAnimating] = useState(false);
+  const [emailsInput, setEmailsInput] = useState('');
+  const [sendingInvites, setSendingInvites] = useState(false);
 
   const copyWithAnim = useCallback(async (text: string, key: string) => {
     try {
@@ -35,6 +39,54 @@ export default function Admin() {
       setMsg('Unable to copy');
     }
   }, []);
+
+  async function sendMagicLink(email: string, token: string) {
+    const redirect = `${window.location.origin}/join?token=${token}`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: redirect },
+    });
+    return error;
+  }
+
+  async function inviteByEmail() {
+    if (!emailsInput.trim()) return;
+    setSendingInvites(true);
+    setMsg('Sending invites…');
+    const emails = emailsInput
+      .split(/[\n,;]/)
+      .map(e => e.trim())
+      .filter(e => e.length > 0);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setMsg('Sign in first.'); setSendingInvites(false); return; }
+    try {
+      for (const email of emails) {
+        const token = crypto.randomUUID().replace(/-/g, '');
+        const exp = new Date(Date.now() + 14*24*3600*1000).toISOString();
+        // Try to insert with invited_email; if the column doesn't exist yet, fallback to legacy insert
+        const { error } = await supabase.from('invites').insert({
+          token, group_id: groupId, created_by: user.id, expires_at: exp, invited_email: email
+        } as any);
+        if (error) {
+          // Fallback without invited_email for backward compatibility
+          const { error: fallbackErr } = await supabase.from('invites').insert({
+            token, group_id: groupId, created_by: user.id, expires_at: exp
+          });
+          if (fallbackErr) { setMsg(fallbackErr.message); break; }
+        }
+        const mailErr = await sendMagicLink(email, token);
+        if (mailErr) { setMsg(mailErr.message ?? 'Failed to send some invites'); break; }
+      }
+      await loadInvites();
+      setMsg('Invites sent.');
+      setEmailsInput('');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      setMsg(message);
+    } finally {
+      setSendingInvites(false);
+    }
+  }
 
   // Client-side guard: ensure current user is admin/owner
   useEffect(() => {
@@ -85,13 +137,13 @@ export default function Admin() {
       .order('expires_at', { ascending: true });
     if (error) { setMsg(error.message); return; }
     const now = Date.now();
-    type InviteRow = { token: string; expires_at: string | null; created_at?: string | null };
+    // using InviteRow type declared above
     const active: InviteRow[] = [];
     const expired: InviteRow[] = [];
     const list = (rows ?? []) as InviteRow[];
     list.forEach((r) => {
       const exp = r.expires_at ? Date.parse(r.expires_at) : null;
-      const item: InviteRow = { token: r.token, expires_at: r.expires_at, created_at: r.created_at };
+      const item: InviteRow = { token: r.token, expires_at: r.expires_at, created_at: r.created_at, invited_email: r.invited_email ?? null };
       if (!exp || exp > now) active.push(item); else expired.push(item);
     });
     setActiveInvites(active);
@@ -259,6 +311,19 @@ export default function Admin() {
         <div style={{ height:12, borderTop:'1px solid #eee' }} />
         <div style={{ fontWeight:800 }}>Invites</div>
         <div style={{ height:8 }} />
+        <div style={{ border:'1px solid #eee', borderRadius:8, padding:12, background:'#F9FAFB' }}>
+          <div style={{ fontWeight:700, marginBottom:6 }}>Invite by email</div>
+          <div style={{ fontSize:12, color:'#6B7280', marginBottom:8 }}>Enter one or more emails (comma or newline separated). Each person will receive a magic link to join.</div>
+          <textarea value={emailsInput} onChange={e=>setEmailsInput(e.target.value)} rows={3}
+                    placeholder="friend1@example.com, friend2@example.com"
+                    style={{ width:'100%', padding:10, border:'1px solid #ddd', borderRadius:8 }} />
+          <div style={{ height:8 }} />
+          <button onClick={inviteByEmail} disabled={sendingInvites}
+                  style={{ width:'100%', padding:'10px 14px', borderRadius:10, background:'#111827', color:'#fff', fontWeight:700 }}>
+            {sendingInvites ? 'Sending…' : 'Send invites'}
+          </button>
+        </div>
+        <div style={{ height:12 }} />
         <button onClick={generateInvite}
                 style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#111827', color:'#fff', fontWeight:700 }}>
           Generate invite link
@@ -283,7 +348,12 @@ export default function Admin() {
             <div style={{ display:'grid', gap:8 }}>
               {activeInvites.map((inv) => (
                 <div key={inv.token} style={{ border:'1px solid #eee', borderRadius:8, padding:10, display:'flex', gap:8, alignItems:'center', justifyContent:'space-between' }}>
-                  <div style={{ fontSize:14, wordBreak:'break-all' }}>{`${window.location.origin}/join?token=${inv.token}`}</div>
+                  <div style={{ fontSize:14, wordBreak:'break-all' }}>
+                    <div>{`${window.location.origin}/join?token=${inv.token}`}</div>
+                    {inv.invited_email && (
+                      <div style={{ color:'#6B7280', fontSize:12 }}>Invited: {inv.invited_email}</div>
+                    )}
+                  </div>
                   <div style={{ display:'flex', gap:8 }}>
                     <button
                       onClick={()=>copyWithAnim(`${window.location.origin}/join?token=${inv.token}`, inv.token)}
@@ -293,6 +363,10 @@ export default function Admin() {
                     >
                       {copiedKey===inv.token && copyAnimating ? 'Copied!' : 'Copy'}
                     </button>
+                    {inv.invited_email && (
+                      <button onClick={()=>sendMagicLink(inv.invited_email as string, inv.token)}
+                              style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ddd', background:'#EEF2FF' }}>Resend</button>
+                    )}
                     <button onClick={()=>revokeInvite(inv.token)}
                             style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #fca5a5', background:'#fee2e2', color:'#991b1b' }}>Revoke</button>
                   </div>
