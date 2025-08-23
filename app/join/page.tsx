@@ -2,6 +2,11 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 type InviteInfo = {
   token: string;
@@ -42,7 +47,7 @@ export default function Join() {
       const params = new URLSearchParams(window.location.search);
       const t = params.get('token');
       setToken(t);
-      if (!t) { setStatus('Missing invite token.'); setLoading(false); return; }
+      if (!t) { setStatus('Missing invite token.'); toast.error('Missing invite token.'); setLoading(false); return; }
 
       // Current auth state
       const { data: auth } = await supabase.auth.getUser();
@@ -51,13 +56,13 @@ export default function Join() {
 
       // Load invite via security-definer RPC (limited fields)
       const { data: invRows, error: invErr } = await supabase.rpc('get_invite_public', { p_token: t });
-      if (invErr) { setStatus('This invite is invalid or was revoked.'); setLoading(false); return; }
+      if (invErr) { setStatus('This invite is invalid or was revoked.'); toast.error('This invite is invalid or was revoked.'); setLoading(false); return; }
       const inv = Array.isArray(invRows) ? invRows[0] : null;
-      if (!inv) { setStatus('This invite is invalid or was revoked.'); setLoading(false); return; }
+      if (!inv) { setStatus('This invite is invalid or was revoked.'); toast.error('This invite is invalid or was revoked.'); setLoading(false); return; }
 
       // Check expiry
       const expired = inv.expires_at ? Date.now() > Date.parse(inv.expires_at) : false;
-      if (expired) { setStatus('This invite has expired. Ask the admin to send a new one.'); setLoading(false); return; }
+      if (expired) { setStatus('This invite has expired. Ask the admin to send a new one.'); toast.error('This invite has expired. Ask the admin to send a new one.'); setLoading(false); return; }
       setInvitedEmail((inv as InviteInfo).invited_email ?? null);
 
       // Load group
@@ -81,14 +86,16 @@ export default function Join() {
   }, []);
 
   async function joinNow() {
-    if (!token) { setStatus('Missing invite token.'); return; }
+    if (!token) { setStatus('Missing invite token.'); toast.error('Missing invite token.'); return; }
     // Enforce email-locked join when invite has an invited_email
     try {
       const { data: auth } = await supabase.auth.getUser();
       const emailNow = auth.user?.email?.toLowerCase() ?? null;
       const invited = invitedEmail?.toLowerCase() ?? null;
       if (invited && emailNow && invited !== emailNow) {
-        setStatus(`This invite is for ${invitedEmail}. You are signed in as ${auth.user?.email}. Please sign out and sign in with the invited email, or ask the admin to resend the invite to your address.`);
+        const msg = `This invite is for ${invitedEmail}. You are signed in as ${auth.user?.email}. Please sign out and sign in with the invited email, or ask the admin to resend the invite to your address.`;
+        setStatus(msg);
+        toast.error(msg);
         return;
       }
     } catch {}
@@ -96,12 +103,12 @@ export default function Join() {
     // Use email-locked RPC only (DB has been updated)
     const { data, error } = await supabase.rpc('join_group_with_token_email', { p_token: token });
     setBusy(false);
-    if (error) { setStatus(error.message); return; }
+    if (error) { setStatus(error.message); toast.error(error.message); return; }
     window.location.href = `/group/${data}?joined=1`;
   }
 
   async function handleSignup() {
-    if (!email || !password) { setStatus('Enter email and password.'); return; }
+    if (!email || !password) { setStatus('Enter email and password.'); toast.error('Enter email and password.'); return; }
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({ email, password });
     setBusy(false);
@@ -114,15 +121,16 @@ export default function Join() {
       await joinNow();
     } else {
       setStatus('Check your email to confirm your account, then reopen this invite link to finish joining.');
+      toast.message('Check your email to confirm your account, then reopen this invite link to finish joining.');
     }
   }
 
   async function handleSignin() {
-    if (!emailIn || !passwordIn) { setStatus('Enter your email and password.'); return; }
+    if (!emailIn || !passwordIn) { setStatus('Enter your email and password.'); toast.error('Enter your email and password.'); return; }
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email: emailIn, password: passwordIn });
     setBusy(false);
-    if (error) { setStatus(error.message); return; }
+    if (error) { setStatus(error.message); toast.error(error.message); return; }
     await joinNow();
   }
 
@@ -144,8 +152,7 @@ export default function Join() {
       padding:'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
       background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))'
     }}>
-      <div style={{ width:'100%', maxWidth:720, background:'#fff', border:'1px solid #eee', borderRadius:12,
-                     boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
+      <Card className="w-full max-w-[720px] p-6">
         {/* Invite header */}
         <div style={{ textAlign:'center' }}>
           <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>{loading ? 'Loading…' : headerLine}</h1>
@@ -177,60 +184,44 @@ export default function Join() {
         {userId ? (
           <div style={{ textAlign:'center' }}>
             <div style={{ color:'#6B7280', marginBottom:10 }}>You are signed in. Accept the invite to join this group.</div>
-            <button onClick={joinNow} disabled={busy}
-                    style={{ padding:'14px 16px', minHeight:44, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800, width:260 }}>
+            <Button onClick={joinNow} disabled={busy} variant="primary" size="lg" className="w-[260px]">
               {busy ? 'Joining…' : 'Join group'}
-            </button>
+            </Button>
           </div>
         ) : (
           <div>
             {/* Toggle */}
             <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
-              <button onClick={()=>setMode('signup')}
-                      style={{ padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, border:'1px solid #ddd',
-                               background: mode==='signup' ? '#7C3AED' : '#fff', color: mode==='signup' ? '#fff' : '#111' }}>
+              <Button onClick={()=>setMode('signup')} variant={mode==='signup' ? 'primary' : 'secondary'}>
                 Create account
-              </button>
-              <button onClick={()=>setMode('signin')}
-                      style={{ padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, border:'1px solid #ddd',
-                               background: mode==='signin' ? '#7C3AED' : '#fff', color: mode==='signin' ? '#fff' : '#111' }}>
+              </Button>
+              <Button onClick={()=>setMode('signin')} variant={mode==='signin' ? 'primary' : 'secondary'}>
                 I already have an account
-              </button>
+              </Button>
             </div>
 
             <div style={{ height:12 }} />
             {mode === 'signup' ? (
               <div style={{ display:'grid', gap:10 }}>
-                <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Display name</label>
-                <input placeholder="e.g. Jamie" value={displayName} onChange={e=>setDisplayName(e.target.value)}
-                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
-                <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Email</label>
-                <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
-                       placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next"
-                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
-                <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Password</label>
-                <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
-                       placeholder="••••••••" autoComplete="new-password" enterKeyHint="done"
-                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
-                <button onClick={handleSignup} disabled={busy}
-                        style={{ marginTop:4, padding:'14px 16px', minHeight:48, fontSize:16, borderRadius:10, background:'#111827', color:'#fff', fontWeight:800 }}>
+                <Label>Display name</Label>
+                <Input placeholder="e.g. Jamie" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
+                <Label>Email</Label>
+                <Input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next" />
+                <Label>Password</Label>
+                <Input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" enterKeyHint="done" />
+                <Button onClick={handleSignup} disabled={busy} variant="default" size="lg" className="mt-1">
                   {busy ? 'Creating account…' : 'Create account & Join'}
-                </button>
+                </Button>
               </div>
             ) : (
               <div style={{ display:'grid', gap:10 }}>
-                <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Email</label>
-                <input type="email" value={emailIn} onChange={e=>setEmailIn(e.target.value)}
-                       placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next"
-                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
-                <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Password</label>
-                <input type="password" value={passwordIn} onChange={e=>setPasswordIn(e.target.value)}
-                       placeholder="••••••••" autoComplete="current-password" enterKeyHint="done"
-                       style={{ padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8 }} />
-                <button onClick={handleSignin} disabled={busy}
-                        style={{ marginTop:4, padding:'14px 16px', minHeight:48, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800 }}>
+                <Label>Email</Label>
+                <Input type="email" value={emailIn} onChange={e=>setEmailIn(e.target.value)} placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next" />
+                <Label>Password</Label>
+                <Input type="password" value={passwordIn} onChange={e=>setPasswordIn(e.target.value)} placeholder="••••••••" autoComplete="current-password" enterKeyHint="done" />
+                <Button onClick={handleSignin} disabled={busy} variant="primary" size="lg" className="mt-1">
                   {busy ? 'Signing in…' : 'Sign in & Join'}
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -256,7 +247,7 @@ export default function Join() {
             <div><strong>Quick example</strong><br/>Entry: $25. 12 players enter. Results: 7 PASS, 5 FAIL. Prize = 5 × $25 = $125 → split by 7 winners ≈ $17 each (leftover cents roll to next week).</div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
