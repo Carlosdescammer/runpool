@@ -2,7 +2,7 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 type Challenge = {
   id: string; group_id: string; week_start: string; week_end: string;
@@ -33,6 +33,8 @@ export default function GroupPage() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const searchParams = useSearchParams();
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -68,6 +70,11 @@ export default function GroupPage() {
       setIsAdmin(role === 'admin' || role === 'owner');
     })();
   }, [groupId, userId]);
+
+  // Show a welcome banner if user just joined via invite
+  useEffect(() => {
+    setShowWelcome(searchParams.get('joined') === '1');
+  }, [searchParams]);
 
   async function loadLeaderboard(challengeId: string) {
     const { data: rows } = await supabase
@@ -117,6 +124,28 @@ export default function GroupPage() {
     <div style={{ minHeight:'calc(100vh - 80px)', padding:'24px 16px',
                   background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
       <div style={{ maxWidth: 1000, margin:'0 auto', display:'grid', gap:16 }}>
+        {showWelcome && group && (
+          <div style={{ background:'#EEF2FF', border:'1px solid #E5E7EB', borderRadius:12, padding:16,
+                        boxShadow:'0 10px 30px rgba(0,0,0,0.06)', position:'relative' }}>
+            <button onClick={()=>setShowWelcome(false)}
+                    aria-label="Dismiss"
+                    style={{ position:'absolute', right:10, top:10, border:'1px solid #ddd', borderRadius:8, background:'#fff', padding:'4px 8px' }}>✕</button>
+            <div style={{ fontWeight:800, marginBottom:6 }}>Welcome to {group.name}!</div>
+            <div style={{ color:'#374151' }}>
+              <div style={{ marginBottom:6 }}>
+                <strong>Rules:</strong> {group.rule || 'See admin for details.'}
+              </div>
+              <div style={{ marginBottom:6 }}>
+                <strong>What to do next:</strong>
+                <ul style={{ margin:'6px 0 0 18px' }}>
+                  <li>Scroll down to "Submit Weekly Data" and add your miles and optional proof.</li>
+                  <li>Check the Leaderboard to see how everyone is doing.</li>
+                  <li>Come back each week to stay in the challenge.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
         {group && (
           <div style={{ background:'#fff', border:'1px solid #eee', borderRadius:12, padding:16,
                         boxShadow:'0 10px 30px rgba(0,0,0,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
