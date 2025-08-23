@@ -25,6 +25,7 @@ export default function Join() {
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [inviterName, setInviterName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
 
   // Forms
@@ -49,13 +50,12 @@ export default function Join() {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id ?? null;
       setUserId(uid);
+      setAuthEmail(auth.user?.email ?? null);
 
-      // Load invite
-      const { data: inv } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', t)
-        .maybeSingle();
+      // Load invite via security-definer RPC (limited fields)
+      const { data: invRows, error: invErr } = await supabase.rpc('get_invite_public', { p_token: t });
+      if (invErr) { setStatus('This invite is invalid or was revoked.'); setLoading(false); return; }
+      const inv = Array.isArray(invRows) ? invRows[0] : null;
       if (!inv) { setStatus('This invite is invalid or was revoked.'); setLoading(false); return; }
 
       // Check expiry
@@ -86,6 +86,16 @@ export default function Join() {
 
   async function joinNow() {
     if (!token) { setStatus('Missing invite token.'); return; }
+    // Enforce email-locked join when invite has an invited_email
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const emailNow = auth.user?.email?.toLowerCase() ?? null;
+      const invited = invitedEmail?.toLowerCase() ?? null;
+      if (invited && emailNow && invited !== emailNow) {
+        setStatus(`This invite is for ${invitedEmail}. You are signed in as ${auth.user?.email}. Please sign out and sign in with the invited email, or ask the admin to resend the invite to your address.`);
+        return;
+      }
+    } catch {}
     setBusy(true);
     // Prefer email-validated RPC; fallback to legacy if unavailable
     let data: any = null; let error: any = null;
@@ -124,6 +134,7 @@ export default function Join() {
     // If not, we must ask the user to confirm; Supabase returns no session.
     if (data.session) {
       setUserId(data.user?.id ?? null);
+      setAuthEmail(data.user?.email ?? null);
       await supabase.from('user_profiles').upsert({ id: data.user?.id, name: displayName });
       await joinNow();
     } else {
@@ -137,6 +148,7 @@ export default function Join() {
     const { error } = await supabase.auth.signInWithPassword({ email: emailIn, password: passwordIn });
     setBusy(false);
     if (error) { setStatus(error.message); return; }
+    setAuthEmail(emailIn);
     await joinNow();
   }
 

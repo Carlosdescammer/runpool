@@ -24,6 +24,9 @@ A lightweight group challenge app built with Next.js App Router and Supabase. It
   - Rank deltas computed using a localStorage snapshot of previous ranks.
   - Enter/leave top-3 join/drop animations.
 
+- **Realtime leaderboard** (`app/group/[id]/page.tsx`): Subscribes to `proofs` changes for the active challenge via Supabase Realtime and refreshes `leaderboard_week` instantly.
+- **Email-locked joins** (`app/join/page.tsx`): If an invite has `invited_email`, the join flow requires the signed-in email to match (case-insensitive). Uses `join_group_with_token_email` with legacy RPC fallback.
+
 ## Bugs fixed
 
 - **Invite row typing/compat**: Some projects lacked the `invited_email` column, causing insert/select issues.
@@ -34,9 +37,8 @@ A lightweight group challenge app built with Next.js App Router and Supabase. It
 
 ## What's next
 
-- **Realtime updates**: live invite list and leaderboard via Supabase Realtime.
+- **Weekly recap email**: scheduled weekly summary with winners, streaks, and deltas (Supabase Scheduled Functions / Edge Functions).
 - **Invite UX**: tooltips/docs explaining email vs legacy invites; optional full removal of legacy links.
-- **Email-locked joins**: enforce that only the invited email can use a token to join (join-time validation).
 - **Admin enhancements**: bulk revoke, manual expire, CSV import for emails.
 - **More gamification**: milestone badges, streak decay warnings, confetti for podium changes, animated progress.
 - **Security/RLS**: tighten policies around invites and membership creation.
@@ -84,6 +86,28 @@ Client initialized in `lib/supabaseClient.ts`.
 - Enable RLS and add policies so only group owners/admins can edit/delete groups and manage invites.
 - Admin page includes a client guard, but security must be enforced by RLS.
 
+### Security: Recommended RPC & RLS (Email-locked joins)
+
+To enforce email-locked joins at the database level (source of truth), apply the SQL in:
+
+- `supabase/sql/join_enforcement.sql`
+
+What it does:
+
+- Defines `join_group_with_token_email(p_token text)` which:
+  - Verifies token exists and is not expired.
+  - Enforces that the JWT email matches `invited_email` when present.
+  - Inserts a `memberships` row (if not already a member) and consumes the invite.
+- RLS policies:
+  - Blocks direct `INSERT` into `memberships` by authenticated users (forces use of the RPC).
+  - Restricts invite management to group admins/owners.
+
+How to apply:
+
+1) Open Supabase SQL editor and paste the contents of `supabase/sql/join_enforcement.sql`, or include it in your migrations.
+2) Ensure your JWT includes the `email` claim (Supabase default for email/password auth).
+3) On the client, continue to call `join_group_with_token_email`; legacy RPC is still used as a fallback.
+
 ### Optional RPC for Atomic Deletion
 
 App prefers an RPC named `delete_group_cascade` to delete a group and related rows atomically, with a client-side fallback if RPC is absent. Example PostgreSQL function signature:
@@ -108,6 +132,19 @@ Grant execute to relevant roles if needed.
 - `app/group/[id]/admin/page.tsx` – admin tools (edit settings, weeks, invites, delete).
 - `app/signin/page.tsx` – email/password auth + post-auth redirect.
 - `lib/supabaseClient.ts` – Supabase client.
+
+### Weekly Recap Email (Pending)
+
+Scaffolding is in place; implementation is pending:
+
+- Next.js API route: `app/api/weekly-recap/route.ts` (returns 501 until implemented). Useful for Vercel Cron.
+- Supabase Edge Function: `supabase/functions/weekly-recap/index.ts` (returns 501). Deploy via `supabase functions deploy weekly-recap`.
+
+Suggested next steps:
+
+- Implement aggregation (top 3, winners, streaks, totals) from `leaderboard_week` + `proofs` after a challenge closes.
+- Send emails via your provider (e.g., Resend, Postmark) using API keys stored in Supabase secrets or Vercel env.
+- Schedule weekly execution (Vercel Cron → API route, or Supabase Scheduled Functions → Edge Function).
 
 ## E2E Test Checklist
 
