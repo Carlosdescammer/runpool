@@ -178,7 +178,14 @@ export default function Admin() {
                   background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
       <div style={{ width:'100%', maxWidth:640, background:'#fff', border:'1px solid #eee', borderRadius:12,
                      boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
-        <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>Admin Tools</h1>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+          <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>Admin Tools</h1>
+          <a href={`/group/${groupId}`} style={{ textDecoration:'none' }}>
+            <div style={{ padding:'8px 12px', border:'1px solid #e5e7eb', borderRadius:10, fontWeight:700 }}>
+              ← Back to dashboard
+            </div>
+          </a>
+        </div>
         {authLoading && (
           <div style={{ marginTop:12, color:'#6B7280' }}>Checking permissions…</div>
         )}
