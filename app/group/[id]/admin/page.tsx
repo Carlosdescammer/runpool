@@ -3,6 +3,10 @@
 import { supabase } from '@/lib/supabaseClient';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 type InviteRow = { token: string; expires_at: string | null; created_at?: string | null; invited_email?: string | null };
 
@@ -215,146 +219,120 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', display:'grid', placeItems:'center', padding:'24px 16px',
-                  background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
-      <div style={{ width:'100%', maxWidth:640, background:'#fff', border:'1px solid #eee', borderRadius:12,
-                     boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
-          <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>Admin Tools</h1>
-          <a href={`/group/${groupId}`} style={{ textDecoration:'none' }}>
-            <div style={{ padding:'10px 14px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800 }}>
+    <div className="min-h-svh px-4 py-6 md:px-6">
+      <div className="mx-auto w-full max-w-[720px]">
+        <Card className="p-5 md:p-6">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h1 className="m-0 text-xl font-extrabold">Admin Tools</h1>
+            <Button variant="primary" onClick={() => (window.location.href = `/group/${groupId}`)}>
               ← Back to dashboard
+            </Button>
+          </div>
+          {authLoading && <div className="mt-2 text-zinc-600">Checking permissions…</div>}
+          {!authLoading && !authorized && <div className="mt-2 text-zinc-600">Redirecting…</div>}
+          <div className="h-4" />
+
+          <div className="text-sm font-extrabold">Group settings</div>
+          <div className="h-2" />
+          <label className="text-xs font-semibold text-zinc-700">Name</label>
+          <Input value={name} onChange={e=>setName(e.target.value)} placeholder="Group name" className="mt-1" />
+          <div className="h-3" />
+          <label className="text-xs font-semibold text-zinc-700">Weekly rule</label>
+          <Input value={rule} onChange={e=>setRule(e.target.value)} placeholder="e.g. Run at least 5 miles" className="mt-1" />
+          <div className="h-3" />
+          <label className="text-xs font-semibold text-zinc-700">Entry Fee ($)</label>
+          <Input type="number" value={entryFee} onChange={e=>setEntryFee(Number(e.target.value))} className="mt-1" />
+          <div className="h-3" />
+          <Button onClick={saveGroup} className="w-full">Save settings</Button>
+          <div className="my-3 h-px bg-zinc-200" />
+
+          <div className="text-sm font-extrabold">Create new week</div>
+          <div className="h-2" />
+          <label className="text-xs font-semibold text-zinc-700">Pot ($)</label>
+          <Input type="number" value={pot} onChange={e=>setPot(Number(e.target.value))} className="mt-1" />
+          <div className="h-3" />
+          <div className="flex flex-wrap gap-3">
+            <div className="min-w-[200px] flex-1">
+              <div className="text-xs font-semibold text-zinc-700">Week start</div>
+              <input type="date" value={weekStart} onChange={e=>setWeekStart(e.target.value)}
+                     className="mt-1 h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-[15px] text-zinc-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"/>
             </div>
-          </a>
-        </div>
-        {authLoading && (
-          <div style={{ marginTop:12, color:'#6B7280' }}>Checking permissions…</div>
-        )}
-        {!authLoading && !authorized && (
-          <div style={{ marginTop:12, color:'#6B7280' }}>Redirecting…</div>
-        )}
-        <div style={{ height:16 }} />
-        <div style={{ fontWeight:800 }}>Group settings</div>
-        <div style={{ height:8 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Name</label>
-        <input value={name} onChange={e=>setName(e.target.value)}
-               placeholder="Group name"
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }} />
-        <div style={{ height:12 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Weekly rule</label>
-        <input value={rule} onChange={e=>setRule(e.target.value)}
-               placeholder="e.g. Run at least 5 miles"
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }} />
-        <div style={{ height:12 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Entry Fee ($)</label>
-        <input type="number" value={entryFee} onChange={e=>setEntryFee(Number(e.target.value))}
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }} />
-        <div style={{ height:12 }} />
-        <button onClick={saveGroup}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
-          Save settings
-        </button>
-        <div style={{ height:12 }} />
-        <div style={{ height:12, borderTop:'1px solid #eee' }} />
-        <div style={{ fontWeight:800 }}>Create new week</div>
-        <div style={{ height:8 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Pot ($)</label>
-        <input type="number" value={pot} onChange={e=>setPot(Number(e.target.value))}
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }} />
-        <div style={{ height:12 }} />
-        <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-          <div style={{ flex:'1 1 180px' }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Week start</div>
-            <input type="date" value={weekStart} onChange={e=>setWeekStart(e.target.value)}
-                   style={{ marginTop:6, padding:10, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
+            <div className="min-w-[200px] flex-1">
+              <div className="text-xs font-semibold text-zinc-700">Week end</div>
+              <input type="date" value={weekEnd} onChange={e=>setWeekEnd(e.target.value)}
+                     className="mt-1 h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-[15px] text-zinc-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"/>
+            </div>
           </div>
-          <div style={{ flex:'1 1 180px' }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Week end</div>
-            <input type="date" value={weekEnd} onChange={e=>setWeekEnd(e.target.value)}
-                   style={{ marginTop:6, padding:10, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
+          <div className="h-4" />
+          <Button onClick={createWeek} className="w-full">Create Week</Button>
+
+          <div className="my-4 h-px bg-zinc-200" />
+          <div className="text-sm font-extrabold">Invites</div>
+          <div className="h-2" />
+          <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 shadow-[0_1px_0_rgba(124,58,237,0.15),0_8px_24px_rgba(124,58,237,0.08)]">
+            <div className="mb-2 flex items-center gap-2 font-extrabold">
+              <span>📧 Invite by email</span>
+              <Badge className="bg-indigo-600 text-white">Recommended</Badge>
+            </div>
+            <div className="mb-2 text-sm text-zinc-600">Enter one or more emails (comma or newline separated). Each person will receive a magic link to join.</div>
+            <textarea value={emailsInput} onChange={e=>setEmailsInput(e.target.value)} rows={4}
+                      placeholder="friend1@example.com, friend2@example.com"
+                      className="w-full rounded-xl border border-indigo-300 bg-white p-3 text-[15px] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2" />
+            <div className="h-2" />
+            <Button onClick={inviteByEmail} disabled={sendingInvites} className="w-full">
+              {sendingInvites ? 'Sending…' : 'Send invites'}
+            </Button>
           </div>
-        </div>
-        <div style={{ height:16 }} />
-        <button onClick={createWeek}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
-          Create Week
-        </button>
-        <div style={{ height:20 }} />
-        <div style={{ height:12, borderTop:'1px solid #eee' }} />
-        <div style={{ fontWeight:800 }}>Invites</div>
-        <div style={{ height:8 }} />
-        <div style={{ border:'2px solid #C4B5FD', borderRadius:12, padding:16, background:'#F5F3FF',
-                      boxShadow:'0 1px 0 rgba(124,58,237,0.15), 0 8px 24px rgba(124,58,237,0.08)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, fontWeight:800, marginBottom:8, fontSize:18 }}>
-            <span>📧 Invite by email</span>
-            <span style={{ fontSize:12, background:'#7C3AED', color:'#fff', padding:'2px 6px', borderRadius:6, fontWeight:800 }}>Recommended</span>
-          </div>
-          <div style={{ fontSize:13, color:'#4B5563', marginBottom:10 }}>Enter one or more emails (comma or newline separated). Each person will receive a magic link to join.</div>
-          <textarea value={emailsInput} onChange={e=>setEmailsInput(e.target.value)} rows={4}
-                    placeholder="friend1@example.com, friend2@example.com"
-                    style={{ width:'100%', padding:12, border:'1px solid #C4B5FD', borderRadius:10, background:'#fff' }} />
-          <div style={{ height:10 }} />
-          <button onClick={inviteByEmail} disabled={sendingInvites}
-                  style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:800 }}>
-            {sendingInvites ? 'Sending…' : 'Send invites'}
-          </button>
-        </div>
-        <div style={{ height:12 }} />
-        {/* Legacy non-email invite UI removed to enforce email-locked invites only */}
-        {activeInvites.length > 0 && (
-          <div style={{ marginTop:12 }}>
-            <div style={{ fontWeight:600, marginBottom:6 }}>Active invites</div>
-            <div style={{ display:'grid', gap:8 }}>
-              {activeInvites.map((inv) => (
-                <div key={inv.token} style={{ border:'1px solid #eee', borderRadius:8, padding:10, display:'flex', gap:8, alignItems:'center', justifyContent:'space-between' }}>
-                  <div style={{ fontSize:14, wordBreak:'break-all' }}>
-                    <div>{`${window.location.origin}/join?token=${inv.token}`}</div>
-                    {inv.invited_email && (
-                      <div style={{ color:'#6B7280', fontSize:12 }}>Invited: {inv.invited_email}</div>
-                    )}
+
+          {activeInvites.length > 0 && (
+            <div className="mt-3">
+              <div className="mb-1 font-semibold">Active invites</div>
+              <div className="grid gap-2">
+                {activeInvites.map((inv) => (
+                  <div key={inv.token} className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 p-3">
+                    <div className="text-sm">
+                      <div className="break-all">{`${window.location.origin}/join?token=${inv.token}`}</div>
+                      {inv.invited_email && (
+                        <div className="text-xs text-zinc-600">Invited: {inv.invited_email}</div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={()=>copyWithAnim(`${window.location.origin}/join?token=${inv.token}`, inv.token)}
+                        className={`${copiedKey===inv.token && copyAnimating ? 'scale-105' : ''} rounded-lg border border-zinc-300 px-3 py-2 text-sm transition`}
+                      >
+                        {copiedKey===inv.token && copyAnimating ? 'Copied!' : 'Copy'}
+                      </button>
+                      {inv.invited_email && (
+                        <button onClick={()=>sendMagicLink(inv.invited_email as string, inv.token)}
+                                className="rounded-lg border border-zinc-300 bg-indigo-50 px-3 py-2 text-sm">Resend</button>
+                      )}
+                      <button onClick={()=>revokeInvite(inv.token)}
+                              className="rounded-lg border border-rose-300 bg-rose-100 px-3 py-2 text-sm text-rose-800">Revoke</button>
+                    </div>
                   </div>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <button
-                      onClick={()=>copyWithAnim(`${window.location.origin}/join?token=${inv.token}`, inv.token)}
-                      style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ddd',
-                               transform: copiedKey===inv.token && copyAnimating ? 'scale(1.05)' : 'scale(1)',
-                               transition: 'transform 180ms ease' }}
-                    >
-                      {copiedKey===inv.token && copyAnimating ? 'Copied!' : 'Copy'}
-                    </button>
-                    {inv.invited_email && (
-                      <button onClick={()=>sendMagicLink(inv.invited_email as string, inv.token)}
-                              style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #ddd', background:'#EEF2FF' }}>Resend</button>
-                    )}
-                    <button onClick={()=>revokeInvite(inv.token)}
-                            style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #fca5a5', background:'#fee2e2', color:'#991b1b' }}>Revoke</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {expiredInvites.length > 0 && (
+            <div className="mt-4">
+              <div className="mb-1 font-semibold text-zinc-600">Expired invites</div>
+              <div className="grid gap-2">
+                {expiredInvites.map((inv) => (
+                  <div key={inv.token} className="rounded-xl border border-dashed border-zinc-200 p-3 text-zinc-600">
+                    <div className="break-all text-sm">{`${window.location.origin}/join?token=${inv.token}`}</div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-        {expiredInvites.length > 0 && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ fontWeight:600, marginBottom:6, color:'#6B7280' }}>Expired invites</div>
-            <div style={{ display:'grid', gap:8 }}>
-              {expiredInvites.map((inv) => (
-                <div key={inv.token} style={{ border:'1px dashed #eee', borderRadius:8, padding:10, display:'flex', gap:8, alignItems:'center', justifyContent:'space-between', color:'#6B7280' }}>
-                  <div style={{ fontSize:14, wordBreak:'break-all' }}>{`${window.location.origin}/join?token=${inv.token}`}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div style={{ height:20 }} />
-        <div style={{ height:12, borderTop:'1px solid #eee' }} />
-        <div style={{ fontWeight:800, color:'#991B1B' }}>Danger zone</div>
-        <div style={{ height:8 }} />
-        <button onClick={deleteGroupCascade}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#DC2626', color:'#fff', fontWeight:800 }}>
-          Delete group
-        </button>
-        <div style={{ color:'#6B7280', fontSize:12, minHeight:18, marginTop:12 }}>{msg}</div>
+          )}
+          <div className="my-4 h-px bg-zinc-200" />
+          <div className="text-sm font-extrabold text-rose-800">Danger zone</div>
+          <div className="h-2" />
+          <Button onClick={deleteGroupCascade} variant="destructive" className="w-full">Delete group</Button>
+          <div className="mt-3 min-h-[18px] text-xs text-zinc-600">{msg}</div>
+        </Card>
       </div>
     </div>
   );

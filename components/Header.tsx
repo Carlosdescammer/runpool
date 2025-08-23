@@ -33,7 +33,7 @@ export default function Header() {
 
   return (
     <header style={{
-      background: '#fff', color: '#111',
+      background: 'var(--rp-surface)', color: 'var(--rp-text)',
       padding: 'calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))',
       position:'sticky', top:0, zIndex:20,
       borderBottom:'1px solid #eee',
@@ -41,24 +41,24 @@ export default function Header() {
     }}>
       <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <Link href="/" style={{ color:'#111', textDecoration:'none', fontWeight:800 }}>Run Pool</Link>
+          <Link href="/" style={{ color:'var(--rp-text)', textDecoration:'none', fontWeight:800 }}>Run Pool</Link>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {adminGroupId && (
             <Link href={`/group/${adminGroupId}`} style={{ textDecoration:'none' }}>
-              <span style={{ background:'#7C3AED', color:'#fff', padding:'10px 14px', minHeight:44, lineHeight:'24px', fontSize:16, borderRadius:10, fontWeight:700, display:'inline-flex', alignItems:'center' }}>← Back</span>
+              <span style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, lineHeight:'24px', fontSize:16, borderRadius:10, fontWeight:700, display:'inline-flex', alignItems:'center' }}>← Back</span>
             </Link>
           )}
           {isSignedIn ? (
             pathname !== '/' && (
               <button onClick={signOut}
-                      style={{ background:'#7C3AED', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, fontWeight:700, border:'none', cursor:'pointer' }}>
+                      style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, fontWeight:700, border:'none', cursor:'pointer' }}>
                 Sign Out
               </button>
             )
           ) : (
             showSignIn && (
-              <Link href="/signin" style={{ background:'#7C3AED', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, textDecoration:'none', fontWeight:700 }}>
+              <Link href="/signin" style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, textDecoration:'none', fontWeight:700 }}>
                 Sign In
               </Link>
             )

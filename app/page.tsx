@@ -1,143 +1,109 @@
 // app/page.tsx
 import Link from 'next/link';
-import type React from 'react';
+import { Card } from '@/components/ui/card';
 
 export default function Home() {
-  const btn = {
-    base: {
-      padding: '12px 16px',
-      borderRadius: 10,
-      fontWeight: 700 as const,
-      textDecoration: 'none',
-      display: 'inline-block',
-      minHeight: 44,
-      fontSize: 16,
-    },
-    primary: { background: '#7C3AED', color: '#fff', boxShadow: '0 8px 20px rgba(124,58,237,0.25)' },
-    ghost:   { border: '1px solid #e5e7eb', color: '#111', background: '#fff' },
-  };
-
-  const card: React.CSSProperties = {
-    padding: 16, border: '1px solid #eee', borderRadius: 12, background: '#fff',
-  };
-
   return (
-    <div style={{
-      display: 'grid',
-      gap: 24,
-      minHeight: '100svh',
-      padding: 'calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
-    }}>
+    <div className="grid min-h-svh gap-6 px-4 py-6 md:px-6">
       {/* HERO */}
-      <section
-        style={{
-          borderRadius: 16,
-          padding: 'clamp(32px, 8vw, 56px) 24px',
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))',
-        }}
-      >
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gap: 24, alignItems: 'center',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+      <Card className="mx-auto w-full max-w-[1100px] p-6 md:p-8">
+        <div className="grid items-center gap-6 md:grid-cols-2">
           <div>
-            <h1 style={{ fontSize: 'clamp(28px, 8vw, 44px)', lineHeight: 1.1, margin: 0, fontWeight: 900 }}>Run Pool</h1>
-            <p style={{ margin: '14px 0 24px', fontSize: 18, color: '#374151' }}>
+            <h1 className="m-0 text-[28px] font-black leading-tight md:text-[44px]">Run Pool</h1>
+            <p className="mt-3 text-[17px] text-zinc-700">
               Create a group, set weekly miles, invite with a link, upload proof, and
               watch the live leaderboard. Money is held offline by your group’s banker.
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/group/new" style={{ ...btn.base, ...btn.primary }}>Create a Group</Link>
-              <Link href="/signin" style={{ ...btn.base, ...btn.ghost }}>Sign In</Link>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/group/new"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-[var(--rp-primary)] px-5 text-white shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"
+              >
+                Create a Group
+              </Link>
+              <Link
+                href="/signin"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--rp-accent)] bg-[var(--rp-bg)] px-5 text-[var(--rp-text)] shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"
+              >
+                Sign In
+              </Link>
             </div>
           </div>
-          <div style={{ display:'grid', placeItems:'center' }}>
-            <div style={{ width: '100%', maxWidth: 420, background:'#fff', border:'1px solid #eee', borderRadius:16,
-                           boxShadow:'0 20px 40px rgba(0,0,0,0.08)', padding:16 }}>
-              <div style={{ height: 10, width: 60, background:'#e5e7eb', borderRadius: 9999 }} />
-              <div style={{ height: 14 }} />
-              <div style={{ display:'grid', gap:10 }}>
-                <div style={{ height: 36, background:'#f3f4f6', borderRadius:8 }} />
-                <div style={{ height: 36, background:'#f3f4f6', borderRadius:8 }} />
-                <div style={{ height: 36, background:'#f3f4f6', borderRadius:8 }} />
-                <div style={{ height: 160, background:'#f9fafb', border: '1px dashed #e5e7eb', borderRadius:12, display:'grid', placeItems:'center', color:'#9ca3af', fontSize:12 }}>
+          <div className="grid place-items-center">
+            <div className="w-full max-w-[420px] rounded-2xl border border-zinc-200 bg-[var(--rp-surface)] p-4 shadow-md">
+              <div className="h-2 w-16 rounded-full bg-zinc-200" />
+              <div className="h-4" />
+              <div className="grid gap-2.5">
+                <div className="h-9 rounded-lg bg-zinc-100" />
+                <div className="h-9 rounded-lg bg-zinc-100" />
+                <div className="h-9 rounded-lg bg-zinc-100" />
+                <div className="grid h-40 place-items-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400">
                   Leaderboard preview
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </Card>
 
       {/* WHAT THIS APP DOES */}
-      <section>
-        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>What it does</h2>
-        <div
-          style={{
-            display: 'grid',
-            gap: 12,
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          }}
-        >
-          <div style={card}>
-            <div style={{ fontSize: 20 }}>🛠️</div>
-            <div style={{ fontWeight: 700, marginTop: 6 }}>Admin Sets Rules</div>
-            <div style={{ color: '#555', marginTop: 6 }}>
-              Distance goal & weekly pot (display only). You control the group.
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{ fontSize: 20 }}>🔗</div>
-            <div style={{ fontWeight: 700, marginTop: 6 }}>Invite Link</div>
-            <div style={{ color: '#555', marginTop: 6 }}>
-              Share a single join URL. No emails. No friction.
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{ fontSize: 20 }}>📸</div>
-            <div style={{ fontWeight: 700, marginTop: 6 }}>Upload Proof</div>
-            <div style={{ color: '#555', marginTop: 6 }}>
-              Members log miles and attach a screenshot each week.
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{ fontSize: 20 }}>📊</div>
-            <div style={{ fontWeight: 700, marginTop: 6 }}>Live Leaderboard</div>
-            <div style={{ color: '#555', marginTop: 6 }}>
-              Everyone sees standings in real time—no scrolling chats.
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{ fontSize: 20 }}>🧾</div>
-            <div style={{ fontWeight: 700, marginTop: 6 }}>History & Transparency</div>
-            <div style={{ color: '#555', marginTop: 6 }}>
-              Past weeks are archived so nobody argues about results.
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{ fontSize: 20 }}>💳</div>
-            <div style={{ fontWeight: 700, marginTop: 6 }}>Offline Pot</div>
-            <div style={{ color: '#555', marginTop: 6 }}>
-              One trusted banker holds money via Apple Pay/Venmo. App tracks only.
-            </div>
-          </div>
+      <section className="mx-auto w-full max-w-[1100px]">
+        <h2 className="mb-3 text-[22px] font-extrabold">What it does</h2>
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <Card className="p-4">
+            <div className="text-xl">🛠️</div>
+            <div className="mt-1 font-semibold">Admin Sets Rules</div>
+            <div className="mt-1 text-zinc-600">Distance goal & weekly pot (display only). You control the group.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-xl">🔗</div>
+            <div className="mt-1 font-semibold">Invite Link</div>
+            <div className="mt-1 text-zinc-600">Share a single join URL. No emails. No friction.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-xl">📸</div>
+            <div className="mt-1 font-semibold">Upload Proof</div>
+            <div className="mt-1 text-zinc-600">Members log miles and attach a screenshot each week.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-xl">📊</div>
+            <div className="mt-1 font-semibold">Live Leaderboard</div>
+            <div className="mt-1 text-zinc-600">Everyone sees standings in real time—no scrolling chats.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-xl">🧾</div>
+            <div className="mt-1 font-semibold">History & Transparency</div>
+            <div className="mt-1 text-zinc-600">Past weeks are archived so nobody argues about results.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-xl">💳</div>
+            <div className="mt-1 font-semibold">Offline Pot</div>
+            <div className="mt-1 text-zinc-600">One trusted banker holds money via Apple Pay/Venmo. App tracks only.</div>
+          </Card>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section>
-        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>How it works</h2>
-        <ol style={{ paddingLeft: 18, color: '#333', lineHeight: 1.7 }}>
+      <section className="mx-auto w-full max-w-[1100px]">
+        <h2 className="mb-3 text-[22px] font-extrabold">How it works</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-zinc-800">
           <li>Create a group and set this week’s rule + pot.</li>
           <li>Copy the invite link and share it anywhere.</li>
           <li>Members sign in, join, log miles, and upload proof.</li>
           <li>Leaderboard updates live. Close the week and start the next.</li>
         </ol>
-        <div style={{ marginTop: 12 }}>
-          <Link href="/group/new" style={{ ...btn.base, ...btn.primary }}>Get Started</Link>
+        <div className="mt-3">
+          <Link
+            href="/group/new"
+            className="inline-flex h-12 items-center justify-center rounded-xl bg-[var(--rp-primary)] px-5 text-white shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"
+          >
+            Get Started
+          </Link>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ color: '#777', fontSize: 13, marginTop: 12, textAlign: 'center' }}>
+      <footer className="mx-auto w-full max-w-[1100px] text-center text-[13px] text-zinc-500">
         Built with Next.js + Supabase. No payments—pot is offline for MVP.
       </footer>
     </div>

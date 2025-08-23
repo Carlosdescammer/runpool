@@ -17,17 +17,17 @@ type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
 
 const variantClass: Record<BadgeVariant, string> = {
   default:
-    "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900",
+    "bg-[var(--rp-primary)] text-white",
   secondary:
-    "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100",
+    "bg-[var(--rp-accent)] text-[var(--rp-text)]",
   success:
-    "bg-emerald-500/90 text-white dark:bg-emerald-500",
+    "bg-emerald-500/90 text-white",
   warning:
-    "bg-amber-500/90 text-white dark:bg-amber-500",
+    "bg-amber-500/90 text-white",
   destructive:
-    "bg-rose-500/90 text-white dark:bg-rose-500",
+    "bg-rose-500/90 text-white",
   outline:
-    "border border-zinc-300 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100",
+    "border border-[var(--rp-accent)] text-[var(--rp-text)]",
 };
 
 export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(

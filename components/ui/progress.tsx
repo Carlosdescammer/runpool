@@ -14,7 +14,7 @@ export function Progress({ value = 0, className, label }: ProgressProps) {
   return (
     <div
       className={cn(
-        "h-3 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800",
+        "h-3 w-full overflow-hidden rounded-full bg-zinc-200",
         className
       )}
       role="progressbar"
@@ -25,8 +25,7 @@ export function Progress({ value = 0, className, label }: ProgressProps) {
     >
       <div
         className={cn(
-          "h-full w-0 rounded-full bg-indigo-500 transition-all duration-500 ease-out",
-          "dark:bg-indigo-400"
+          "h-full w-0 rounded-full bg-[var(--rp-primary)] transition-all duration-500 ease-out"
         )}
         style={{ width: `${v}%` }}
       />

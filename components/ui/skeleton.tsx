@@ -19,7 +19,7 @@ export function Skeleton({ className, rounded = "lg", ...props }: SkeletonProps)
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-zinc-200 dark:bg-zinc-800",
+        "relative overflow-hidden bg-zinc-200",
         "animate-pulse",
         r,
         className

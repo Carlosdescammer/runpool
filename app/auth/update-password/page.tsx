@@ -3,6 +3,10 @@
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function UpdatePassword() {
   const [newPassword, setNewPassword] = useState('');
@@ -29,43 +33,41 @@ export default function UpdatePassword() {
   }
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', display:'grid', placeItems:'center', padding:'24px 16px',
-                  background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
-      <div style={{ width:'100%', maxWidth:480, background:'#fff', border:'1px solid #eee', borderRadius:12,
-                     boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
-        <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>Set a new password</h1>
-        <div style={{ height:12 }} />
+    <div className="min-h-[100svh] grid place-items-center px-4 py-6 md:px-6">
+      <Card className="w-full max-w-[480px] p-6">
+        <h1 className="m-0 text-2xl font-extrabold">Set a new password</h1>
+        <div className="h-3" />
         {ready && (
           <>
-            <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>New password</label>
-            <input
+            <Label>New password</Label>
+            <Input
               type="password"
               placeholder="••••••••"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              style={{ marginTop:6, padding:12, border: '1px solid #ddd', borderRadius: 8, width:'100%' }}
+              className="mt-2"
             />
-            <div style={{ height:12 }} />
-            <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Confirm new password</label>
-            <input
+            <div className="h-3" />
+            <Label>Confirm new password</Label>
+            <Input
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              style={{ marginTop:6, padding: 12, border: '1px solid #ddd', borderRadius: 8, width:'100%' }}
+              className="mt-2"
             />
-            <div style={{ height:16 }} />
-            <button onClick={updatePassword}
-                    style={{ width:'100%', padding: '12px 16px', borderRadius: 10, background: '#7C3AED', color: '#fff', fontWeight: 700 }}>
-              Update Password
-            </button>
-            <div style={{ fontSize: 12, color: '#6B7280', marginTop:8 }}>
-              After updating, return to <Link href="/signin">Sign In</Link>.
+            <div className="h-4" />
+            <Button onClick={updatePassword} variant="primary" size="lg" className="w-full">
+              Update password
+            </Button>
+            <div className="mt-2 text-xs text-zinc-700">
+              After updating, return to{' '}
+              <Link href="/signin" className="text-[color:var(--rp-text)] underline">Sign in</Link>.
             </div>
           </>
         )}
-        <div style={{ color: '#6B7280', fontSize:12, minHeight:18, marginTop:12 }}>{status}</div>
-      </div>
+        <div className="mt-3 min-h-[18px] text-sm text-zinc-700">{status}</div>
+      </Card>
     </div>
   );
 }

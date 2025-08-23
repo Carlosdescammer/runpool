@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -53,63 +57,38 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', display:'grid', placeItems:'center', padding:'24px 16px',
-                  background:'linear-gradient(180deg, rgba(99,102,241,0.12), rgba(236,72,153,0.12))' }}>
-      <div style={{ width:'100%', maxWidth:560, background:'#fff', border:'1px solid #eee', borderRadius:12,
-                     boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
-        <h1 style={{ margin:0, fontSize:24, fontWeight:800 }}>Welcome — let’s get you set up</h1>
-        <div style={{ height:8 }} />
-        <div style={{ color:'#6B7280', fontSize:14 }}>Choose a display name, then join an existing group or create a new one.</div>
+    <div className="min-h-svh px-4 py-6">
+      <div className="mx-auto w-full max-w-[560px]">
+        <Card className="p-5">
+          <h1 className="m-0 text-[22px] font-extrabold">Welcome — let’s get you set up</h1>
+          <div className="mt-1 text-sm text-zinc-700">Choose a display name, then join an existing group or create a new one.</div>
 
-        <div style={{ height:20 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Display name</label>
-        <input
-          placeholder="e.g. Jamie"
-          value={name}
-          onChange={(e)=>setName(e.target.value)}
-          style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
-        />
-        <div style={{ height:12 }} />
-        <button onClick={saveProfile}
-                style={{ padding:'10px 14px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
-          Save profile
-        </button>
+          <div className="mt-4 grid gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="display-name">Display name</Label>
+              <Input id="display-name" placeholder="e.g. Jamie" value={name} onChange={(e)=>setName(e.target.value)} />
+            </div>
+            <Button onClick={saveProfile} variant="primary" className="w-full">Save profile</Button>
 
-        <div style={{ height:24 }} />
-        <div style={{ fontWeight:800 }}>Join a group</div>
-        <div style={{ height:8 }} />
-        <div style={{ fontSize:12, color:'#6B7280' }}>
-          If someone sent you an invite link, paste the token here. You can also paste the full URL; we’ll extract the token.
-        </div>
-        <div style={{ height:8 }} />
-        <input
-          placeholder="Invite token or link"
-          value={token}
-          onChange={(e)=>setToken(e.target.value)}
-          style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
-        />
-        <div style={{ height:8 }} />
-        <button onClick={joinByToken}
-                style={{ padding:'10px 14px', borderRadius:10, background:'#111827', color:'#fff', fontWeight:700 }}>
-          Join group
-        </button>
+            <div className="mt-2 font-extrabold">Join a group</div>
+            <div className="text-xs text-zinc-700">
+              If someone sent you an invite link, paste the token here. You can also paste the full URL; we’ll extract the token.
+            </div>
+            <Input placeholder="Invite token or link" value={token} onChange={(e)=>setToken(e.target.value)} />
+            <Button onClick={joinByToken} variant="primary" className="w-full">Join group</Button>
 
-        <div style={{ height:24 }} />
-        <div style={{ fontWeight:800 }}>Or create a new group</div>
-        <div style={{ height:8 }} />
-        <div style={{ fontSize:12, color:'#6B7280' }}>
-          You’ll set the rules and dates, then get an invite link you can copy and share. Members who open the link will see a
-          description and be guided to create a profile and join.
-        </div>
-        <div style={{ height:12 }} />
-        <Link href="/group/new" style={{ textDecoration:'none' }}>
-          <div style={{ padding:'10px 14px', borderRadius:10, border:'1px solid #ddd', textAlign:'center', fontWeight:700, color:'#7C3AED' }}>
-            Create a group
+            <div className="mt-2 font-extrabold">Or create a new group</div>
+            <div className="text-xs text-zinc-700">
+              You’ll set the rules and dates, then get an invite link you can copy and share. Members who open the link will see a
+              description and be guided to create a profile and join.
+            </div>
+            <Link href="/group/new" className="no-underline">
+              <Button variant="secondary" className="w-full">Create a group</Button>
+            </Link>
+
+            <div className="min-h-[18px] text-xs text-zinc-600">{status}</div>
           </div>
-        </Link>
-
-        <div style={{ height:16 }} />
-        <div style={{ color:'#6B7280', fontSize:12, minHeight:18 }}>{status}</div>
+        </Card>
       </div>
     </div>
   );

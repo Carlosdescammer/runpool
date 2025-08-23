@@ -2,6 +2,10 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function NewGroup() {
   const [name, setName] = useState('Past Our Prime');
@@ -57,62 +61,53 @@ export default function NewGroup() {
   }
 
   return (
-    <div style={{ minHeight:'calc(100vh - 80px)', display:'grid', placeItems:'center', padding:'24px 16px',
-                  background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))' }}>
-      <div style={{ width:'100%', maxWidth:520, background:'#fff', border:'1px solid #eee', borderRadius:12,
-                     boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
-        <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>Create Group</h1>
-        <div style={{ height:12 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Group Name</label>
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Past Our Prime"
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
-        <div style={{ height:12 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Weekly Rule</label>
-        <input value={rule} onChange={e=>setRule(e.target.value)} placeholder="Run at least 5 miles"
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
-        <div style={{ height:12 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Entry Fee ($)</label>
-        <input type="number" value={pot} onChange={e=>setPot(Number(e.target.value))} placeholder="25"
-               style={{ marginTop:6, padding:12, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
-        <div style={{ height:12 }} />
-        <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-          <div style={{ flex:'1 1 180px' }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Week start</div>
-            <input type="date" value={weekStart} onChange={e=>setWeekStart(e.target.value)}
-                   style={{ marginTop:6, padding:10, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
-          </div>
-          <div style={{ flex:'1 1 180px' }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Week end</div>
-            <input type="date" value={weekEnd} onChange={e=>setWeekEnd(e.target.value)}
-                   style={{ marginTop:6, padding:10, border:'1px solid #ddd', borderRadius:8, width:'100%' }}/>
-          </div>
-        </div>
-        <div style={{ height:16 }} />
-        <button onClick={createGroup}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
-          Create
-        </button>
+    <div className="min-h-svh px-4 py-6">
+      <div className="mx-auto w-full max-w-[560px]">
+        <Card className="p-5">
+          <h1 className="m-0 text-[22px] font-extrabold">Create Group</h1>
+          <div className="mt-3 grid gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="group-name">Group Name</Label>
+              <Input id="group-name" value={name} onChange={e=>setName(e.target.value)} placeholder="Past Our Prime" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="rule">Weekly Rule</Label>
+              <Input id="rule" value={rule} onChange={e=>setRule(e.target.value)} placeholder="Run at least 5 miles" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="fee">Entry Fee ($)</Label>
+              <Input id="fee" type="number" value={pot} onChange={e=>setPot(Number(e.target.value))} placeholder="25" />
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="week-start">Week start</Label>
+                <Input id="week-start" type="date" value={weekStart} onChange={e=>setWeekStart(e.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="week-end">Week end</Label>
+                <Input id="week-end" type="date" value={weekEnd} onChange={e=>setWeekEnd(e.target.value)} />
+              </div>
+            </div>
+            <Button onClick={createGroup} variant="primary" className="mt-1 w-full">Create</Button>
 
-        {groupId && (
-          <>
-            <a href={`/group/${groupId}`} style={{ textDecoration:'none' }}>
-              <div style={{ marginTop:12, padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', textAlign:'center' }}>
-                Go to Group Dashboard
-              </div>
-            </a>
-            {inviteUrl && (
-              <div style={{ marginTop:12, padding:12, border:'1px dashed #bbb', borderRadius:8 }}>
-                <div style={{ fontWeight:600, marginBottom:6 }}>Invite Link</div>
-                <div style={{ fontSize:14, wordBreak:'break-all' }}>{inviteUrl}</div>
-                <button onClick={()=>navigator.clipboard.writeText(inviteUrl)}
-                        style={{ marginTop:8, padding:'6px 10px', borderRadius:6, border:'1px solid #ddd' }}>
-                  Copy
-                </button>
-              </div>
+            {groupId && (
+              <>
+                <a href={`/group/${groupId}`} className="no-underline">
+                  <Button variant="secondary" className="w-full">Go to Group Dashboard</Button>
+                </a>
+                {inviteUrl && (
+                  <div className="mt-3 rounded-lg border border-dashed border-zinc-300 p-3">
+                    <div className="mb-1 font-semibold">Invite Link</div>
+                    <div className="break-all text-sm">{inviteUrl}</div>
+                    <Button onClick={()=>navigator.clipboard.writeText(inviteUrl)} size="sm" variant="secondary" className="mt-2">Copy</Button>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
-        <div style={{ color:'#6B7280', fontSize:12, minHeight:18, marginTop:12 }}>{status}</div>
+
+            <div className="min-h-[18px] text-xs text-zinc-600">{status}</div>
+          </div>
+        </Card>
       </div>
     </div>
   );

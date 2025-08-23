@@ -3,6 +3,10 @@
 import { supabase } from '@/lib/supabaseClient';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function Page() {
   const [email, setEmail] = useState('');
@@ -92,72 +96,65 @@ export default function Page() {
   }
 
   return (
-    <div style={{
-      minHeight: '100svh',
-      display: 'grid',
-      placeItems: 'center',
-      padding: 'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
-      background: 'linear-gradient(180deg, rgba(99,102,241,0.12), rgba(236,72,153,0.12))',
-      WebkitTapHighlightColor: 'transparent',
-      touchAction: 'manipulation',
-    }}>
-      <div style={{ width:'100%', maxWidth:440, background:'#fff', border:'1px solid #eee', borderRadius:12,
-                     boxShadow:'0 10px 30px rgba(0,0,0,0.06)', padding:24 }}>
+    <div className="min-h-[100svh] grid place-items-center px-4 py-6 md:px-6">
+      <Card className="w-full max-w-[480px] p-6">
         {userId && (
-          <div style={{ fontSize:12, color:'#6B7280', marginBottom:8 }}>You&#39;re already signed in.</div>
+          <div className="mb-2 text-sm text-zinc-700">You’re already signed in.</div>
         )}
-        <h1 style={{ margin:0, fontSize:24, fontWeight:800 }}>Sign in to your account</h1>
-        <div style={{ height:12 }} />
-        <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Email</label>
-        <input
+        <h1 className="m-0 text-2xl font-extrabold">Sign in to your account</h1>
+        <div className="h-3" />
+
+        <Label>Email</Label>
+        <Input
           type="email"
           placeholder="you@example.com"
           value={email}
-          onChange={e=>setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           autoCapitalize="none"
           autoCorrect="off"
           inputMode="email"
           autoComplete="email"
           enterKeyHint="next"
-          style={{ marginTop:8, padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
+          className="mt-2"
         />
-        <div style={{ height:12 }} />
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          <label style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Password</label>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#374151' }}>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <Label>Password</Label>
+          <div className="flex items-center gap-3 text-sm text-[color:var(--rp-text)]">
+            <label className="flex items-center gap-1.5">
               <input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} />
               Remember me
             </label>
-            <button onClick={forgotPassword} style={{ background:'none', border:'none', color:'#6366F1', cursor:'pointer', fontSize:12 }}>
+            <button onClick={forgotPassword} className="text-[color:var(--rp-text)] underline">
               Forgot your password?
             </button>
           </div>
         </div>
-        <input
+        <Input
           type="password"
           placeholder="••••••••"
           value={password}
-          onChange={e=>setPassword(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
           enterKeyHint="done"
-          style={{ marginTop:8, padding:12, minHeight:48, fontSize:16, border:'1px solid #ddd', borderRadius:8, width:'100%' }}
+          className="mt-2"
         />
-        <div style={{ height:16 }} />
-        <button onClick={passwordSignIn}
-                style={{ width:'100%', padding:'14px 16px', minHeight:48, fontSize:16, borderRadius:10, background:'#7C3AED', color:'#fff', fontWeight:700 }}>
+
+        <div className="h-4" />
+        <Button onClick={passwordSignIn} variant="primary" size="lg" className="w-full">
           Sign in
-        </button>
-        <div style={{ height:12 }} />
-        <div style={{ fontSize:12, color:'#6B7280', textAlign:'center' }}>
-          New to Run Pool?{' '}
-          <button onClick={passwordSignUp} style={{ background:'none', border:'none', color:'#6366F1', cursor:'pointer', textDecoration:'underline' }}>
+        </Button>
+
+        <div className="h-3" />
+        <div className="text-center text-sm text-zinc-700">
+          New to Runpool?{' '}
+          <button onClick={passwordSignUp} className="text-[color:var(--rp-text)] underline">
             Create account
           </button>
         </div>
-        <div style={{ height:12 }} />
-        <div style={{ color:'#6B7280', fontSize:12, minHeight:18 }}>{status}</div>
-      </div>
+        <div className="h-3" />
+        <div className="min-h-[18px] text-sm text-zinc-700">{status}</div>
+      </Card>
     </div>
   );
 }

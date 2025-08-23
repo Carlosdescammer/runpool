@@ -26,6 +26,7 @@ type GroupInfo = {
 export default function Join() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const [tokenIn, setTokenIn] = useState<string>("");
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [inviterName, setInviterName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -47,46 +48,66 @@ export default function Join() {
       const params = new URLSearchParams(window.location.search);
       const t = params.get('token');
       setToken(t);
-      if (!t) { setStatus('Missing invite token.'); toast.error('Missing invite token.'); setLoading(false); return; }
+      // If there's no token in the URL, we render a general join page (no error)
 
       // Current auth state
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id ?? null;
       setUserId(uid);
 
-      // Load invite via security-definer RPC (limited fields)
-      const { data: invRows, error: invErr } = await supabase.rpc('get_invite_public', { p_token: t });
-      if (invErr) { setStatus('This invite is invalid or was revoked.'); toast.error('This invite is invalid or was revoked.'); setLoading(false); return; }
-      const inv = Array.isArray(invRows) ? invRows[0] : null;
-      if (!inv) { setStatus('This invite is invalid or was revoked.'); toast.error('This invite is invalid or was revoked.'); setLoading(false); return; }
+      if (t) {
+        // Load invite via security-definer RPC (limited fields)
+        const { data: invRows, error: invErr } = await supabase.rpc('get_invite_public', { p_token: t });
+        if (invErr) { setStatus('This invite is invalid or was revoked.'); toast.error('This invite is invalid or was revoked.'); setLoading(false); return; }
+        const inv = Array.isArray(invRows) ? invRows[0] : null;
+        if (!inv) { setStatus('This invite is invalid or was revoked.'); toast.error('This invite is invalid or was revoked.'); setLoading(false); return; }
 
-      // Check expiry
-      const expired = inv.expires_at ? Date.now() > Date.parse(inv.expires_at) : false;
-      if (expired) { setStatus('This invite has expired. Ask the admin to send a new one.'); toast.error('This invite has expired. Ask the admin to send a new one.'); setLoading(false); return; }
-      setInvitedEmail((inv as InviteInfo).invited_email ?? null);
+        // Check expiry
+        const expired = inv.expires_at ? Date.now() > Date.parse(inv.expires_at) : false;
+        if (expired) { setStatus('This invite has expired. Ask the admin to send a new one.'); toast.error('This invite has expired. Ask the admin to send a new one.'); setLoading(false); return; }
+        setInvitedEmail((inv as InviteInfo).invited_email ?? null);
 
-      // Load group
-      const { data: g } = await supabase
-        .from('groups')
-        .select('id, name, rule, entry_fee')
-        .eq('id', inv.group_id)
-        .single();
-      setGroup(g as GroupInfo);
+        // Load group
+        const { data: g } = await supabase
+          .from('groups')
+          .select('id, name, rule, entry_fee')
+          .eq('id', inv.group_id)
+          .single();
+        setGroup(g as GroupInfo);
 
-      // Load inviter name (optional)
-      const { data: p } = await supabase
-        .from('user_profiles')
-        .select('name')
-        .eq('id', inv.created_by)
-        .maybeSingle();
-      setInviterName((p?.name as string | null) ?? null);
+        // Load inviter name (optional)
+        const { data: p } = await supabase
+          .from('user_profiles')
+          .select('name')
+          .eq('id', inv.created_by)
+          .maybeSingle();
+        setInviterName((p?.name as string | null) ?? null);
+      }
 
       setLoading(false);
     })();
   }, []);
 
+  function extractToken(raw: string | null): string | null {
+    if (!raw) return null;
+    const val = raw.trim();
+    if (!val) return null;
+    // Accept either bare token or full URL containing ?token=
+    if (val.includes('token=')) {
+      try {
+        const url = new URL(val);
+        return url.searchParams.get('token');
+      } catch {
+        const m = val.match(/token=([^&\s]+)/);
+        return m ? m[1] : val;
+      }
+    }
+    return val;
+  }
+
   async function joinNow() {
-    if (!token) { setStatus('Missing invite token.'); toast.error('Missing invite token.'); return; }
+    const tok = token ?? extractToken(tokenIn);
+    if (!tok) { setStatus('Paste an invite token or link.'); toast.error('Paste an invite token or link.'); return; }
     // Enforce email-locked join when invite has an invited_email
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -101,7 +122,7 @@ export default function Join() {
     } catch {}
     setBusy(true);
     // Use email-locked RPC only (DB has been updated)
-    const { data, error } = await supabase.rpc('join_group_with_token_email', { p_token: token });
+    const { data, error } = await supabase.rpc('join_group_with_token_email', { p_token: tok });
     setBusy(false);
     if (error) { setStatus(error.message); toast.error(error.message); return; }
     window.location.href = `/group/${data}?joined=1`;
@@ -135,43 +156,38 @@ export default function Join() {
   }
 
   const headerLine = useMemo(() => {
-    if (!group) return 'You\'re invited to join';
-    return `You\'re invited to join ${group.name}`;
-  }, [group]);
+    if (!token && !group) return "Join a group";
+    if (!group) return "You’re invited to join";
+    return `Join ${group.name}`;
+  }, [group, token]);
 
   const subLine = useMemo(() => {
+    if (!token && !group) return 'Paste your invite link or token. Or create a group.';
     const by = inviterName ? ` from ${inviterName}` : '';
-    return `Open the door to your running challenge${by}.`;
-  }, [inviterName]);
+    return `You’ve been invited${by}. Sign in and join.`;
+  }, [inviterName, token, group]);
 
   return (
-    <div style={{
-      minHeight:'100svh',
-      display:'grid',
-      placeItems:'center',
-      padding:'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
-      background:'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))'
-    }}>
+    <div className="min-h-svh grid place-items-center px-4 py-6 md:px-6">
       <Card className="w-full max-w-[720px] p-6">
         {/* Invite header */}
-        <div style={{ textAlign:'center' }}>
-          <h1 style={{ fontSize:24, fontWeight:800, margin:0 }}>{loading ? 'Loading…' : headerLine}</h1>
+        <div className="text-center">
+          <h1 className="m-0 text-2xl font-extrabold">{loading ? 'Loading…' : headerLine}</h1>
           {!loading && (
-            <div style={{ color:'#6B7280', marginTop:6 }}>{subLine}</div>
+            <div className="mt-1 text-zinc-600">{subLine}</div>
           )}
         </div>
 
         {!loading && group && (
-          <div style={{ marginTop:16, border:'1px solid #eee', borderRadius:10, padding:14, background:'#FAFAFF' }}>
-            <div style={{ fontWeight:800 }}>About {group.name}</div>
-            <div style={{ height:6 }} />
-            <div style={{ color:'#374151' }}>
-              <div><strong>Weekly Rule:</strong> {group.rule || '—'}</div>
+          <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
+            <div className="font-extrabold">About {group.name}</div>
+            <div className="mt-1 text-zinc-800">
+              <div><strong>Weekly rule:</strong> {group.rule || '—'}</div>
               {typeof group.entry_fee === 'number' && (
-                <div><strong>Entry Fee:</strong> ${group.entry_fee}</div>
+                <div><strong>Entry fee:</strong> ${group.entry_fee}</div>
               )}
               {invitedEmail && (
-                <div style={{ marginTop:6, color:'#6B7280' }}>
+                <div className="mt-1 text-zinc-600">
                   This invite is for <strong>{invitedEmail}</strong>.
                 </div>
               )}
@@ -182,8 +198,14 @@ export default function Join() {
         <div style={{ height:18 }} />
         {/* Auth section */}
         {userId ? (
-          <div style={{ textAlign:'center' }}>
-            <div style={{ color:'#6B7280', marginBottom:10 }}>You are signed in. Accept the invite to join this group.</div>
+          <div className="text-center">
+            <div className="mb-2 text-zinc-600">You’re signed in.</div>
+            {!token && (
+              <div className="mx-auto mb-3 w-full max-w-[420px]">
+                <Label>Invite link or token</Label>
+                <Input placeholder="Paste invite link or token" value={tokenIn} onChange={e=>setTokenIn(e.target.value)} />
+              </div>
+            )}
             <Button onClick={joinNow} disabled={busy} variant="primary" size="lg" className="w-[260px]">
               {busy ? 'Joining…' : 'Join group'}
             </Button>
@@ -191,7 +213,7 @@ export default function Join() {
         ) : (
           <div>
             {/* Toggle */}
-            <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
+            <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={()=>setMode('signup')} variant={mode==='signup' ? 'primary' : 'secondary'}>
                 Create account
               </Button>
@@ -200,9 +222,9 @@ export default function Join() {
               </Button>
             </div>
 
-            <div style={{ height:12 }} />
+            <div className="h-3" />
             {mode === 'signup' ? (
-              <div style={{ display:'grid', gap:10 }}>
+              <div className="grid gap-2.5">
                 <Label>Display name</Label>
                 <Input placeholder="e.g. Jamie" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
                 <Label>Email</Label>
@@ -214,7 +236,7 @@ export default function Join() {
                 </Button>
               </div>
             ) : (
-              <div style={{ display:'grid', gap:10 }}>
+              <div className="grid gap-2.5">
                 <Label>Email</Label>
                 <Input type="email" value={emailIn} onChange={e=>setEmailIn(e.target.value)} placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next" />
                 <Label>Password</Label>
@@ -224,16 +246,26 @@ export default function Join() {
                 </Button>
               </div>
             )}
+            {/* Invite token input for users without a token in URL */}
+            {!token && (
+              <div className="mt-4">
+                <div className="mb-1 font-semibold">Join a group</div>
+                <div className="text-sm text-zinc-600">Paste your invite link or token.</div>
+                <div className="mt-2 grid gap-2">
+                  <Input placeholder="Paste invite link or token" value={tokenIn} onChange={e=>setTokenIn(e.target.value)} />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        <div style={{ height:12 }} />
-        <div style={{ color:'#6B7280', fontSize:12, minHeight:18, textAlign:'center' }}>{status}</div>
+        <div className="h-3" />
+        <div className="min-h-[18px] text-center text-xs text-zinc-600">{status}</div>
         {/* Rules: Run Pool — Simple Rules */}
-        <div style={{ height:20 }} />
-        <div style={{ borderTop:'1px solid #eee', paddingTop:12 }}>
-          <div style={{ fontWeight:800, marginBottom:6 }}>Run Pool — Simple Rules</div>
-          <div style={{ color:'#374151', fontSize:14, display:'grid', gap:8 }}>
+        <div className="h-5" />
+        <div className="border-t border-zinc-200 pt-3">
+          <div className="mb-1 font-extrabold">Runpool — How it works</div>
+          <div className="grid gap-2 text-sm text-zinc-800">
             <div><strong>1) What this is</strong><br/>A weekly running game with friends. Do the miles, show proof, and share the prize.</div>
             <div><strong>2) Roles</strong><br/>Coach: made the group and sets the weekly rule.<br/>Banker: trusted person who holds the money (Apple Pay/Venmo).<br/>Players: everyone who joins.</div>
             <div><strong>3) This week’s rule (example)</strong><br/>Goal: Run at least 5 miles between Mon–Sun 11:59 PM. The rule stays the same all week. Changes apply next week.</div>

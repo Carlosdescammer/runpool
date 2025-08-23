@@ -50,9 +50,16 @@ export default function GroupPage() {
   const [dropTop3, setDropTop3] = useState<Record<string, boolean>>({});
   const [streaks, setStreaks] = useState<Record<string, number>>({});
   const [loadingBoard, setLoadingBoard] = useState(true);
+  const [joinLink, setJoinLink] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  // Build a shareable link (placeholder: join page). Admin page likely generates tokens
+  useEffect(() => {
+    try { setJoinLink(`${window.location.origin}/join`); } catch {}
   }, []);
 
   useEffect(() => {
@@ -100,6 +107,17 @@ export default function GroupPage() {
       }, 200);
     }
   }, [searchParams]);
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(joinLink);
+      setCopied(true);
+      toast.success('Link copied');
+      setTimeout(() => setCopied(false), 1200);
+    } catch (e) {
+      toast.error('Copy failed');
+    }
+  }
 
   async function loadLeaderboard(challengeId: string) {
     setLoadingBoard(true);
@@ -221,6 +239,16 @@ export default function GroupPage() {
     return `${s} – ${e}`;
   }, [challenge]);
 
+  const deadlineLabel = useMemo(() => {
+    if (!challenge) return '';
+    try {
+      const d = new Date(challenge.week_end);
+      return d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).replace(',', '');
+    } catch {
+      return '';
+    }
+  }, [challenge]);
+
   async function submitProof() {
     if (!userId) { setStatus('Sign in first.'); return; }
     if (!challenge) { setStatus('No open challenge.'); return; }
@@ -252,18 +280,10 @@ export default function GroupPage() {
   }
 
   return (
-    <div
-      className="min-h-svh"
-      style={{
-        padding:
-          'calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))',
-        background:
-          'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))',
-      }}
-    >
+    <div className="min-h-svh px-4 pb-6 pt-6 md:px-6">
       <div className="mx-auto grid max-w-[1000px] gap-4">
         {showWelcome && group && (
-          <Card className="relative border-zinc-200/80 bg-indigo-50/80 p-4 shadow-md dark:border-zinc-800/80 dark:bg-indigo-950/20">
+          <Card className="relative p-4">
             <Button
               onClick={() => setShowWelcome(false)}
               aria-label="Dismiss"
@@ -274,7 +294,7 @@ export default function GroupPage() {
               ✕
             </Button>
             <div className="mb-2 text-[18px] font-black">Run Pool — Simple Rules</div>
-            <div className="text-zinc-900 dark:text-zinc-100">
+            <div className="text-zinc-900">
               <ol className="ml-4 grid list-decimal gap-2">
                 <li>
                   <strong>What this is</strong>
@@ -351,12 +371,12 @@ export default function GroupPage() {
           <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
               <h1 className="m-0 text-[22px] font-extrabold">{group.name}</h1>
-              <div className="text-zinc-500">{group.rule}</div>
-              {challenge && <div className="text-sm text-zinc-500">Week: {period}</div>}
+              <div className="text-zinc-700">{group.rule}</div>
+              {challenge && <div className="text-sm text-zinc-700">Week: {period}</div>}
             </div>
             {challenge && (
               <Badge variant="outline" className="rounded-xl px-3 py-2">
-                Pot: <span className="font-bold">${'{'}challenge.pot{'}'}</span>
+                Pot: <span className="font-bold">${challenge.pot}</span>
               </Badge>
             )}
             <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary">
@@ -371,7 +391,27 @@ export default function GroupPage() {
         )}
 
         <Card className="p-4">
-          <div className="mb-2 font-extrabold">Submit Weekly Data</div>
+          <div className="mb-2 text-lg font-extrabold">This week at a glance</div>
+          <div className="text-sm text-zinc-700">Week: {period}</div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {group?.rule && (
+              <Badge variant="secondary" className="rounded-full">Rule: {group.rule}</Badge>
+            )}
+            {typeof group?.entry_fee === 'number' && (
+              <Badge variant="secondary" className="rounded-full">Entry: ${group.entry_fee}</Badge>
+            )}
+            {deadlineLabel && (
+              <Badge variant="secondary" className="rounded-full">Deadline: {deadlineLabel}</Badge>
+            )}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Input readOnly value={joinLink} className="flex-1" />
+            <Button onClick={copyInvite} variant="secondary" size="sm">{copied ? 'Copied' : 'Copy link'}</Button>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="mb-2 text-lg font-extrabold">Submit Weekly Data</div>
           <div className="flex flex-wrap items-center gap-2">
             <Input
               placeholder="Miles e.g. 5.2"
@@ -386,142 +426,93 @@ export default function GroupPage() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="text-sm"
             />
-            <Button onClick={submitProof} variant="primary">
-              Submit
-            </Button>
+            <Button onClick={submitProof} variant="primary">Submit</Button>
           </div>
-          <div className="mt-2 text-xs text-zinc-500">{status}</div>
+          <div className="mt-2 text-xs text-zinc-600">{status}</div>
         </Card>
 
-        <Card className="overflow-hidden">
-          <div className="border-b border-zinc-200 p-3 font-extrabold dark:border-zinc-800">
-            Leaderboard {challenge ? `— ${period}` : ''}
+        <Card className="overflow-hidden p-4 md:p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
+            {challenge && (
+              <div className="text-sm text-zinc-700">Pot: ${challenge.pot}</div>
+            )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-[560px] w-full border-collapse">
-              <thead>
-                <tr className="bg-zinc-100 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-400">
-                  <th className="p-2 text-left">Rank</th>
-                  <th className="p-2 text-left">Name</th>
-                  <th className="p-2 text-left">Streak</th>
-                  <th className="p-2 text-right">Miles</th>
-                  <th className="p-2 text-right">Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingBoard &&
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-t border-zinc-200 dark:border-zinc-800">
-                      <td className="p-2"><Skeleton className="h-5 w-10" /></td>
+
+          {loadingBoard ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-[640px] w-full border-collapse">
+                <thead>
+                  <tr className="bg-zinc-100 text-zinc-700">
+                    <th className="p-2 text-left">Rank</th>
+                    <th className="p-2 text-left">Runner</th>
+                    <th className="p-2 text-right">Miles</th>
+                    <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">Award</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="border-t border-zinc-200">
+                      <td className="p-2"><Skeleton className="h-6 w-6 rounded-full" /></td>
                       <td className="p-2"><Skeleton className="h-5 w-40" /></td>
-                      <td className="p-2"><Skeleton className="h-5 w-10" /></td>
                       <td className="p-2 text-right"><Skeleton className="ml-auto h-5 w-10" /></td>
-                      <td className="p-2 text-right"><Skeleton className="ml-auto h-5 w-10" /></td>
+                      <td className="p-2"><Skeleton className="h-5 w-16" /></td>
+                      <td className="p-2"><Skeleton className="h-5 w-16" /></td>
                     </tr>
                   ))}
-
-                {!loadingBoard &&
-                  (leaderboard ?? []).map((r, i) => {
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[640px] w-full border-collapse">
+                <thead>
+                  <tr className="bg-zinc-100 text-zinc-700">
+                    <th className="p-2 text-left">Rank</th>
+                    <th className="p-2 text-left">Runner</th>
+                    <th className="p-2 text-right">Miles</th>
+                    <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">Award</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(leaderboard ?? []).map((r, i) => {
                     const rank = i + 1;
                     const uid = r.user_id;
-                    const d = rankDelta[uid] ?? 0;
-                    const mv = movement[uid] ?? 'same';
                     const st = streaks[uid] ?? 0;
-
-                    const medal =
-                      rank === 1
-                        ? { text: '1st', className: 'bg-amber-500 text-white' }
-                        : rank === 2
-                        ? { text: '2nd', className: 'bg-zinc-400 text-zinc-900' }
-                        : rank === 3
-                        ? { text: '3rd', className: 'bg-orange-700 text-white' }
-                        : null;
-
-                    let rowBg =
-                      rank === 1
-                        ? 'bg-amber-50 dark:bg-amber-950/20'
-                        : rank === 2
-                        ? 'bg-zinc-50 dark:bg-zinc-900/30'
-                        : rank === 3
-                        ? 'bg-orange-50 dark:bg-orange-950/20'
-                        : 'bg-white dark:bg-zinc-950';
-                    if (joinTop3[uid]) rowBg = 'bg-emerald-50 dark:bg-emerald-950/20';
-                    if (dropTop3[uid]) rowBg = 'bg-rose-50 dark:bg-rose-950/20';
-
-                    const deltaChip = (
-                      <Badge
-                        variant={mv === 'up' ? 'success' : mv === 'down' ? 'destructive' : 'secondary'}
-                        className="min-w-[34px] justify-end"
-                      >
-                        {mv === 'up' ? '▲' : mv === 'down' ? '▼' : '•'}
-                        {d !== 0 ? Math.abs(d) : ''}
-                      </Badge>
-                    );
-
-                    const streakBadge =
-                      st >= 2 ? (
-                        <Badge
-                          title={`Current streak: ${st} week${st > 1 ? 's' : ''}`}
-                          className={cn(
-                            'ml-2',
-                            st >= 8
-                              ? 'bg-emerald-700 text-white'
-                              : st >= 4
-                              ? 'bg-emerald-500 text-white'
-                              : 'bg-emerald-200 text-emerald-900'
-                          )}
-                        >
-                          🔥 {st}
-                        </Badge>
-                      ) : null;
-
                     return (
-                      <tr
-                        key={uid}
-                        className={cn(
-                          'border-t border-zinc-200 transition-transform duration-300 dark:border-zinc-800',
-                          rowBg,
-                          joinTop3[uid] ? 'scale-[1.01]' : ''
-                        )}
-                      >
+                      <tr key={uid} className="border-t border-zinc-200">
                         <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            {medal && (
-                              <Badge className={cn('font-extrabold', medal.className)}>{medal.text}</Badge>
-                            )}
-                            <span className="font-extrabold">{rank}</span>
+                          <div className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-300 bg-white text-sm font-bold">
+                            {rank}
                           </div>
                         </td>
                         <td className="p-2">
                           <div className="flex items-center gap-2">
                             <Avatar name={r.name ?? r.user_id} size="sm" />
-                            <span>{r.name ?? r.user_id}</span>
-                            {streakBadge}
+                            <div className="font-semibold">{r.name ?? r.user_id}</div>
+                            {st >= 2 && (
+                              <Badge className="ml-1" variant="secondary">🔥 {st}w</Badge>
+                            )}
                           </div>
                         </td>
-                        <td className="p-2">
-                          {st >= 2 ? (
-                            <span className="font-semibold text-emerald-800 dark:text-emerald-300">{st}w</span>
-                          ) : (
-                            <span className="text-zinc-500">—</span>
-                          )}
-                        </td>
                         <td className="p-2 text-right">{Number(r.miles).toFixed(1)}</td>
-                        <td className="p-2 text-right">{deltaChip}</td>
+                        <td className="p-2">—</td>
+                        <td className="p-2">—</td>
                       </tr>
                     );
                   })}
 
-                {!loadingBoard && (!leaderboard || leaderboard.length === 0) && (
-                  <tr>
-                    <td colSpan={5} className="p-3 text-zinc-600">
-                      No submissions yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  {(!leaderboard || leaderboard.length === 0) && (
+                    <tr>
+                      <td colSpan={5} className="p-3 text-zinc-600">No submissions yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
     </div>

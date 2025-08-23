@@ -42,7 +42,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover", // enable iOS safe areas
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#ffffff" }, { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" }],
+  // Light-only theme color matches --rp-bg (#DAD7CD)
+  themeColor: "#DAD7CD",
 };
 
 export default function RootLayout({
@@ -53,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           {children}
           <Toaster position="top-center" richColors closeButton expand />
         </ThemeProvider>

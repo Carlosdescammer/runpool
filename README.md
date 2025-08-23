@@ -13,6 +13,13 @@ A lightweight group challenge app built with Next.js App Router and Supabase. It
 
 ## Recent Updates (2025-08-23)
 
+- **Light-only Sage Theme**: Removed all Tailwind `dark:` classes and disabled dark mode across the app.
+  - Forced light theme via `ThemeProvider` (`defaultTheme="light"`, `enableSystem={false}`) in `src/app/layout.tsx`.
+  - Set a single light `viewport.themeColor` of `#DAD7CD` in both `src/app/layout.tsx` and `app/layout.tsx`.
+  - Removed `@media (prefers-color-scheme: dark)` overrides from `src/app/globals.css` and `app/globals.css`.
+  - Updated shared components to ensure light surfaces/colors only: `components/ui/{card,input,badge,button,avatar,progress,label,skeleton}.tsx`.
+  - Cleaned dark classes from pages: `app/group/[id]/page.tsx`, `app/group/[id]/admin/page.tsx`, and `src/app/page.tsx`.
+
 - **Prioritized email invite flow** (`app/group/[id]/admin/page.tsx`): textarea for multiple emails; sends Supabase magic-link emails; shows active and expired invites; supports resending per-invite when `invited_email` is known; supports revoking.
 - **Legacy invites de-emphasized**: legacy "Generate invite link" moved into a `<details>` section labeled "Legacy" to steer users toward email invites.
 - **Back to dashboard**:
