@@ -11,7 +11,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 
 type Challenge = {
   id: string; group_id: string; week_start: string; week_end: string;
@@ -44,10 +43,10 @@ export default function GroupPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const searchParams = useSearchParams();
   const [showWelcome, setShowWelcome] = useState(false);
-  const [rankDelta, setRankDelta] = useState<Record<string, number>>({});
-  const [movement, setMovement] = useState<Record<string, 'up' | 'down' | 'same'>>({});
-  const [joinTop3, setJoinTop3] = useState<Record<string, boolean>>({});
-  const [dropTop3, setDropTop3] = useState<Record<string, boolean>>({});
+  const [, setRankDelta] = useState<Record<string, number>>({});
+  const [, setMovement] = useState<Record<string, 'up' | 'down' | 'same'>>({});
+  const [, setJoinTop3] = useState<Record<string, boolean>>({});
+  const [, setDropTop3] = useState<Record<string, boolean>>({});
   const [streaks, setStreaks] = useState<Record<string, number>>({});
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [joinLink, setJoinLink] = useState('');
@@ -114,7 +113,7 @@ export default function GroupPage() {
       setCopied(true);
       toast.success('Link copied');
       setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
+    } catch {
       toast.error('Copy failed');
     }
   }

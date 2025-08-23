@@ -4,7 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 type LeaderboardRow = { user_id: string; name: string | null; miles: number };
 type Challenge = { id: string; group_id: string; week_start: string; week_end: string; status: 'OPEN'|'CLOSED'; pot?: number };
