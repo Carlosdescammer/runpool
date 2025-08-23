@@ -27,12 +27,18 @@ A lightweight group challenge app built with Next.js App Router and Supabase. It
 - **Realtime leaderboard** (`app/group/[id]/page.tsx`): Subscribes to `proofs` changes for the active challenge via Supabase Realtime and refreshes `leaderboard_week` instantly.
 - **Email-locked joins** (`app/join/page.tsx`): If an invite has `invited_email`, the join flow requires the signed-in email to match (case-insensitive). Uses `join_group_with_token_email` with legacy RPC fallback.
 
+- **Secure invite fetch**: Added `get_invite_public(p_token text)` security-definer RPC to fetch limited invite fields by token and updated the Join page to use it instead of reading the `invites` table directly.
+- **Weekly recap API**: Implemented `app/api/weekly-recap/route.ts` to compute recaps for recent CLOSED challenges and optionally send emails via Resend (`send=1`). Endpoint can be protected via `x-cron-secret` if `CRON_SECRET` is set.
+
 ## Bugs fixed
 
-- **Invite row typing/compat**: Some projects lacked the `invited_email` column, causing insert/select issues.
-  - Fix: when sending invites, attempt insert with `invited_email` and fall back to legacy insert if the column is missing.
-  - Fix: join page selects `*` from `invites` to avoid column-specific errors and maintain backward compatibility.
-- **Back navigation missing on Admin**: Back button wasn’t visible in some admin routes (e.g., trailing slash).
+- **Missing `invited_email` column in SQL**: Applying DB enforcement failed with `column i.invited_email does not exist`.
+  - Fix: added `alter table if exists public.invites add column if not exists invited_email text;` at the top of `supabase/sql/join_enforcement.sql`.
+- **Invite visibility vs. RLS**: Join page previously read `invites` directly, which can be blocked by strict RLS.
+  - Fix: created security-definer RPC `get_invite_public(p_token text)` (limited fields) and updated `app/join/page.tsx` to call it.
+- **Deno TS import lint in Edge Function**: Local TypeScript tooling flagged Deno URL imports.
+  - Fix: added `// @ts-nocheck` to `supabase/functions/weekly-recap/index.ts` to avoid Node-oriented linting.
+ - **Back navigation missing on Admin**: Back button wasn’t visible in some admin routes (e.g., trailing slash).
   - Fix: added on-page back control and header-level route detection that handles `/group/[id]/admin` and `/group/[id]/admin/`.
 
 ## What's next
@@ -79,6 +85,19 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
 Client initialized in `lib/supabaseClient.ts`.
+
+Additional for weekly recap and email sending:
+
+```bash
+# Weekly recap and email
+SUPABASE_SERVICE_ROLE_KEY=...     # server-only, used by recap compute API
+CRON_SECRET=some-strong-secret    # optional: protects /api/weekly-recap endpoint
+
+# Resend
+RESEND_API_KEY=...
+RESEND_FROM="Runpool <no-reply@yourdomain.com>"
+WEEKLY_RECAP_TEST_TO=you@example.com,teammate@example.com  # optional default recipients
+```
 
 ## Supabase Setup
 
@@ -133,18 +152,34 @@ Grant execute to relevant roles if needed.
 - `app/signin/page.tsx` – email/password auth + post-auth redirect.
 - `lib/supabaseClient.ts` – Supabase client.
 
-### Weekly Recap Email (Pending)
+### Weekly Recap Email
 
-Scaffolding is in place; implementation is pending:
+- Next.js API route: `app/api/weekly-recap/route.ts` computes recaps for recent CLOSED challenges and can optionally send emails via Resend when `send=1` is passed. Protect with `x-cron-secret` if `CRON_SECRET` is set.
+- Supabase Edge Function: `supabase/functions/weekly-recap/index.ts` exists as a stub (returns 501) and can be used if you prefer Supabase Scheduled Functions; logic can be ported from the API route.
 
-- Next.js API route: `app/api/weekly-recap/route.ts` (returns 501 until implemented). Useful for Vercel Cron.
-- Supabase Edge Function: `supabase/functions/weekly-recap/index.ts` (returns 501). Deploy via `supabase functions deploy weekly-recap`.
+How to test locally:
 
-Suggested next steps:
+```bash
+# compute only
+curl -s -X POST 'http://localhost:3000/api/weekly-recap?limit=5' -H 'x-cron-secret: some-strong-secret' | jq .
 
-- Implement aggregation (top 3, winners, streaks, totals) from `leaderboard_week` + `proofs` after a challenge closes.
-- Send emails via your provider (e.g., Resend, Postmark) using API keys stored in Supabase secrets or Vercel env.
-- Schedule weekly execution (Vercel Cron → API route, or Supabase Scheduled Functions → Edge Function).
+# send via Resend using default recipients from WEEKLY_RECAP_TEST_TO
+curl -s -X POST 'http://localhost:3000/api/weekly-recap?limit=5&send=1' -H 'x-cron-secret: some-strong-secret' | jq .
+
+# send to explicit recipients (comma-separated)
+curl -s -X POST 'http://localhost:3000/api/weekly-recap?limit=5&send=1&to=first@example.com,second@example.com' -H 'x-cron-secret: some-strong-secret' | jq .
+```
+
+Scheduling options:
+
+- Vercel Cron → POST `/api/weekly-recap?limit=10&send=1` with header `x-cron-secret: <CRON_SECRET>`.
+- Supabase Scheduled Functions → deploy and schedule the Edge Function (after porting compute logic).
+
+What’s next:
+
+- Improve email template and add per-group recipient lists/opt-in.
+- Optionally port recap compute to the Supabase Edge Function.
+- Add fine-grained RLS around invites if needed, keeping RPCs as the public interface.
 
 ## E2E Test Checklist
 
