@@ -27,6 +27,7 @@ export default function Admin() {
   const [copyAnimating, setCopyAnimating] = useState(false);
   const [emailsInput, setEmailsInput] = useState('');
   const [sendingInvites, setSendingInvites] = useState(false);
+  const [notifyOnProof, setNotifyOnProof] = useState<boolean>(true);
 
   const copyWithAnim = useCallback(async (text: string, key: string) => {
     try {
@@ -122,6 +123,7 @@ export default function Admin() {
         setRule(g.rule ?? '');
         setEntryFee(g.entry_fee ?? 100);
         setPot(g.entry_fee ?? 100);
+        setNotifyOnProof((g as { notify_on_proof?: boolean } | null)?.notify_on_proof ?? true);
       }
     })();
   }, [groupId]);
@@ -164,7 +166,7 @@ export default function Admin() {
     setMsg('Saving…');
     const { error } = await supabase
       .from('groups')
-      .update({ name, rule, entry_fee: entryFee })
+      .update({ name, rule, entry_fee: entryFee, notify_on_proof: notifyOnProof })
       .eq('id', groupId);
     setMsg(error ? error.message : 'Saved.');
   }
@@ -243,6 +245,21 @@ export default function Admin() {
           <label className="text-xs font-semibold text-zinc-700">Entry Fee ($)</label>
           <Input type="number" value={entryFee} onChange={e=>setEntryFee(Number(e.target.value))} className="mt-1" />
           <div className="h-3" />
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-3">
+            <div>
+              <div className="text-sm font-semibold">Instant email on miles</div>
+              <div className="text-xs text-zinc-600">Email the group when a member logs miles</div>
+            </div>
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={notifyOnProof}
+                onChange={e=>setNotifyOnProof(e.target.checked)}
+                className="h-5 w-5 rounded border-zinc-300 text-[var(--rp-accent)]"
+              />
+              <span className="text-sm">{notifyOnProof ? 'On' : 'Off'}</span>
+            </label>
+          </div>
           <Button onClick={saveGroup} className="w-full">Save settings</Button>
           <div className="my-3 h-px bg-zinc-200" />
 

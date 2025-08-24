@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowDown, ArrowUp, Minus, Crown } from 'lucide-react';
 
 type Challenge = {
   id: string; group_id: string; week_start: string; week_end: string;
@@ -31,6 +32,13 @@ type LeaderboardRow = {
   miles: number;
 };
 
+type InviteSendResponse = {
+  invite_url?: string;
+  email_sent?: boolean;
+  warning?: string;
+  error?: string;
+};
+
 export default function GroupPage() {
   const { id: groupId } = useParams<{ id: string }>();
   const [userId, setUserId] = useState<string | null>(null);
@@ -43,10 +51,10 @@ export default function GroupPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const searchParams = useSearchParams();
   const [showWelcome, setShowWelcome] = useState(false);
-  const [, setRankDelta] = useState<Record<string, number>>({});
-  const [, setMovement] = useState<Record<string, 'up' | 'down' | 'same'>>({});
-  const [, setJoinTop3] = useState<Record<string, boolean>>({});
-  const [, setDropTop3] = useState<Record<string, boolean>>({});
+  const [rankDelta, setRankDelta] = useState<Record<string, number>>({});
+  const [movement, setMovement] = useState<Record<string, 'up' | 'down' | 'same'>>({});
+  const [joinTop3, setJoinTop3] = useState<Record<string, boolean>>({});
+  const [dropTop3, setDropTop3] = useState<Record<string, boolean>>({});
   const [streaks, setStreaks] = useState<Record<string, number>>({});
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [joinLink, setJoinLink] = useState('');
@@ -157,25 +165,27 @@ export default function GroupPage() {
         },
         body: JSON.stringify({ group_id: groupId, email, expires_in_days: inviteExpiresDays }),
       });
-      const json = await res.json().catch(() => ({} as any));
+      let json: InviteSendResponse = {};
+      try {
+        json = await res.json();
+      } catch {
+        json = {};
+      }
       if (!res.ok) {
-        const msg = (json && (json.error as string)) || `Failed to send invite (${res.status})`;
+        const msg = (json && json.error) || `Failed to send invite (${res.status})`;
         toast.error(msg);
         setInviteSending(false);
         return;
       }
-      const inviteUrl = (json && (json.invite_url as string)) || `${window.location.origin}/join`;
-      const emailSent = Boolean((json as any).email_sent);
-      const warning = (json as any).warning as string | undefined;
-      const errDetail = (json as any).error as string | undefined;
+      const inviteUrl = (json && json.invite_url) || `${window.location.origin}/join`;
+      const emailSent = Boolean(json.email_sent);
+      const warning = json.warning;
+      const errDetail = json.error;
       setInviteResult({ url: inviteUrl, email, sent: emailSent, warning, error: errDetail });
       if (emailSent) {
         toast.success('Invite email sent');
       } else {
-        // sonner may expose toast.message; fallback to success if unavailable
-        const maybeMsg = (toast as any).message;
-        if (typeof maybeMsg === 'function') maybeMsg('Invite link created — email not sent. Copy below.');
-        else toast.success('Invite link created — copy below.');
+        toast.success('Invite link created — copy below.');
       }
       setInviteEmail('');
       try { await navigator.clipboard.writeText(inviteUrl); } catch {}
@@ -321,6 +331,7 @@ export default function GroupPage() {
     if (!userId) { setStatus('Sign in first.'); return; }
     if (!challenge) { setStatus('No open challenge.'); return; }
     if (!miles) { setStatus('Enter miles.'); return; }
+    const milesNum = Number(miles);
     let image_url: string | null = null;
 
     if (file) {
@@ -335,13 +346,30 @@ export default function GroupPage() {
     const { error } = await supabase.from('proofs').insert({
       challenge_id: challenge.id,
       user_id: userId,
-      miles: Number(miles),
+      miles: milesNum,
       image_url
     });
     if (error) { setStatus(error.message); toast.error(error.message); return; }
     setStatus('Submitted!');
     toast.success('Proof submitted');
     try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
+
+    // Fire-and-forget: notify group members by email via Resend
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (token) {
+        fetch('/api/notify/proof', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ challenge_id: challenge.id, miles: milesNum }),
+        }).catch(() => {});
+      }
+    } catch {}
+
     setMiles('');
     setFile(null);
     await loadLeaderboard(challenge.id);
@@ -549,85 +577,188 @@ export default function GroupPage() {
 
         <Card className="overflow-hidden p-4 md:p-5">
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
-            {challenge && (
-              <div className="text-sm text-zinc-700">Pot: ${challenge.pot}</div>
-            )}
+            <div className="flex items-center gap-2">
+              <div className="text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
+              {challenge && (
+                <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
+              )}
+            </div>
           </div>
 
           {loadingBoard ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-[640px] w-full border-collapse">
-                <thead>
-                  <tr className="bg-zinc-100 text-zinc-700">
-                    <th className="p-2 text-left">Rank</th>
-                    <th className="p-2 text-left">Runner</th>
-                    <th className="p-2 text-right">Miles</th>
-                    <th className="p-2 text-left">Status</th>
-                    <th className="p-2 text-left">Award</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i} className="border-t border-zinc-200">
-                      <td className="p-2"><Skeleton className="h-6 w-6 rounded-full" /></td>
-                      <td className="p-2"><Skeleton className="h-5 w-40" /></td>
-                      <td className="p-2 text-right"><Skeleton className="ml-auto h-5 w-10" /></td>
-                      <td className="p-2"><Skeleton className="h-5 w-16" /></td>
-                      <td className="p-2"><Skeleton className="h-5 w-16" /></td>
+            <>
+              {/* Table (sm and up) */}
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="min-w-[640px] w-full border-collapse">
+                  <thead>
+                    <tr className="sticky top-0 z-10 bg-zinc-50 text-zinc-700">
+                      <th className="p-2 text-left">Rank</th>
+                      <th className="p-2 text-left">Runner</th>
+                      <th className="p-2 text-right">Miles</th>
+                      <th className="p-2 text-left">Status</th>
+                      <th className="p-2 text-left">Award</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[640px] w-full border-collapse">
-                <thead>
-                  <tr className="bg-zinc-100 text-zinc-700">
-                    <th className="p-2 text-left">Rank</th>
-                    <th className="p-2 text-left">Runner</th>
-                    <th className="p-2 text-right">Miles</th>
-                    <th className="p-2 text-left">Status</th>
-                    <th className="p-2 text-left">Award</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(leaderboard ?? []).map((r, i) => {
-                    const rank = i + 1;
-                    const uid = r.user_id;
-                    const st = streaks[uid] ?? 0;
-                    return (
-                      <tr key={uid} className="border-t border-zinc-200">
-                        <td className="p-2">
-                          <div className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-300 bg-white text-sm font-bold">
-                            {rank}
-                          </div>
-                        </td>
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar name={r.name ?? r.user_id} size="sm" />
-                            <div className="font-semibold">{r.name ?? r.user_id}</div>
-                            {st >= 2 && (
-                              <Badge className="ml-1" variant="secondary">🔥 {st}w</Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-2 text-right">{Number(r.miles).toFixed(1)}</td>
-                        <td className="p-2">—</td>
-                        <td className="p-2">—</td>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i} className="border-t border-zinc-200 odd:bg-white even:bg-zinc-50">
+                        <td className="p-2"><Skeleton className="h-6 w-6 rounded-full" /></td>
+                        <td className="p-2"><Skeleton className="h-5 w-40" /></td>
+                        <td className="p-2 text-right"><Skeleton className="ml-auto h-5 w-10" /></td>
+                        <td className="p-2"><Skeleton className="h-5 w-16" /></td>
+                        <td className="p-2"><Skeleton className="h-5 w-16" /></td>
                       </tr>
-                    );
-                  })}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-                  {(!leaderboard || leaderboard.length === 0) && (
-                    <tr>
-                      <td colSpan={5} className="p-3 text-zinc-600">No submissions yet.</td>
+              {/* Mobile cards */}
+              <div className="grid gap-2 sm:hidden">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-6 rounded-full" />
+                        <Skeleton className="h-4 w-28" />
+                      </div>
+                      <Skeleton className="h-5 w-10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Table (sm and up) */}
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="min-w-[640px] w-full border-collapse">
+                  <thead>
+                    <tr className="sticky top-0 z-10 bg-zinc-50 text-zinc-700">
+                      <th className="p-2 text-left">Rank</th>
+                      <th className="p-2 text-left">Runner</th>
+                      <th className="p-2 text-right">Miles</th>
+                      <th className="p-2 text-left">Status</th>
+                      <th className="p-2 text-left">Award</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {(leaderboard ?? []).map((r, i) => {
+                      const rank = i + 1;
+                      const uid = r.user_id;
+                      const st = streaks[uid] ?? 0;
+                      const delta = rankDelta[uid] ?? 0;
+                      const move = movement[uid] ?? 'same';
+                      const medalClass = rank === 1
+                        ? 'border-amber-300 bg-amber-100 text-amber-900'
+                        : rank === 2
+                        ? 'border-zinc-300 bg-zinc-100 text-zinc-900'
+                        : rank === 3
+                        ? 'border-orange-300 bg-orange-100 text-orange-900'
+                        : 'border-zinc-300 bg-white';
+                      const rowPulse = joinTop3[uid] || dropTop3[uid] ? 'animate-pulse' : '';
+                      return (
+                        <tr
+                          key={uid}
+                          className={`border-t border-zinc-200 odd:bg-white even:bg-zinc-50 hover:bg-zinc-100/60 transition-colors ${rowPulse}`}
+                        >
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${medalClass}`}>
+                                {rank === 1 ? <Crown className="h-3.5 w-3.5" /> : rank}
+                              </div>
+                              <div className="flex items-center text-xs">
+                                {move === 'up' && (
+                                  <span className="inline-flex items-center gap-0.5 text-emerald-600"><ArrowUp className="h-3 w-3" />+{Math.abs(delta)}</span>
+                                )}
+                                {move === 'down' && (
+                                  <span className="inline-flex items-center gap-0.5 text-rose-600"><ArrowDown className="h-3 w-3" />-{Math.abs(delta)}</span>
+                                )}
+                                {move === 'same' && (
+                                  <span className="inline-flex items-center gap-0.5 text-zinc-500"><Minus className="h-3 w-3" />0</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <Avatar name={r.name ?? r.user_id} size={rank === 1 ? 'md' : 'sm'} />
+                              <div className={`font-semibold ${rank === 1 ? 'text-[15px]' : ''}`}>{r.name ?? r.user_id}</div>
+                              {st >= 3 && (
+                                <Badge className="ml-1 rounded-full" variant="secondary">🔥 {st}w</Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-2 text-right tabular-nums">{Number(r.miles).toFixed(1)}</td>
+                          <td className="p-2">—</td>
+                          <td className="p-2">—</td>
+                        </tr>
+                      );
+                    })}
+
+                    {(!leaderboard || leaderboard.length === 0) && (
+                      <tr>
+                        <td colSpan={5} className="p-3 text-zinc-600">No submissions yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="grid gap-2 sm:hidden">
+                {(leaderboard ?? []).map((r, i) => {
+                  const rank = i + 1;
+                  const uid = r.user_id;
+                  const st = streaks[uid] ?? 0;
+                  const delta = rankDelta[uid] ?? 0;
+                  const move = movement[uid] ?? 'same';
+                  const medalClass = rank === 1
+                    ? 'border-amber-300 bg-amber-100 text-amber-900'
+                    : rank === 2
+                    ? 'border-zinc-300 bg-zinc-100 text-zinc-900'
+                    : rank === 3
+                    ? 'border-orange-300 bg-orange-100 text-orange-900'
+                    : 'border-zinc-300 bg-white';
+                  const rowPulse = joinTop3[uid] || dropTop3[uid] ? 'animate-pulse' : '';
+                  return (
+                    <div key={uid} className={`rounded-lg border border-zinc-200 bg-white p-3 ${rowPulse}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${medalClass}`}>
+                            {rank === 1 ? <Crown className="h-3.5 w-3.5" /> : rank}
+                          </div>
+                          <Avatar name={r.name ?? r.user_id} size={rank === 1 ? 'md' : 'sm'} />
+                          <div className="font-semibold">{r.name ?? r.user_id}</div>
+                          {st >= 3 && (
+                            <Badge className="ml-1 rounded-full" variant="secondary">🔥 {st}w</Badge>
+                          )}
+                        </div>
+                        <div className="text-right tabular-nums text-lg font-bold">{Number(r.miles).toFixed(1)}</div>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-xs">
+                        <div className="text-zinc-600">{challenge ? period : ''}</div>
+                        <div>
+                          {move === 'up' && (
+                            <span className="inline-flex items-center gap-0.5 text-emerald-600"><ArrowUp className="h-3 w-3" />+{Math.abs(delta)}</span>
+                          )}
+                          {move === 'down' && (
+                            <span className="inline-flex items-center gap-0.5 text-rose-600"><ArrowDown className="h-3 w-3" />-{Math.abs(delta)}</span>
+                          )}
+                          {move === 'same' && (
+                            <span className="inline-flex items-center gap-0.5 text-zinc-500"><Minus className="h-3 w-3" />0</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {(!leaderboard || leaderboard.length === 0) && (
+                  <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-3 text-center text-sm text-zinc-600">No submissions yet.</div>
+                )}
+              </div>
+            </>
           )}
         </Card>
       </div>
