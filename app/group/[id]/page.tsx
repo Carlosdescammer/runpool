@@ -54,6 +54,10 @@ export default function GroupPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteExpiresDays, setInviteExpiresDays] = useState<number>(14);
   const [inviteSending, setInviteSending] = useState(false);
+  const [inviteResult, setInviteResult] = useState<{ url: string; email: string; sent: boolean; warning?: string; error?: string } | null>(
+    null
+  );
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -153,7 +157,7 @@ export default function GroupPage() {
         },
         body: JSON.stringify({ group_id: groupId, email, expires_in_days: inviteExpiresDays }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await res.json().catch(() => ({} as any));
       if (!res.ok) {
         const msg = (json && (json.error as string)) || `Failed to send invite (${res.status})`;
         toast.error(msg);
@@ -161,14 +165,36 @@ export default function GroupPage() {
         return;
       }
       const inviteUrl = (json && (json.invite_url as string)) || `${window.location.origin}/join`;
-      try { await navigator.clipboard.writeText(inviteUrl); } catch {}
-      toast.success('Invite sent');
+      const emailSent = Boolean((json as any).email_sent);
+      const warning = (json as any).warning as string | undefined;
+      const errDetail = (json as any).error as string | undefined;
+      setInviteResult({ url: inviteUrl, email, sent: emailSent, warning, error: errDetail });
+      if (emailSent) {
+        toast.success('Invite email sent');
+      } else {
+        // sonner may expose toast.message; fallback to success if unavailable
+        const maybeMsg = (toast as any).message;
+        if (typeof maybeMsg === 'function') maybeMsg('Invite link created — email not sent. Copy below.');
+        else toast.success('Invite link created — copy below.');
+      }
       setInviteEmail('');
+      try { await navigator.clipboard.writeText(inviteUrl); } catch {}
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unexpected error';
       toast.error(msg);
     } finally {
       setInviteSending(false);
+    }
+  }
+
+  async function copyInviteUrl() {
+    try {
+      if (!inviteResult?.url) return;
+      await navigator.clipboard.writeText(inviteResult.url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 1200);
+    } catch {
+      toast.error('Copy failed');
     }
   }
 
@@ -477,6 +503,24 @@ export default function GroupPage() {
               />
               <Button onClick={sendInvite} disabled={inviteSending} variant="primary" className="w-full sm:w-auto">
                 {inviteSending ? 'Sending…' : 'Send Invite'}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {inviteResult && (
+          <Card className="p-4">
+            <div className="mb-1 text-sm text-zinc-700">
+              {inviteResult.sent ? 'Email sent via Resend.' : 'Email not sent — copy and share this link.'}{' '}
+              <span className="font-semibold">{inviteResult.email}</span>
+            </div>
+            {(inviteResult.warning || inviteResult.error) && (
+              <div className="text-xs text-amber-700">{inviteResult.warning || inviteResult.error}</div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Input readOnly value={inviteResult.url} className="min-w-0 w-full sm:flex-1" />
+              <Button onClick={copyInviteUrl} variant="secondary" size="sm" className="w-full sm:w-auto">
+                {inviteCopied ? 'Copied' : 'Copy link'}
               </Button>
             </div>
           </Card>

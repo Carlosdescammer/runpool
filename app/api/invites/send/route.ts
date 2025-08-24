@@ -105,12 +105,17 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.RESEND_FROM;
-    if (!apiKey || !from) {
-      return new Response(JSON.stringify({ error: 'Missing RESEND_API_KEY or RESEND_FROM env', invite_url: inviteUrl }), { status: 500, headers: { 'content-type': 'application/json' } });
-    }
-
     const subject = `${groupName} — You\'re invited`;
     const html = emailHtml(inviterName, groupName, inviteUrl);
+
+    // If Resend configuration is missing, don't fail the request. Return the invite URL so it can be shared manually.
+    if (!apiKey || !from) {
+      console.warn('[invites/send] Resend env missing, skipping email', { to: email, groupId });
+      return new Response(
+        JSON.stringify({ ok: true, invite_url: inviteUrl, email_sent: false, warning: 'Missing RESEND_API_KEY or RESEND_FROM' }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    }
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -122,11 +127,16 @@ export async function POST(req: Request) {
     });
     if (!res.ok) {
       const errText = await res.text();
-      return new Response(JSON.stringify({ error: errText, invite_url: inviteUrl }), { status: 502, headers: { 'content-type': 'application/json' } });
+      console.error('[invites/send] Resend send failed', { to: email, groupId, errText });
+      return new Response(
+        JSON.stringify({ ok: true, invite_url: inviteUrl, email_sent: false, error: errText }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
     }
     const data = await res.json();
+    console.log('[invites/send] Resend sent', { to: email, groupId, id: data?.id });
 
-    return new Response(JSON.stringify({ ok: true, invite_url: inviteUrl, resend: data }), {
+    return new Response(JSON.stringify({ ok: true, invite_url: inviteUrl, email_sent: true, resend: data }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
