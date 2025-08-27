@@ -1,28 +1,44 @@
 // app/group/[id]/page.tsx
 'use client';
-import { supabase } from '@/lib/supabaseClient';
-import { useEffect, useMemo, useState } from 'react';
+
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
+import { ArrowUp, ArrowDown, Minus, Crown } from 'lucide-react';
+
+// Components
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowDown, ArrowUp, Minus, Crown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Leaderboard } from './components/Leaderboard/Leaderboard';
+import { MileageSubmission } from './components/MileageSubmission/MileageSubmission';
+import { GroupInfo } from './components/GroupInfo/GroupInfo';
+import { supabase } from '@/lib/supabaseClient';
 
+// Types
 type Challenge = {
-  id: string; group_id: string; week_start: string; week_end: string;
-  pot: number; status: 'OPEN'|'CLOSED';
+  id: string;
+  group_id: string;
+  week_start: string;
+  week_end: string;
+  pot: number;
+  status: 'OPEN' | 'CLOSED';
 };
 
 type Group = {
   id: string;
   name: string;
-  rule: string;
-  owner_id: string;
+  description: string | null;
+  created_at: string;
+  is_public: boolean;
+  created_by: string;
+  member_count: number;
+  is_member: boolean;
+  rule?: string;
   entry_fee?: number;
 };
 
@@ -30,84 +46,269 @@ type LeaderboardRow = {
   user_id: string;
   name: string | null;
   miles: number;
+  rank: number;
+  rankChange?: number;
+  streak?: number;
 };
 
-type InviteSendResponse = {
-  invite_url?: string;
-  email_sent?: boolean;
-  warning?: string;
-  error?: string;
-};
 
 export default function GroupPage() {
+  // Router
   const { id: groupId } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+
+  // State
   const [userId, setUserId] = useState<string | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserMiles, setCurrentUserMiles] = useState<number | null>(null);
+  
+  // UI State
+  const [loading, setLoading] = useState({
+    group: true,
+    challenge: true,
+    leaderboard: true,
+  });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  
+  // Invite State
+  const [joinLink, setJoinLink] = useState('');
+  const [copied, setCopied] = useState(false);
+  
+  // Mileage Submission
   const [miles, setMiles] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const searchParams = useSearchParams();
+  
+  // Animation/UI State
   const [showWelcome, setShowWelcome] = useState(false);
-  const [rankDelta, setRankDelta] = useState<Record<string, number>>({});
-  const [movement, setMovement] = useState<Record<string, 'up' | 'down' | 'same'>>({});
+  const [rankDelta, setRankDelta] = useState<Record<string, number> | null>(null);
+  const [movement, setMovement] = useState<Record<string, 'up' | 'down' | 'same'> | null>(null);
   const [joinTop3, setJoinTop3] = useState<Record<string, boolean>>({});
   const [dropTop3, setDropTop3] = useState<Record<string, boolean>>({});
   const [streaks, setStreaks] = useState<Record<string, number>>({});
-  const [loadingBoard, setLoadingBoard] = useState(true);
-  const [joinLink, setJoinLink] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteExpiresDays, setInviteExpiresDays] = useState<number>(14);
-  const [inviteSending, setInviteSending] = useState(false);
-  const [inviteResult, setInviteResult] = useState<{ url: string; email: string; sent: boolean; warning?: string; error?: string } | null>(
-    null
-  );
-  const [inviteCopied, setInviteCopied] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
-  // Build a shareable link (placeholder: join page). Admin page likely generates tokens
   useEffect(() => {
-    try { setJoinLink(`${window.location.origin}/join`); } catch {}
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      // Group basics
-      const { data: g } = await supabase.from('groups').select('*').eq('id', groupId).single();
-      setGroup(g);
-
-      // Active (open) challenge for this group (assume one)
-      const { data: ch } = await supabase.from('challenges')
-        .select('*').eq('group_id', groupId).order('week_start', { ascending: false }).limit(1).maybeSingle();
-      if (ch) setChallenge(ch);
-
-      // Fetch leaderboard for this challenge
-      if (ch) loadLeaderboard(ch.id);
-    })();
+    try { 
+      setJoinLink(`${window.location.origin}/join?group=${groupId}`); 
+    } catch (error) {
+      console.error('Error setting join link:', error);
+    }
   }, [groupId]);
 
-  // Determine if current user is admin of this group
-  useEffect(() => {
-    (async () => {
-      if (!userId) { setIsAdmin(false); return; }
-      const { data: m } = await supabase
-        .from('memberships')
-        .select('role')
-        .eq('group_id', groupId)
+  const handleMileageSubmit = async (miles: number, file: File | null) => {
+    if (!challenge || !userId) return;
+    
+    try {
+      // First, check if user already has an entry for this challenge
+      const { data: existingEntry } = await supabase
+        .from('challenge_entries')
+        .select('id')
+        .eq('challenge_id', challenge.id)
         .eq('user_id', userId)
         .maybeSingle();
-      const role = m?.role as ('owner' | 'admin' | 'member' | undefined);
-      setIsAdmin(role === 'admin' || role === 'owner');
-    })();
-  }, [groupId, userId]);
 
-  // Show a welcome banner if user just joined via invite
+      let fileUrl = null;
+      
+      // Handle file upload if provided
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const filePath = `proofs/${challenge.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('proofs')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+        
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('proofs')
+          .getPublicUrl(filePath);
+          
+        fileUrl = publicUrl;
+      }
+
+      if (existingEntry) {
+        // Update existing entry
+        const { error: updateError } = await supabase
+          .from('challenge_entries')
+          .update({ 
+            miles,
+            ...(fileUrl && { proof_url: fileUrl }),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingEntry.id);
+
+        if (updateError) throw updateError;
+        toast.success('Mileage updated successfully!');
+      } else {
+        // Create new entry
+        const { error: insertError } = await supabase
+          .from('challenge_entries')
+          .insert([
+            { 
+              challenge_id: challenge.id,
+              user_id: userId,
+              miles,
+              proof_url: fileUrl,
+              group_id: groupId
+            }
+          ]);
+
+        if (insertError) throw insertError;
+        toast.success('Mileage submitted successfully!');
+      }
+
+      // Refresh leaderboard
+      await loadLeaderboard(challenge.id);
+      
+    } catch (error) {
+      console.error('Error submitting mileage:', error);
+      toast.error('Failed to submit mileage. Please try again.');
+      throw error;
+    }
+  };
+
+  const loadLeaderboard = async (challengeId: string) => {
+    setLoading(prev => ({ ...prev, leaderboard: true }));
+    
+    try {
+      const { data, error } = await supabase
+        .from('challenge_entries')
+        .select(`
+          user_id,
+          miles,
+          profiles (id, name)
+        `)
+        .eq('challenge_id', challengeId)
+        .order('miles', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform the data to match our LeaderboardRow type
+      const formattedData: LeaderboardRow[] = (data || []).map((entry: any, index: number) => ({
+        user_id: entry.user_id,
+        name: entry.profiles?.name || 'Anonymous',
+        miles: entry.miles,
+        rank: index + 1,
+        // Add any additional calculations here (rank changes, streaks, etc.)
+      }));
+
+      setLeaderboard(formattedData);
+      
+      // Find current user's miles if they've submitted
+      if (userId) {
+        const userEntry = formattedData.find(entry => entry.user_id === userId);
+        setCurrentUserMiles(userEntry?.miles || null);
+      }
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+      toast.error('Failed to load leaderboard');
+    } finally {
+      setLoading(prev => ({ ...prev, leaderboard: false }));
+    }
+  };
+
+  // Fetch group data
+  useEffect(() => {
+    const fetchGroupData = async () => {
+      try {
+        // Fetch group details
+        const { data: groupData, error: groupError } = await supabase
+          .from('groups')
+          .select('*')
+          .eq('id', groupId)
+          .single();
+
+        if (groupError) throw groupError;
+        setGroup(groupData);
+        setLoading(prev => ({ ...prev, group: false }));
+
+        // Fetch active challenge
+        const { data: challengeData, error: challengeError } = await supabase
+          .from('challenges')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('week_start', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (challengeError) throw challengeError;
+        
+        if (challengeData) {
+          setChallenge(challengeData);
+          await loadLeaderboard(challengeData.id);
+        } else {
+          setLoading(prev => ({ ...prev, challenge: false, leaderboard: false }));
+        }
+      } catch (error) {
+        console.error('Error fetching group data:', error);
+        toast.error('Failed to load group data');
+        setLoading(prev => ({ ...prev, group: false, challenge: false, leaderboard: false }));
+      }
+    };
+
+    fetchGroupData();
+  }, [groupId]);
+
+  // Check if current user is admin of this group
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!userId || !group) return;
+      
+      try {
+        const { data: membership, error } = await supabase
+          .from('memberships')
+          .select('is_admin')
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .single();
+
+        if (error) throw error;
+        setIsAdmin(membership?.is_admin || false);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+
+    checkAdminStatus();
+  }, [userId, group, groupId]);
+
+  // Handle user authentication and welcome message
+  useEffect(() => {
+    const justJoined = searchParams?.get('joined') === 'true';
+    
+    if (justJoined) {
+      setShowWelcome(true);
+      setTimeout(() => {
+        try {
+          confetti({ particleCount: 90, spread: 70, origin: { y: 0.25 } });
+        } catch {}
+        toast.success('Welcome to the group!');
+      }, 1000);
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     const justJoined = searchParams.get('joined') === '1';
     setShowWelcome(justJoined);
@@ -126,87 +327,15 @@ export default function GroupPage() {
     try {
       await navigator.clipboard.writeText(joinLink);
       setCopied(true);
-      toast.success('Link copied');
-      setTimeout(() => setCopied(false), 1200);
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     } catch {
       toast.error('Copy failed');
     }
   }
 
-  async function loadLeaderboard(challengeId: string) {
-    setLoadingBoard(true);
-    const { data: rows } = await supabase
-      .from('leaderboard_week')
-      .select('*')
-      .eq('challenge_id', challengeId)
-      .order('miles', { ascending: false });
-    setLeaderboard(rows ?? []);
-    setLoadingBoard(false);
-  }
 
-  async function sendInvite() {
-    try {
-      if (!isAdmin) { toast.error('Only admins can send invites'); return; }
-      if (!groupId) { toast.error('Missing group'); return; }
-      const email = inviteEmail.trim();
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        toast.error('Enter a valid email');
-        return;
-      }
-      setInviteSending(true);
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      if (!token) { toast.error('Please sign in again'); setInviteSending(false); return; }
-      const res = await fetch('/api/invites/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ group_id: groupId, email, expires_in_days: inviteExpiresDays }),
-      });
-      let json: InviteSendResponse = {};
-      try {
-        json = await res.json();
-      } catch {
-        json = {};
-      }
-      if (!res.ok) {
-        const msg = (json && json.error) || `Failed to send invite (${res.status})`;
-        toast.error(msg);
-        setInviteSending(false);
-        return;
-      }
-      const inviteUrl = (json && json.invite_url) || `${window.location.origin}/join`;
-      const emailSent = Boolean(json.email_sent);
-      const warning = json.warning;
-      const errDetail = json.error;
-      setInviteResult({ url: inviteUrl, email, sent: emailSent, warning, error: errDetail });
-      if (emailSent) {
-        toast.success('Invite email sent');
-      } else {
-        toast.success('Invite link created — copy below.');
-      }
-      setInviteEmail('');
-      try { await navigator.clipboard.writeText(inviteUrl); } catch {}
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Unexpected error';
-      toast.error(msg);
-    } finally {
-      setInviteSending(false);
-    }
-  }
-
-  async function copyInviteUrl() {
-    try {
-      if (!inviteResult?.url) return;
-      await navigator.clipboard.writeText(inviteResult.url);
-      setInviteCopied(true);
-      setTimeout(() => setInviteCopied(false), 1200);
-    } catch {
-      toast.error('Copy failed');
-    }
-  }
 
   // Realtime: subscribe to proofs changes for current challenge to refresh leaderboard
   useEffect(() => {
@@ -328,18 +457,18 @@ export default function GroupPage() {
   }, [challenge]);
 
   async function submitProof() {
-    if (!userId) { setStatus('Sign in first.'); return; }
-    if (!challenge) { setStatus('No open challenge.'); return; }
-    if (!miles) { setStatus('Enter miles.'); return; }
+    if (!userId) { setStatus('error'); return; }
+    if (!challenge) { setStatus('error'); return; }
+    if (!miles) { setStatus('error'); return; }
     const milesNum = Number(miles);
     let image_url: string | null = null;
 
     if (file) {
       const path = `proofs/${userId}/${Date.now()}_${file.name}`;
       const up = await supabase.storage.from('proofs').upload(path, file);
-      if (up.error) { setStatus(up.error.message); return; }
+      if (up.error) { setStatus('error'); return; }
       const signed = await supabase.storage.from('proofs').createSignedUrl(path, 3600);
-      if (signed.error) { setStatus(signed.error.message); return; }
+      if (signed.error) { setStatus('error'); return; }
       image_url = signed.data.signedUrl;
     }
 
@@ -349,8 +478,8 @@ export default function GroupPage() {
       miles: milesNum,
       image_url
     });
-    if (error) { setStatus(error.message); toast.error(error.message); return; }
-    setStatus('Submitted!');
+    if (error) { setStatus('error'); toast.error(error.message); return; }
+    setStatus('success');
     toast.success('Proof submitted');
     try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
 
@@ -506,53 +635,6 @@ export default function GroupPage() {
           </div>
         </Card>
 
-        {isAdmin && (
-          <Card className="p-4">
-            <div className="mb-2 text-lg font-extrabold">Invite via Email</div>
-            <div className="text-sm text-zinc-700">Send a join link to a player.</div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Input
-                placeholder="person@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                type="email"
-                className="min-w-0 w-full sm:flex-1"
-              />
-              <Input
-                placeholder="Days"
-                value={String(inviteExpiresDays)}
-                onChange={(e) => setInviteExpiresDays(() => {
-                  const n = Number(e.target.value);
-                  if (!Number.isFinite(n)) return 14;
-                  return Math.max(1, Math.min(60, Math.trunc(n)));
-                })}
-                type="number"
-                className="w-24"
-              />
-              <Button onClick={sendInvite} disabled={inviteSending} variant="primary" className="w-full sm:w-auto">
-                {inviteSending ? 'Sending…' : 'Send Invite'}
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {inviteResult && (
-          <Card className="p-4">
-            <div className="mb-1 text-sm text-zinc-700">
-              {inviteResult.sent ? 'Email sent via Resend.' : 'Email not sent — copy and share this link.'}{' '}
-              <span className="font-semibold">{inviteResult.email}</span>
-            </div>
-            {(inviteResult.warning || inviteResult.error) && (
-              <div className="text-xs text-amber-700">{inviteResult.warning || inviteResult.error}</div>
-            )}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Input readOnly value={inviteResult.url} className="min-w-0 w-full sm:flex-1" />
-              <Button onClick={copyInviteUrl} variant="secondary" size="sm" className="w-full sm:w-auto">
-                {inviteCopied ? 'Copied' : 'Copy link'}
-              </Button>
-            </div>
-          </Card>
-        )}
 
         <Card className="p-4">
           <div className="mb-2 text-lg font-extrabold">Submit Weekly Data</div>
@@ -585,7 +667,7 @@ export default function GroupPage() {
             </div>
           </div>
 
-          {loadingBoard ? (
+          {loading.leaderboard ? (
             <>
               {/* Table (sm and up) */}
               <div className="hidden overflow-x-auto sm:block">

@@ -133,7 +133,26 @@ export default function Join() {
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({ email, password });
     setBusy(false);
-    if (error) { setStatus(error.message); return; }
+    if (error) {
+      // Handle common signup errors with better messaging
+      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+        setStatus('This email already has an account! Try signing in instead using the "I already have an account" button.');
+        toast.error('Email already registered - try signing in instead!');
+        // Auto-switch to sign in mode and prefill email
+        setMode('signin');
+        setEmailIn(email);
+      } else if (error.message.includes('Password')) {
+        setStatus('Password must be at least 6 characters long.');
+        toast.error('Password must be at least 6 characters long.');
+      } else if (error.message.includes('email')) {
+        setStatus('Please enter a valid email address.');
+        toast.error('Please enter a valid email address.');
+      } else {
+        setStatus(error.message);
+        toast.error(error.message);
+      }
+      return;
+    }
     // If email confirmations are disabled, session will exist and we can proceed.
     // If not, we must ask the user to confirm; Supabase returns no session.
     if (data.session) {
@@ -151,7 +170,26 @@ export default function Join() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email: emailIn, password: passwordIn });
     setBusy(false);
-    if (error) { setStatus(error.message); toast.error(error.message); return; }
+    if (error) {
+      // Handle common sign-in errors with better messaging
+      if (error.message.includes('Invalid login credentials')) {
+        setStatus('Email or password is incorrect. Double-check your credentials or create an account if you don&apos;t have one yet.');
+        toast.error('Incorrect email or password. Try again or create an account.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setStatus('Please check your email and click the confirmation link before signing in.');
+        toast.error('Please confirm your email address first.');
+      } else if (error.message.includes('not found') || error.message.includes('User not found')) {
+        setStatus('No account found with this email. Try creating an account instead!');
+        toast.error('No account found - try creating an account!');
+        // Auto-switch to signup mode and prefill email
+        setMode('signup');
+        setEmail(emailIn);
+      } else {
+        setStatus(error.message);
+        toast.error(error.message);
+      }
+      return;
+    }
     await joinNow();
   }
 
@@ -213,6 +251,9 @@ export default function Join() {
         ) : (
           <div>
             {/* Toggle */}
+            <div className="mb-3 text-center text-sm text-zinc-600">
+              💡 <strong>Not sure?</strong> Try either option - we&apos;ll help you if you pick the wrong one!
+            </div>
             <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={()=>setMode('signup')} variant={mode==='signup' ? 'primary' : 'secondary'}>
                 Create account

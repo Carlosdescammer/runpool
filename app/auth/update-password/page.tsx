@@ -15,27 +15,69 @@ export default function UpdatePassword() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Ensure user arrived via the email reset link (recovery session)
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-      else setStatus('Open this page using the link from your reset password email.');
-    });
+    const handlePasswordReset = async () => {
+      // Check for password reset token in URL
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.slice(1)); // Remove the '#' character
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+      
+      if (type === 'recovery' && accessToken && refreshToken) {
+        // Set the session from the URL parameters
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        
+        if (!error) {
+          setReady(true);
+          setStatus('Ready to set your new password.');
+          // Clean up the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          setStatus('Invalid or expired reset link. Please request a new password reset.');
+        }
+      } else {
+        // Check if user already has a session (maybe they're already logged in)
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setReady(true);
+          setStatus('You can change your password below.');
+        } else {
+          setStatus('Please use the link from your password reset email. If you don&apos;t have one, go back to sign in and click "Forgot your password?"');
+        }
+      }
+    };
+    
+    handlePasswordReset();
   }, []);
 
   async function updatePassword() {
     if (!newPassword || !confirmPassword) { setStatus('Enter and confirm your new password.'); return; }
     if (newPassword !== confirmPassword) { setStatus('Passwords do not match.'); return; }
+    if (newPassword.length < 6) { setStatus('Password must be at least 6 characters long.'); return; }
 
     setStatus('Updating password…');
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) setStatus(error.message);
-    else setStatus('Password updated! You can now sign in.');
+    if (error) {
+      setStatus(error.message);
+    } else {
+      setStatus('✅ Password updated successfully! You can now sign in with your new password.');
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      // Auto-redirect to sign in after 3 seconds
+      setTimeout(() => {
+        window.location.href = '/signin';
+      }, 3000);
+    }
   }
 
   return (
     <div className="min-h-[100svh] grid place-items-center px-4 py-6 md:px-6">
       <Card className="w-full max-w-[480px] p-6">
-        <h1 className="m-0 text-2xl font-extrabold">Set a new password</h1>
+        <h1 className="m-0 text-2xl font-extrabold">Update your password</h1>
         <div className="h-3" />
         {ready && (
           <>
@@ -60,9 +102,12 @@ export default function UpdatePassword() {
             <Button onClick={updatePassword} variant="primary" size="lg" className="w-full">
               Update password
             </Button>
-            <div className="mt-2 text-xs text-zinc-700">
-              After updating, return to{' '}
-              <Link href="/signin" className="text-[color:var(--rp-text)] underline">Sign in</Link>.
+            <div className="mt-2 text-xs text-zinc-600">
+              Password must be at least 6 characters long.
+            </div>
+            <div className="mt-1 text-xs text-zinc-700">
+              After updating, you'll be redirected to{' '}
+              <Link href="/signin" className="text-[color:var(--rp-text)] underline">sign in</Link>.
             </div>
           </>
         )}

@@ -51,10 +51,15 @@ export default function Header() {
           )}
           {isSignedIn ? (
             pathname !== '/' && (
-              <button onClick={signOut}
-                      style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, fontWeight:700, border:'none', cursor:'pointer' }}>
-                Sign Out
-              </button>
+              <>
+                <Link href="/settings" style={{ background:'var(--rp-accent)', color:'var(--rp-text)', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, textDecoration:'none', fontWeight:700, border: '1px solid var(--rp-accent)' }}>
+                  Settings
+                </Link>
+                <button onClick={signOut}
+                        style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, fontWeight:700, border:'none', cursor:'pointer' }}>
+                  Sign Out
+                </button>
+              </>
             )
           ) : (
             showSignIn && (

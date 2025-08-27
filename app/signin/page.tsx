@@ -15,6 +15,7 @@ export default function Page() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const router = useRouter();
+  const [isSmartAuth, setIsSmartAuth] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -65,8 +66,16 @@ export default function Page() {
     if (remember && typeof window !== 'undefined') localStorage.setItem('rememberEmail', email);
     if (!remember && typeof window !== 'undefined') localStorage.removeItem('rememberEmail');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setStatus(error.message);
-    else {
+    if (error) {
+      // Handle common sign-in errors with better messaging
+      if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
+        setStatus('Email or password is incorrect. Check your credentials or try "Forgot your password?" if you need to reset.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setStatus('Please check your email and click the confirmation link before signing in.');
+      } else {
+        setStatus(error.message);
+      }
+    } else {
       setStatus('Signed in.');
       await postAuthRedirect();
     }
@@ -78,7 +87,19 @@ export default function Page() {
     if (remember && typeof window !== 'undefined') localStorage.setItem('rememberEmail', email);
     if (!remember && typeof window !== 'undefined') localStorage.removeItem('rememberEmail');
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) { setStatus(error.message); return; }
+    if (error) { 
+      // Handle common error cases with better messaging
+      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+        setStatus('This email already has an account. Try signing in instead, or use "Forgot your password?" if you need to reset it.');
+      } else if (error.message.includes('Password')) {
+        setStatus('Password must be at least 6 characters long.');
+      } else if (error.message.includes('email')) {
+        setStatus('Please enter a valid email address.');
+      } else {
+        setStatus(error.message);
+      }
+      return; 
+    }
     if (!data.session) {
       setStatus('Account created. Check your email to confirm your address.');
     } else {
@@ -93,6 +114,61 @@ export default function Page() {
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/update-password` : undefined;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) setStatus(error.message); else setStatus('Check your email for the password reset link.');
+  }
+
+  // Smart auth function that tries sign-in first, then sign-up if needed
+  async function smartAuth() {
+    if (!email || !password) { setStatus('Enter email and password.'); return; }
+    setIsSmartAuth(true);
+    setStatus('Checking your account...');
+    
+    if (remember && typeof window !== 'undefined') localStorage.setItem('rememberEmail', email);
+    if (!remember && typeof window !== 'undefined') localStorage.removeItem('rememberEmail');
+    
+    // Try sign-in first
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (!signInError) {
+      // Sign-in successful
+      setStatus('Signed in successfully!');
+      await postAuthRedirect();
+      setIsSmartAuth(false);
+      return;
+    }
+    
+    // If sign-in failed, check if it's because user doesn't exist
+    if (signInError.message.includes('Invalid login credentials') || 
+        signInError.message.includes('not found') || 
+        signInError.message.includes('User not found')) {
+      
+      setStatus('No account found. Creating new account...');
+      // Try sign-up
+      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      
+      if (!signUpError) {
+        if (!data.session) {
+          setStatus('Account created! Check your email to confirm your address.');
+        } else {
+          setStatus('Account created and signed in!');
+          await postAuthRedirect();
+        }
+      } else {
+        if (signUpError.message.includes('User already registered')) {
+          setStatus('Account exists but password is incorrect. Try \"Forgot your password?\" to reset it.');
+        } else {
+          setStatus(signUpError.message);
+        }
+      }
+    } else {
+      // Other sign-in error
+      if (signInError.message.includes('Email not confirmed')) {
+        setStatus('Please check your email and click the confirmation link before signing in.');
+      } else {
+        setStatus(signInError.message);
+      }
+    }
+    
+    setIsSmartAuth(false);
   }
 
   return (
@@ -141,16 +217,23 @@ export default function Page() {
         />
 
         <div className="h-4" />
-        <Button onClick={passwordSignIn} variant="primary" size="lg" className="w-full">
-          Sign in
+        <Button onClick={smartAuth} variant="primary" size="lg" className="w-full" disabled={isSmartAuth}>
+          {isSmartAuth ? 'Checking...' : 'Sign in / Create account'}
         </Button>
+        
+        <div className="h-2" />
+        <div className="flex gap-2">
+          <Button onClick={passwordSignIn} variant="secondary" size="sm" className="flex-1">
+            Sign in only
+          </Button>
+          <Button onClick={passwordSignUp} variant="secondary" size="sm" className="flex-1">
+            Create only
+          </Button>
+        </div>
 
         <div className="h-3" />
-        <div className="text-center text-sm text-zinc-700">
-          New to Runpool?{' '}
-          <button onClick={passwordSignUp} className="text-[color:var(--rp-text)] underline">
-            Create account
-          </button>
+        <div className="text-center text-xs text-zinc-600">
+          💡 <strong>Tip:</strong> Use the main button above - it will automatically sign you in or create an account as needed!
         </div>
         <div className="h-3" />
         <div className="min-h-[18px] text-sm text-zinc-700">{status}</div>
