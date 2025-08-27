@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const [user, setUser] = useState<{email: string; id: string} | null>(null);
+  const [user, setUser] = useState<{email?: string; id: string} | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

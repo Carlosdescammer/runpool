@@ -6,9 +6,8 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
-type InviteRow = { token: string; expires_at: string | null; created_at?: string | null; invited_email?: string | null };
+type InviteRow = { token: string; expires_at: string | null; created_at?: string | null };
 
 export default function Admin() {
   const { id: groupId } = useParams<{ id: string }>();
@@ -25,8 +24,6 @@ export default function Admin() {
   const [expiredInvites, setExpiredInvites] = useState<InviteRow[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyAnimating, setCopyAnimating] = useState(false);
-  const [emailsInput, setEmailsInput] = useState('');
-  const [sendingInvites, setSendingInvites] = useState(false);
   const [notifyOnProof, setNotifyOnProof] = useState<boolean>(true);
 
   const copyWithAnim = useCallback(async (text: string, key: string) => {
@@ -44,45 +41,44 @@ export default function Admin() {
     }
   }, []);
 
-  async function sendMagicLink(email: string, token: string) {
-    const redirect = `${window.location.origin}/join?token=${token}`;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirect },
-    });
-    return error;
-  }
-
-  async function inviteByEmail() {
-    if (!emailsInput.trim()) return;
-    setSendingInvites(true);
-    setMsg('Sending invites…');
-    const emails = emailsInput
-      .split(/[\n,;]/)
-      .map(e => e.trim())
-      .filter(e => e.length > 0);
+  async function createInviteLink() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setMsg('Sign in first.'); setSendingInvites(false); return; }
+    if (!user) { setMsg('Sign in first.'); return; }
+    
+    setMsg('Creating invite link…');
     try {
-      for (const email of emails) {
-        const token = crypto.randomUUID().replace(/-/g, '');
-        const exp = new Date(Date.now() + 14*24*3600*1000).toISOString();
-        // Insert email-locked invite only (no legacy fallback)
-        const { error } = await supabase.from('invites').insert({
-          token, group_id: groupId, created_by: user.id, expires_at: exp, invited_email: email
-        });
-        if (error) { setMsg(error.message); break; }
-        const mailErr = await sendMagicLink(email, token);
-        if (mailErr) { setMsg(mailErr.message ?? 'Failed to send some invites'); break; }
+      const token = crypto.randomUUID().replace(/-/g, '');
+      const exp = new Date(Date.now() + 14*24*3600*1000).toISOString();
+      
+      const { error } = await supabase.from('invites').insert({
+        token, 
+        group_id: groupId, 
+        created_by: user.id, 
+        expires_at: exp
+      });
+      
+      if (error) { 
+        setMsg(error.message); 
+        return; 
       }
+      
       await loadInvites();
-      setMsg('Invites sent.');
-      setEmailsInput('');
+      setMsg('Invite link created! Copy and share it with your friends.');
+      
+      // Auto-copy the new link
+      const inviteUrl = `${window.location.origin}/join?token=${token}`;
+      try {
+        await navigator.clipboard.writeText(inviteUrl);
+        setCopiedKey(token);
+        setCopyAnimating(true);
+        setTimeout(() => setCopyAnimating(false), 800);
+        setTimeout(() => setCopiedKey(null), 1200);
+      } catch {
+        // Copy failed, but that's ok
+      }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       setMsg(message);
-    } finally {
-      setSendingInvites(false);
     }
   }
 
@@ -142,7 +138,7 @@ export default function Admin() {
     const list = (rows ?? []) as InviteRow[];
     list.forEach((r) => {
       const exp = r.expires_at ? Date.parse(r.expires_at) : null;
-      const item: InviteRow = { token: r.token, expires_at: r.expires_at, created_at: r.created_at, invited_email: r.invited_email ?? null };
+      const item: InviteRow = { token: r.token, expires_at: r.expires_at, created_at: r.created_at };
       if (!exp || exp > now) active.push(item); else expired.push(item);
     });
     setActiveInvites(active);
@@ -284,20 +280,15 @@ export default function Admin() {
           <Button onClick={createWeek} className="w-full">Create Week</Button>
 
           <div className="my-4 h-px bg-zinc-200" />
-          <div className="text-sm font-extrabold">Invites</div>
+          <div className="text-sm font-extrabold">Invite Links</div>
           <div className="h-2" />
           <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 shadow-[0_1px_0_rgba(124,58,237,0.15),0_8px_24px_rgba(124,58,237,0.08)]">
             <div className="mb-2 flex items-center gap-2 font-extrabold">
-              <span>📧 Invite by email</span>
-              <Badge className="bg-indigo-600 text-white">Recommended</Badge>
+              <span>🔗 Create invite link</span>
             </div>
-            <div className="mb-2 text-sm text-zinc-600">Enter one or more emails (comma or newline separated). Each person will receive a magic link to join.</div>
-            <textarea value={emailsInput} onChange={e=>setEmailsInput(e.target.value)} rows={4}
-                      placeholder="friend1@example.com, friend2@example.com"
-                      className="w-full rounded-xl border border-indigo-300 bg-white p-3 text-[15px] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2" />
-            <div className="h-2" />
-            <Button onClick={inviteByEmail} disabled={sendingInvites} className="w-full">
-              {sendingInvites ? 'Sending…' : 'Send invites'}
+            <div className="mb-3 text-sm text-zinc-600">Generate a shareable link that anyone can use to join your group. Share it via text, email, social media, or anywhere you want!</div>
+            <Button onClick={createInviteLink} className="w-full">
+              Create New Invite Link
             </Button>
           </div>
 
@@ -309,9 +300,6 @@ export default function Admin() {
                   <div key={inv.token} className="flex items-center justify-between gap-2 rounded-xl border border-zinc-200 p-3">
                     <div className="text-sm">
                       <div className="break-all">{`${window.location.origin}/join?token=${inv.token}`}</div>
-                      {inv.invited_email && (
-                        <div className="text-xs text-zinc-600">Invited: {inv.invited_email}</div>
-                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -320,10 +308,6 @@ export default function Admin() {
                       >
                         {copiedKey===inv.token && copyAnimating ? 'Copied!' : 'Copy'}
                       </button>
-                      {inv.invited_email && (
-                        <button onClick={()=>sendMagicLink(inv.invited_email as string, inv.token)}
-                                className="rounded-lg border border-zinc-300 bg-indigo-50 px-3 py-2 text-sm">Resend</button>
-                      )}
                       <button onClick={()=>revokeInvite(inv.token)}
                               className="rounded-lg border border-rose-300 bg-rose-100 px-3 py-2 text-sm text-rose-800">Revoke</button>
                     </div>
