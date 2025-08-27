@@ -52,18 +52,11 @@ export default function Header() {
 
           {/* Hamburger (mobile only) */}
           <button 
-            className="hamburger" 
+            className={`hamburger ${mobileMenuOpen ? 'hamburger-open' : ''}`}
             aria-expanded={mobileMenuOpen} 
             aria-controls="mobile-menu" 
             aria-label="Toggle menu"
             onClick={toggleMobileMenu}
-            style={{
-              ...(mobileMenuOpen && {
-                '& span:nth-child(1)': { transform: 'translateY(5px) rotate(45deg)' },
-                '& span:nth-child(2)': { opacity: 0 },
-                '& span:nth-child(3)': { transform: 'translateY(-5px) rotate(-45deg)' }
-              })
-            }}
           >
             <span style={mobileMenuOpen ? { transform: 'translateY(5px) rotate(45deg)' } : {}}></span>
             <span style={mobileMenuOpen ? { opacity: 0 } : {}}></span>
