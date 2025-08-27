@@ -9,6 +9,14 @@ import { Card } from '@/components/ui/card';
 
 type InviteRow = { token: string; expires_at: string | null; created_at?: string | null };
 
+type GroupMember = {
+  user_id: string;
+  name: string | null;
+  email: string | null;
+  role: 'owner' | 'admin' | 'member';
+  joined_at: string;
+};
+
 export default function Admin() {
   const { id: groupId } = useParams<{ id: string }>();
   const [authLoading, setAuthLoading] = useState(true);
@@ -25,6 +33,8 @@ export default function Admin() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyAnimating, setCopyAnimating] = useState(false);
   const [notifyOnProof, setNotifyOnProof] = useState<boolean>(true);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const copyWithAnim = useCallback(async (text: string, key: string) => {
     try {
@@ -88,6 +98,7 @@ export default function Admin() {
       setAuthLoading(true);
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id ?? null;
+      setCurrentUserId(uid);
       if (!uid) {
         window.location.href = '/signin';
         return;
@@ -145,10 +156,39 @@ export default function Admin() {
     setExpiredInvites(expired);
   }, [groupId]);
 
+  const loadGroupMembers = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('memberships')
+      .select(`
+        user_id,
+        role,
+        created_at,
+        profiles!inner(name, email)
+      `)
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+
+    const members: GroupMember[] = (data || []).map((item: any) => ({
+      user_id: item.user_id,
+      name: item.profiles?.name || null,
+      email: item.profiles?.email || null,
+      role: item.role as 'owner' | 'admin' | 'member',
+      joined_at: item.created_at
+    }));
+
+    setGroupMembers(members);
+  }, [groupId]);
+
   useEffect(() => {
     // Load invites after mount or when group changes
     loadInvites();
-  }, [groupId, loadInvites]);
+    loadGroupMembers();
+  }, [groupId, loadInvites, loadGroupMembers]);
 
   async function revokeInvite(token: string) {
     setMsg('Revoking invite…');
@@ -156,6 +196,39 @@ export default function Admin() {
     if (error) { setMsg(error.message); return; }
     await loadInvites();
     setMsg('Invite revoked.');
+  }
+
+  async function removeMember(userId: string, userName: string) {
+    if (userId === currentUserId) {
+      setMsg('You cannot remove yourself from the group.');
+      return;
+    }
+
+    const confirmMsg = `Remove ${userName || 'this member'} from the group? They will lose access immediately and all their data will remain.`;
+    const confirmed = window.confirm(confirmMsg);
+    if (!confirmed) return;
+
+    setMsg('Removing member…');
+    
+    try {
+      // Remove from memberships table
+      const { error } = await supabase
+        .from('memberships')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userId);
+
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+
+      // Reload members list
+      await loadGroupMembers();
+      setMsg(`${userName || 'Member'} removed from group.`);
+    } catch {
+      setMsg('Failed to remove member. Please try again.');
+    }
   }
 
   async function saveGroup() {
@@ -329,6 +402,79 @@ export default function Admin() {
             </div>
           )}
           <div className="my-4 h-px bg-zinc-200" />
+          <div className="text-sm font-extrabold">Group Members</div>
+          <div className="h-2" />
+          <div className="rounded-xl border border-zinc-200 bg-white">
+            <div className="p-4 border-b border-zinc-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">Member Management</div>
+                  <div className="text-sm text-zinc-600">{groupMembers.length} total members</div>
+                </div>
+                <Button onClick={loadGroupMembers} variant="secondary" size="sm">
+                  Refresh
+                </Button>
+              </div>
+            </div>
+            <div className="divide-y divide-zinc-100">
+              {groupMembers.map((member) => {
+                const isCurrentUser = member.user_id === currentUserId;
+                const isOwner = member.role === 'owner';
+                const joinedDate = new Date(member.joined_at).toLocaleDateString();
+                
+                return (
+                  <div key={member.user_id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold">
+                            {(member.name || member.email || '?')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              {member.name || 'Anonymous'}
+                              {isCurrentUser && <span className="ml-2 text-sm text-blue-600">(You)</span>}
+                              {isOwner && <span className="ml-2 text-sm text-amber-600">👑 Owner</span>}
+                              {member.role === 'admin' && <span className="ml-2 text-sm text-purple-600">⚡ Admin</span>}
+                            </div>
+                            {member.email && (
+                              <div className="text-sm text-gray-500">{member.email}</div>
+                            )}
+                            <div className="text-xs text-gray-400">Joined {joinedDate}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!isCurrentUser && !isOwner && (
+                          <Button
+                            onClick={() => removeMember(member.user_id, member.name || member.email || 'Member')}
+                            variant="destructive"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                        {isOwner && (
+                          <span className="text-xs text-gray-500 px-3 py-1 bg-gray-100 rounded-full">
+                            Cannot remove
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {groupMembers.length === 0 && (
+                <div className="p-8 text-center text-gray-500">
+                  <div className="text-sm">No members found</div>
+                  <div className="text-xs mt-1">Click Refresh to load members</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="my-6 h-px bg-zinc-200" />
           <div className="text-sm font-extrabold text-rose-800">Danger zone</div>
           <div className="h-2" />
           <Button onClick={deleteGroupCascade} variant="destructive" className="w-full">Delete group</Button>
