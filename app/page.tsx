@@ -1,101 +1,124 @@
-// app/page.tsx
+'use client';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
-import WeeklyRecapPreview from '@/components/WeeklyRecapPreview';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [leaderboardData, setLeaderboardData] = useState([
+    { name: "A. Rivera", miles: 18.6, status: "On pace" },
+    { name: "K. Patel", miles: 17.4, status: "On pace" },
+    { name: "M. Scott", miles: 15.2, status: "Needs 2.8" },
+    { name: "L. Chen", miles: 12.7, status: "Catch up" },
+    { name: "J. Gomez", miles: 9.9, status: "Behind" }
+  ]);
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      const interval = setInterval(() => {
+        setLeaderboardData(prevData => {
+          const newData = [...prevData];
+          const idx = Math.floor(Math.random() * newData.length);
+          newData[idx].miles += Math.random() * 0.3;
+          newData.sort((a, b) => b.miles - a.miles);
+          return newData;
+        });
+      }, 2400);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
   return (
-    <div className="grid min-h-svh gap-6 px-4 py-6 md:px-6">
+    <>
       {/* HERO */}
-      <Card className="mx-auto w-full max-w-[1100px] p-6 md:p-8">
-        <div className="grid items-center gap-6 md:grid-cols-2">
+      <section className="hero">
+        <div className="container hero-grid">
           <div>
-            <h1 className="m-0 text-[28px] font-black leading-tight md:text-[44px]">Run Pool</h1>
-            <p className="mt-3 text-[17px] text-zinc-700">
-              Create a group, set weekly miles, invite with a link, upload proof, and
-              watch the live leaderboard. Money is held offline by your group’s banker.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link
-                href="/group/new"
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-[var(--rp-primary)] px-5 text-white shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"
-              >
-                Create a Group
-              </Link>
-              <Link
-                href="/signin"
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--rp-accent)] bg-[var(--rp-bg)] px-5 text-[var(--rp-text)] shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"
-              >
-                Sign In
-              </Link>
+            <h1 className="title">Create a Running Pool in Seconds</h1>
+            <p className="subtitle">Set the rules, invite your crew, log miles, and watch the leaderboard update automatically. Friendly stakes, serious momentum.</p>
+            <div className="hero-cta">
+              <Link href="/group/new" className="btn btn-primary">Create a Pool</Link>
+              <Link href="/signin" className="btn">Sign In</Link>
             </div>
           </div>
-          <div className="grid place-items-center">
-            <WeeklyRecapPreview />
-          </div>
-        </div>
-      </Card>
 
-      {/* WHAT THIS APP DOES */}
-      <section className="mx-auto w-full max-w-[1100px]">
-        <h2 className="mb-3 text-[22px] font-extrabold">What it does</h2>
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-          <Card className="p-4">
-            <div className="text-xl">🛠️</div>
-            <div className="mt-1 font-semibold">Admin Sets Rules</div>
-            <div className="mt-1 text-zinc-600">Distance goal & weekly pot (display only). You control the group.</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xl">🔗</div>
-            <div className="mt-1 font-semibold">Invite Link</div>
-            <div className="mt-1 text-zinc-600">Share a single join URL. No emails. No friction.</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xl">📸</div>
-            <div className="mt-1 font-semibold">Upload Proof</div>
-            <div className="mt-1 text-zinc-600">Members log miles and attach a screenshot each week.</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xl">📊</div>
-            <div className="mt-1 font-semibold">Live Leaderboard</div>
-            <div className="mt-1 text-zinc-600">Everyone sees standings in real time—no scrolling chats.</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xl">🧾</div>
-            <div className="mt-1 font-semibold">History & Transparency</div>
-            <div className="mt-1 text-zinc-600">Past weeks are archived so nobody argues about results.</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xl">💳</div>
-            <div className="mt-1 font-semibold">Offline Pot</div>
-            <div className="mt-1 text-zinc-600">One trusted banker holds money via Apple Pay/Venmo. App tracks only.</div>
-          </Card>
+          <div className="hero-card" aria-label="Leaderboard preview">
+            <strong style={{display: 'block', marginBottom: '8px'}}>Live Leaderboard</strong>
+            <table className="table" role="table" aria-label="Leaderboard">
+              <thead>
+                <tr><th>#</th><th>Runner</th><th>Miles</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {leaderboardData.map((runner, index) => (
+                  <tr key={runner.name}>
+                    <td>{index + 1}</td>
+                    <td>{runner.name}</td>
+                    <td>{runner.miles.toFixed(1)}</td>
+                    <td><span className="badge">{runner.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="mx-auto w-full max-w-[1100px]">
-        <h2 className="mb-3 text-[22px] font-extrabold">How it works</h2>
-        <ol className="list-decimal space-y-1 pl-5 text-zinc-800">
-          <li>Create a group and set this week’s rule + pot.</li>
-          <li>Copy the invite link and share it anywhere.</li>
-          <li>Members sign in, join, log miles, and upload proof.</li>
-          <li>Leaderboard updates live. Close the week and start the next.</li>
-        </ol>
-        <div className="mt-3">
-          <Link
-            href="/group/new"
-            className="inline-flex h-12 items-center justify-center rounded-xl bg-[var(--rp-primary)] px-5 text-white shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"
-          >
-            Get Started
-          </Link>
+      <section id="how" className="section">
+        <div className="container">
+          <h2>How it works</h2>
+          <p className="muted">Simple setup. Clear rules. Automatic tracking.</p>
+          <div className="step">
+            <div className="num">1</div>
+            <div>
+              <strong>Set the rules</strong>
+              <p className="muted">Choose weekly goal, start/end dates, and stakes. You&apos;re the admin.</p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="num">2</div>
+            <div>
+              <strong>Invite your crew</strong>
+              <p className="muted">Share a link. Teammates join in one tap — no friction.</p>
+            </div>
+          </div>
+          <div className="step">
+            <div className="num">3</div>
+            <div>
+              <strong>Log and compete</strong>
+              <p className="muted">Members log miles; the leaderboard updates instantly. Winners settle up offline.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA STRIP */}
+      <section className="section">
+        <div className="container">
+          <div className="cta">
+            <div>
+              <strong style={{display: 'block', fontSize: '18px', marginBottom: '6px'}}>Ready to start your first pool?</strong>
+              <span className="muted">It takes under a minute. You can tweak rules later.</span>
+            </div>
+            <div>
+              <Link href="/group/new" className="btn btn-primary">Create a Pool</Link>
+              <Link href="/signin" className="btn">Sign in</Link>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="mx-auto w-full max-w-[1100px] text-center text-[13px] text-zinc-500">
-        Built with Next.js + Supabase. No payments—pot is offline for MVP.
+      <footer>
+        <div className="container" style={{display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between'}}>
+          <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+            <span className="logo" aria-hidden="true"></span>
+            <span>RunPool</span>
+          </div>
+          <div>© {new Date().getFullYear()} RunPool — Built for runners, not spreadsheets.</div>
+          <div><a href="/privacy">Privacy</a> • <a href="/terms">Terms</a> • <a href="/contact">Contact</a></div>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }

@@ -82,8 +82,8 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
           return (
             <div 
               key={entry.user_id}
-              className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                isCurrentUser ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+              className={`flex items-center justify-between p-3 card transition-colors ${
+                isCurrentUser ? 'ring-2 ring-brand' : 'hover:opacity-80'
               }`}
             >
               <div className="flex items-center space-x-3">

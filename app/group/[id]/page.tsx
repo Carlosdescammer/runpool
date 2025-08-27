@@ -186,19 +186,14 @@ export default function GroupPage() {
         return;
       }
 
-      // Try to load real data from Supabase proofs table
-      const { data, error } = await supabase
+      // Get proofs for this challenge - sum miles by user_id to handle multiple submissions
+      const { data: proofsData, error: proofsError } = await supabase
         .from('proofs')
-        .select(`
-          user_id,
-          miles,
-          user_profiles!proofs_user_id_fkey (id, name)
-        `)
-        .eq('challenge_id', challengeId)
-        .order('miles', { ascending: false });
+        .select('user_id, miles')
+        .eq('challenge_id', challengeId);
 
-      if (error) {
-        console.warn('Supabase error loading leaderboard - using placeholder data:', JSON.stringify(error));
+      if (proofsError) {
+        console.warn('Supabase error loading proofs - using placeholder data:', JSON.stringify(proofsError));
         
         // If table doesn't exist or other errors, use placeholder data
         const placeholderData: LeaderboardRow[] = [
@@ -216,16 +211,71 @@ export default function GroupPage() {
         return;
       }
 
-      // Transform real Supabase data
-      const formattedData: LeaderboardRow[] = (data || []).map((entry: unknown, index: number) => {
-        const typedEntry = entry as { user_id: string; miles: number; user_profiles?: { name?: string } };
-        return {
-          user_id: typedEntry.user_id,
-          name: typedEntry.user_profiles?.name || 'Anonymous',
-          miles: typedEntry.miles,
-          rank: index + 1,
-        };
+      // If no proofs found, show empty leaderboard
+      if (!proofsData || proofsData.length === 0) {
+        setLeaderboard([]);
+        setCurrentUserMiles(null);
+        return;
+      }
+
+      // Aggregate miles by user_id to handle multiple submissions from same user
+      const userMiles = new Map<string, number>();
+      proofsData.forEach((proof: any) => {
+        const currentMiles = userMiles.get(proof.user_id) || 0;
+        userMiles.set(proof.user_id, currentMiles + proof.miles);
       });
+
+      // Get unique user IDs
+      const userIds = Array.from(userMiles.keys());
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('id, name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.warn('Error fetching user profiles:', profilesError);
+      }
+
+      console.log('User IDs with proofs:', userIds);
+      console.log('Profiles found:', profilesData);
+
+      // Create a map of user_id to name
+      const userNames = new Map();
+      const foundUserIds = new Set();
+      
+      (profilesData || []).forEach((profile: any) => {
+        foundUserIds.add(profile.id);
+        const displayName = profile.name;
+        if (displayName) {
+          userNames.set(profile.id, displayName);
+        } else {
+          console.warn(`User ${profile.id} has no name in profile`);
+        }
+      });
+
+      // Check for users who don't have profiles at all
+      const missingProfiles = userIds.filter(id => !foundUserIds.has(id));
+      if (missingProfiles.length > 0) {
+        console.warn('Users with proofs but no profiles:', missingProfiles);
+        // Create basic profiles for missing users
+        for (const userId of missingProfiles) {
+          userNames.set(userId, `User ${userId.slice(0, 8)}`);
+        }
+      }
+
+      // Transform and sort the data
+      const formattedData: LeaderboardRow[] = Array.from(userMiles.entries())
+        .map(([user_id, miles]) => ({
+          user_id,
+          name: userNames.get(user_id) || 'Anonymous',
+          miles,
+          rank: 0, // Will be set after sorting
+        }))
+        .sort((a, b) => b.miles - a.miles) // Sort by miles descending
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
 
       setLeaderboard(formattedData);
       
@@ -784,7 +834,7 @@ export default function GroupPage() {
                       const rowPulse = joinTop3[uid] || dropTop3[uid] ? 'animate-pulse' : '';
                       return (
                         <tr
-                          key={uid}
+                          key={`table-${uid}`}
                           className={`border-t border-stroke odd:bg-card even:bg-card hover:bg-card/80 transition-colors ${rowPulse}`}
                           style={{ color: 'var(--text)' }}
                         >
@@ -848,7 +898,7 @@ export default function GroupPage() {
                     : 'border-gray-400 bg-gray-200 text-gray-900';
                   const rowPulse = joinTop3[uid] || dropTop3[uid] ? 'animate-pulse' : '';
                   return (
-                    <div key={uid} className={`card ${rowPulse}`} style={{color: 'var(--text)'}}>
+                    <div key={`mobile-${uid}`} className={`card ${rowPulse}`} style={{color: 'var(--text)'}}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${medalClass}`}>

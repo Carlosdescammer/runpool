@@ -14,6 +14,7 @@ type GroupMember = {
   name: string | null;
   email: string | null;
   role: 'owner' | 'admin' | 'member';
+  additional_roles?: string[];
   joined_at: string;
 };
 
@@ -156,38 +157,85 @@ export default function Admin() {
     setExpiredInvites(expired);
   }, [groupId]);
 
-  const loadGroupMembers = useCallback(async () => {
+  // Test function to check what's in user_profiles table
+  const testUserProfiles = async () => {
+    console.log('Testing user_profiles table structure...');
+    
+    // Try to get any row to see structure
     const { data, error } = await supabase
-      .from('memberships')
-      .select(`
-        user_id,
-        role,
-        created_at,
-        profiles!inner(name, email)
-      `)
-      .eq('group_id', groupId)
-      .order('created_at', { ascending: true });
+      .from('user_profiles')
+      .select('*')
+      .limit(1);
+    
+    console.log('Sample user_profiles data:', data);
+    console.log('Error (if any):', error);
+    
+    // Try specifically checking for additional_roles
+    const { data: testData, error: testError } = await supabase
+      .from('user_profiles')
+      .select('id, additional_roles')
+      .limit(1);
+      
+    console.log('additional_roles test:', { testData, testError });
+  };
 
-    if (error) {
-      setMsg(error.message);
+  const loadGroupMembers = useCallback(async () => {
+    console.log('Loading members for group:', groupId);
+    
+    // Get memberships data
+    const { data: membershipsData, error: membershipsError } = await supabase
+      .from('memberships')
+      .select('user_id, role')
+      .eq('group_id', groupId);
+
+    if (membershipsError) {
+      console.error('Error loading memberships:', membershipsError);
+      setMsg(membershipsError.message);
       return;
     }
 
-    const members: GroupMember[] = (data || []).map((item: unknown) => {
-      const typedItem = item as { 
-        user_id: string; 
-        profiles?: { name?: string; email?: string };
-        role: 'owner' | 'admin' | 'member';
-        created_at: string;
-      };
-      return {
-      user_id: typedItem.user_id,
-      name: typedItem.profiles?.name || null,
-      email: typedItem.profiles?.email || null,
-      role: typedItem.role,
-      joined_at: typedItem.created_at
-    };
+    console.log('Memberships found:', membershipsData);
+
+    if (!membershipsData || membershipsData.length === 0) {
+      console.log('No memberships found for this group');
+      setGroupMembers([]);
+      return;
+    }
+
+    // Get user profiles for all members including additional_roles
+    const userIds = membershipsData.map(m => m.user_id);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('id, name, additional_roles')
+      .in('id', userIds);
+
+    if (profilesError) {
+      console.warn('Error loading profiles:', profilesError);
+    }
+
+    console.log('Profiles found:', profilesData);
+
+    // Create map for profile info (now includes additional_roles)
+    const profileMap = new Map();
+    (profilesData || []).forEach((profile: any) => {
+      profileMap.set(profile.id, profile);
     });
+
+    // Combine membership and profile data
+    const members: GroupMember[] = membershipsData.map((membership: any) => {
+      const profile = profileMap.get(membership.user_id);
+      
+      return {
+        user_id: membership.user_id,
+        name: profile?.name || null,
+        email: null, // We don't have email in user_profiles
+        role: membership.role,
+        additional_roles: profile?.additional_roles || [],
+        joined_at: new Date().toISOString() // Default to current date since we don't have created_at
+      };
+    });
+
+    console.log('Final members:', members);
 
     setGroupMembers(members);
   }, [groupId]);
@@ -236,6 +284,43 @@ export default function Admin() {
       setMsg(`${userName || 'Member'} removed from group.`);
     } catch {
       setMsg('Failed to remove member. Please try again.');
+    }
+  }
+
+  async function updateMemberRoles(userId: string, newAdditionalRoles: string[], userName: string) {
+    setMsg(`Updating roles for ${userName}...`);
+    
+    console.log('Updating roles for user:', userId, 'with roles:', newAdditionalRoles);
+    
+    try {
+      // First, let's try a simple insert approach
+      const profileData = {
+        id: userId,
+        name: userName || `User ${userId.slice(0, 8)}`,
+        additional_roles: newAdditionalRoles
+      };
+      
+      console.log('Profile data to upsert:', profileData);
+      
+      // Try upsert without onConflict option first
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .upsert(profileData);
+
+      console.log('Upsert result:', { data, error });
+
+      if (error) {
+        console.error('Detailed error:', JSON.stringify(error, null, 2));
+        setMsg(`Error: ${error.message || error.details || 'Unknown error'}`);
+        return;
+      }
+
+      // Reload members list
+      await loadGroupMembers();
+      setMsg(`Updated roles for ${userName}.`);
+    } catch (error) {
+      console.error('Exception updating member roles:', error);
+      setMsg(`Exception: ${error instanceof Error ? error.message : 'Unknown exception'}`);
     }
   }
 
@@ -410,7 +495,12 @@ export default function Admin() {
             </div>
           )}
           <div className="my-4 h-px bg-zinc-200" />
-          <div className="text-sm font-extrabold">Group Members</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-extrabold">Group Members</div>
+            <Button onClick={testUserProfiles} variant="secondary" size="sm">
+              Debug DB
+            </Button>
+          </div>
           <div className="h-2" />
           <div className="card">
             <div className="p-4 border-b border-zinc-100">
@@ -436,7 +526,7 @@ export default function Admin() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold">
-                            {(member.name || member.email || '?')[0].toUpperCase()}
+                            {(member.name || '?')[0].toUpperCase()}
                           </div>
                           <div>
                             <div className="font-medium">
@@ -445,6 +535,17 @@ export default function Admin() {
                               {isOwner && <span className="ml-2 text-sm text-amber-600">👑 Owner</span>}
                               {member.role === 'admin' && <span className="ml-2 text-sm text-purple-600">⚡ Admin</span>}
                             </div>
+                            {member.additional_roles && member.additional_roles.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {member.additional_roles.map((role: string) => (
+                                  <span key={role} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+                                    {role === 'runner' && '🏃‍♂️ Runner'}
+                                    {role === 'banker' && '💰 Banker'}
+                                    {role !== 'runner' && role !== 'banker' && role}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             {member.email && (
                               <div className="text-sm text-gray-500">{member.email}</div>
                             )}
@@ -453,9 +554,45 @@ export default function Admin() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {/* Role Management */}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex gap-1">
+                            <Button
+                              onClick={() => {
+                                const currentRoles = member.additional_roles || [];
+                                const hasRunner = currentRoles.includes('runner');
+                                const newRoles = hasRunner 
+                                  ? currentRoles.filter(r => r !== 'runner')
+                                  : [...currentRoles, 'runner'];
+                                updateMemberRoles(member.user_id, newRoles, member.name || 'Member');
+                              }}
+                              variant={member.additional_roles?.includes('runner') ? 'primary' : 'secondary'}
+                              size="sm"
+                              className="text-xs"
+                            >
+                              🏃‍♂️ Runner
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                const currentRoles = member.additional_roles || [];
+                                const hasBanker = currentRoles.includes('banker');
+                                const newRoles = hasBanker 
+                                  ? currentRoles.filter(r => r !== 'banker')
+                                  : [...currentRoles, 'banker'];
+                                updateMemberRoles(member.user_id, newRoles, member.name || 'Member');
+                              }}
+                              variant={member.additional_roles?.includes('banker') ? 'primary' : 'secondary'}
+                              size="sm"
+                              className="text-xs"
+                            >
+                              💰 Banker
+                            </Button>
+                          </div>
+                        </div>
+                        
                         {!isCurrentUser && !isOwner && (
                           <Button
-                            onClick={() => removeMember(member.user_id, member.name || member.email || 'Member')}
+                            onClick={() => removeMember(member.user_id, member.name || 'Member')}
                             variant="destructive"
                             size="sm"
                             className="text-xs"

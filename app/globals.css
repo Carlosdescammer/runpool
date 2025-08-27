@@ -1,46 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
-  /* Runpool Sage Theme */
-  --rp-text: #344E41;     /* deep moss */
-  --rp-accent: #A3B18A;   /* sage accent */
-  --rp-bg: #DAD7CD;       /* warm light bg */
-  --rp-surface: #ffffff;  /* card/surface */
-  --rp-primary: #588157;  /* primary actions */
+:root{
+  --bg:#0b1020; --card:#11162a; --text:#f1f5f9; --muted:#cbd5e1;
+  --brand:#5ee1a2; --brand-ink:#0b1f17; --ring:rgba(94,225,162,.45); --stroke:#1e2642;
+  --bg-light:#f7f9ff; --card-light:#ffffff; --text-dark:#0d1424; --muted-dark:#4a556b; --stroke-light:#e6ebff;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:var(--bg-light); --card:var(--card-light); --text:var(--text-dark); --muted:var(--muted-dark); --stroke:var(--stroke-light);
+    --brand:#0ea5e9; --brand-ink:#062235; --ring:rgba(14,165,233,.35);
+  }
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{
+  margin:0 !important; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif !important;
+  color:var(--text) !important;
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(94,225,162,.08), transparent 60%),
+              radial-gradient(900px 500px at 110% 10%, rgba(14,165,233,.08), transparent 55%),
+              var(--bg) !important;
+  line-height:1.55; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+img,svg,video{max-width:100%;height:auto} a{text-decoration:none;color:inherit}
+.container{max-width:1120px;margin:0 auto;padding:0 20px}
 
-  /* Back-compat aliases used by base styles */
-  --background: var(--rp-bg);
-  --foreground: var(--rp-text);
-  --brand: 88 129 87; /* rp-primary as rgb */
-  --accent: 163 177 138; /* rp-accent as rgb */
-  --success: 16 185 129; /* emerald-500 */
+/* Header / Nav */
+.nav{
+  position:sticky; top:0; z-index:50;
+  backdrop-filter:saturate(140%) blur(10px);
+  background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  padding-top:var(--safe-top);
+}
+.nav-wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+.brand{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:.2px}
+.logo{
+  width:32px;height:32px;border-radius:10px;
+  background:conic-gradient(from 180deg at 50% 50%, #5ee1a2, #0ea5e9, #5ee1a2);
+  box-shadow:0 8px 24px rgba(94,225,162,.35), inset 0 0 0 1px rgba(255,255,255,.15);
+}
+.nav-links{display:flex;gap:18px;align-items:center}
+.btn{
+  display:inline-flex !important;align-items:center !important;justify-content:center !important;gap:8px;
+  padding:10px 16px !important;border-radius:12px !important;font-weight:700 !important;border:1px solid var(--stroke) !important;
+  background:linear-gradient(to bottom, rgba(255,255,255,.04), rgba(255,255,255,.02)) !important;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  min-height:44px !important; font-size:16px !important; color:var(--text) !important; cursor:pointer;
+}
+.btn:hover{transform:translateY(-1px);border-color:var(--ring);box-shadow:0 8px 24px var(--ring)}
+.btn-primary{
+  background:linear-gradient(180deg, var(--brand), 50%, color-mix(in oklab, var(--brand), black 12%)) !important;
+  color:var(--brand-ink) !important; border:0 !important; box-shadow:0 10px 30px var(--ring) !important;
+}
+.btn-secondary{
+  background:var(--card) !important; border:1px solid var(--stroke) !important;
+}
+.btn-destructive{
+  background:linear-gradient(180deg, #ef4444, #dc2626) !important;
+  color:white !important; border:0 !important; box-shadow:0 8px 24px rgba(239,68,68,.35) !important;
+}
+.btn-ghost{background:transparent !important;border:transparent !important}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* Hamburger */
+.hamburger{display:none;width:40px;height:40px;padding:8px;border:1px solid var(--stroke);border-radius:10px;background:transparent;cursor:pointer;color:var(--text)}
+.hamburger span{display:block;width:20px;height:2px;background:currentColor;margin:3px 0;transition:transform .15s ease,opacity .15s ease}
+.hamburger[aria-expanded="true"] span:nth-child(1){transform:translateY(5px) rotate(45deg)}
+.hamburger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.hamburger[aria-expanded="true"] span:nth-child(3){transform:translateY(-5px) rotate(-45deg)}
+
+.mobile-menu[hidden]{display:none}
+.mobile-menu{
+  display:grid;gap:10px;
+  padding:12px 20px calc(16px + var(--safe-bottom));
+  background:var(--card); border-top:1px solid var(--stroke);
+}
+.mobile-link{
+  display:block;text-align:center;font-weight:700;padding:12px 14px;border:1px solid var(--stroke);border-radius:12px;min-height:44px;
+  color:var(--text); text-decoration:none;
+}
+.mobile-link.primary{background:var(--brand);color:var(--brand-ink);border:0;box-shadow:0 6px 18px var(--ring)}
+
+/* Hero */
+.hero{padding:64px 0 40px; min-height:88dvh; display:flex; align-items:center}
+.hero-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;align-items:center}
+.title{font-size:clamp(28px,5vw,48px);line-height:1.1;margin:14px 0 12px;font-weight:800;letter-spacing:-.02em}
+.subtitle{color:var(--muted);font-size:clamp(16px,2.5vw,18px);max-width:52ch}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.hero-card{
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid var(--stroke); border-radius:18px; padding:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
 }
 
-/* Dark-mode overrides removed for light-only theme */
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+/* Modern Card System */
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
-/* Mobile-friendly defaults (iPhone) */
-html {
-  -webkit-text-size-adjust: 100%;
-  -webkit-tap-highlight-color: transparent;
+/* Input System */
+.input {
+  display: flex;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: var(--card);
+  padding: 10px 16px;
+  font-size: 16px;
+  color: var(--text) !important;
+  min-height: 44px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px rgba(94, 225, 162, 0.1);
+}
+.input::placeholder {
+  color: var(--muted) !important;
 }
 
-/* Respect bottom safe area (home indicator) globally */
-body {
-  padding-bottom: env(safe-area-inset-bottom);
+/* How it works */
+.section{padding:44px 0}
+.section h2{font-size:clamp(22px,2.8vw,28px);margin:0 0 12px}
+.muted{color:var(--muted)}
+.step{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.num{min-width:28px;height:28px;border-radius:8px;background:var(--brand);color:var(--brand-ink);display:flex;align-items:center;justify-content:center;font-weight:800}
+
+/* Leaderboard mock */
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:12px;border-bottom:1px dashed var(--stroke);text-align:left;color:var(--text)}
+.table th{color:var(--muted);font-weight:600}
+.table td{color:var(--text) !important}
+.badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:rgba(94,225,162,.15);border:1px solid var(--ring);font-size:12px;color:var(--text) !important}
+
+/* CTA strip (kept simple) */
+.cta{
+  display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid var(--stroke);border-radius:18px;padding:18px
 }
 
-/* Prevent iOS zoom on small inputs and ensure comfy tap targets */
+/* Footer */
+footer{padding:36px 0;border-top:1px solid var(--stroke);color:var(--muted);font-size:14px}
+
+/* Responsive */
+.desktop-only{display:flex}
+@media (max-width:960px){
+  .hero{padding-top:24px}
+  .hero-grid{grid-template-columns:1fr}
+  .hero-cta .btn{width:100%}
+  .desktop-only{display:none}
+  .hamburger{display:inline-flex}
+  .nav-wrap{padding:12px 0}
+}
+@media (max-width:360px){
+  .title{font-size:clamp(24px,9vw,34px)}
+  .subtitle{font-size:15px}
+}
+
+/* Touch & motion */
+*{-webkit-tap-highlight-color:rgba(0,0,0,0)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* Ensure mobile tap targets */
 input, select, textarea { font-size: 16px; }
 button, a[role="button"], .btn { min-height: 44px; font-size: 16px; }
 
-/* Avoid accidental horizontal scrolling on small screens */
-html, body { overflow-x: hidden; }
+/* Dark theme compatibility for existing components */
+:root {
+  --rp-text: var(--text);
+  --rp-accent: var(--muted);
+  --rp-bg: var(--bg);
+  --rp-surface: var(--card);
+  --rp-primary: var(--brand);
+}
 
-/* Predictable sizing */
-*, *::before, *::after { box-sizing: border-box; }
+/* Improve text readability on dark backgrounds */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text) !important;
+}
+
+p, span, div {
+  color: var(--text);
+}
+
+/* Override any gray/zinc colors that might be too dim */
+.text-zinc-700,
+.text-zinc-600,
+.text-gray-700,
+.text-gray-600 {
+  color: var(--muted) !important;
+}
+
+.text-zinc-500,
+.text-gray-500 {
+  color: var(--muted) !important;
+}
+
+/* Make sure labels are readable */
+label {
+  color: var(--text) !important;
+}

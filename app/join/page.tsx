@@ -217,7 +217,7 @@ export default function Join() {
         </div>
 
         {!loading && group && (
-          <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="mt-4 card">
             <div className="font-extrabold">About {group.name}</div>
             <div className="mt-1 text-zinc-800">
               <div><strong>Weekly rule:</strong> {group.rule || '—'}</div>

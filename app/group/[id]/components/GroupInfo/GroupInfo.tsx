@@ -80,7 +80,7 @@ export function GroupInfo({ group, isAdmin, joinLink, onEditGroup }: GroupInfoPr
               )}
             </Button>
           </div>
-          <div className="mt-1 p-2 bg-gray-50 rounded text-sm text-gray-600 overflow-x-auto">
+          <div className="mt-1 p-2 card text-sm muted overflow-x-auto">
             <code className="text-xs">{joinLink}</code>
           </div>
           <p className="mt-1 text-xs text-gray-500">
@@ -92,9 +92,11 @@ export function GroupInfo({ group, isAdmin, joinLink, onEditGroup }: GroupInfoPr
           <div className="pt-2 border-t">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Admin Tools</h4>
             <div className="space-y-2">
-              <Button variant="secondary" size="sm" className="w-full" disabled>
-                Manage Members
-              </Button>
+              <a href={`/group/${group.id}/admin`} className="block">
+                <Button variant="secondary" size="sm" className="w-full">
+                  Manage Members
+                </Button>
+              </a>
               <Button variant="secondary" size="sm" className="w-full" disabled>
                 View Payment History
               </Button>

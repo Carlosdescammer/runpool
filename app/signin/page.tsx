@@ -60,53 +60,6 @@ export default function Page() {
     }
   }, [userId, postAuthRedirect]);
 
-  async function passwordSignIn() {
-    if (!email || !password) { setStatus('Enter email and password.'); return; }
-    setStatus('Signing in…');
-    if (remember && typeof window !== 'undefined') localStorage.setItem('rememberEmail', email);
-    if (!remember && typeof window !== 'undefined') localStorage.removeItem('rememberEmail');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      // Handle common sign-in errors with better messaging
-      if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
-        setStatus('Email or password is incorrect. Check your credentials or try "Forgot your password?" if you need to reset.');
-      } else if (error.message.includes('Email not confirmed')) {
-        setStatus('Please check your email and click the confirmation link before signing in.');
-      } else {
-        setStatus(error.message);
-      }
-    } else {
-      setStatus('Signed in.');
-      await postAuthRedirect();
-    }
-  }
-
-  async function passwordSignUp() {
-    if (!email || !password) { setStatus('Enter email and password.'); return; }
-    setStatus('Creating account…');
-    if (remember && typeof window !== 'undefined') localStorage.setItem('rememberEmail', email);
-    if (!remember && typeof window !== 'undefined') localStorage.removeItem('rememberEmail');
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) { 
-      // Handle common error cases with better messaging
-      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
-        setStatus('This email already has an account. Try signing in instead, or use "Forgot your password?" if you need to reset it.');
-      } else if (error.message.includes('Password')) {
-        setStatus('Password must be at least 6 characters long.');
-      } else if (error.message.includes('email')) {
-        setStatus('Please enter a valid email address.');
-      } else {
-        setStatus(error.message);
-      }
-      return; 
-    }
-    if (!data.session) {
-      setStatus('Account created. Check your email to confirm your address.');
-    } else {
-      setStatus('Account created and signed in.');
-      await postAuthRedirect();
-    }
-  }
 
   async function forgotPassword() {
     if (!email) { setStatus('Enter your email first.'); return; }
@@ -172,8 +125,9 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-[100svh] grid place-items-center px-4 py-6 md:px-6">
-      <Card className="w-full max-w-[480px] p-6">
+    <div className="min-h-[100svh] grid place-items-center">
+      <div className="container">
+        <Card className="w-full max-w-[480px] mx-auto p-6">
         {userId && (
           <div className="mb-2 text-sm text-zinc-700">You’re already signed in.</div>
         )}
@@ -220,24 +174,15 @@ export default function Page() {
         <Button onClick={smartAuth} variant="primary" size="lg" className="w-full" disabled={isSmartAuth}>
           {isSmartAuth ? 'Checking...' : 'Sign in / Create account'}
         </Button>
-        
-        <div className="h-2" />
-        <div className="flex gap-2">
-          <Button onClick={passwordSignIn} variant="secondary" size="sm" className="flex-1">
-            Sign in only
-          </Button>
-          <Button onClick={passwordSignUp} variant="secondary" size="sm" className="flex-1">
-            Create only
-          </Button>
-        </div>
 
         <div className="h-3" />
-        <div className="text-center text-xs text-zinc-600">
-          💡 <strong>Tip:</strong> Use the main button above - it will automatically sign you in or create an account as needed!
+        <div className="text-center text-xs text-zinc-600 muted">
+          Will automatically sign you in or create an account as needed.
         </div>
         <div className="h-3" />
         <div className="min-h-[18px] text-sm text-zinc-700">{status}</div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

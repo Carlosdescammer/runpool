@@ -106,7 +106,7 @@ export default function UpdatePassword() {
               Password must be at least 6 characters long.
             </div>
             <div className="mt-1 text-xs text-zinc-700">
-              After updating, you'll be redirected to{' '}
+              After updating, you&apos;ll be redirected to{' '}
               <Link href="/signin" className="text-[color:var(--rp-text)] underline">sign in</Link>.
             </div>
           </>

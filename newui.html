@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RunPool — Create a Running Pool in Seconds</title>
+  <meta name="description" content="Set rules, invite your crew, log miles, and watch the leaderboard update in real time. RunPool makes friendly running wagers simple and fun." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b1020; --card:#11162a; --text:#e8ecf2; --muted:#a7b0c3;
+      --brand:#5ee1a2; --brand-ink:#0b1f17; --ring:rgba(94,225,162,.45); --stroke:#1e2642;
+      --bg-light:#f7f9ff; --card-light:#ffffff; --text-dark:#0d1424; --muted-dark:#4a556b; --stroke-light:#e6ebff;
+      --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:var(--bg-light); --card:var(--card-light); --text:var(--text-dark); --muted:var(--muted-dark); --stroke:var(--stroke-light);
+        --brand:#0ea5e9; --brand-ink:#062235; --ring:rgba(14,165,233,.35);
+      }
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(94,225,162,.08), transparent 60%),
+                  radial-gradient(900px 500px at 110% 10%, rgba(14,165,233,.08), transparent 55%),
+                  var(--bg);
+      line-height:1.55; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    img,svg,video{max-width:100%;height:auto} a{text-decoration:none;color:inherit}
+    .container{max-width:1120px;margin:0 auto;padding:0 20px}
+
+    /* Header / Nav */
+    .nav{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(140%) blur(10px);
+      background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent);
+      border-bottom:1px solid rgba(255,255,255,.06);
+      padding-top:var(--safe-top);
+    }
+    .nav-wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:.2px}
+    .logo{
+      width:32px;height:32px;border-radius:10px;
+      background:conic-gradient(from 180deg at 50% 50%, #5ee1a2, #0ea5e9, #5ee1a2);
+      box-shadow:0 8px 24px rgba(94,225,162,.35), inset 0 0 0 1px rgba(255,255,255,.15);
+    }
+    .nav-links{display:flex;gap:18px;align-items:center}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:10px 16px;border-radius:12px;font-weight:700;border:1px solid var(--stroke);
+      background:linear-gradient(to bottom, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      min-height:44px;
+    }
+    .btn:hover{transform:translateY(-1px);border-color:var(--ring);box-shadow:0 8px 24px var(--ring)}
+    .btn-primary{
+      background:linear-gradient(180deg, var(--brand), 50%, color-mix(in oklab, var(--brand), black 12%));
+      color:var(--brand-ink); border:0; box-shadow:0 10px 30px var(--ring);
+    }
+    .btn-ghost{background:transparent}
+
+    /* Hamburger */
+    .hamburger{display:none;width:40px;height:40px;padding:8px;border:1px solid var(--stroke);border-radius:10px;background:transparent;cursor:pointer;color:var(--text)}
+    .hamburger span{display:block;width:20px;height:2px;background:currentColor;margin:3px 0;transition:transform .15s ease,opacity .15s ease}
+    .hamburger[aria-expanded="true"] span:nth-child(1){transform:translateY(5px) rotate(45deg)}
+    .hamburger[aria-expanded="true"] span:nth-child(2){opacity:0}
+    .hamburger[aria-expanded="true"] span:nth-child(3){transform:translateY(-5px) rotate(-45deg)}
+
+    .mobile-menu[hidden]{display:none}
+    .mobile-menu{
+      display:grid;gap:10px;
+      padding:12px 20px calc(16px + var(--safe-bottom));
+      background:var(--card); border-top:1px solid var(--stroke);
+    }
+    .mobile-link{
+      display:block;text-align:center;font-weight:700;padding:12px 14px;border:1px solid var(--stroke);border-radius:12px;min-height:44px;
+    }
+    .mobile-link.primary{background:var(--brand);color:var(--brand-ink);border:0;box-shadow:0 6px 18px var(--ring)}
+
+    /* Hero */
+    .hero{padding:64px 0 40px; min-height:88dvh; display:flex; align-items:center}
+    .hero-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;align-items:center}
+    .title{font-size:clamp(28px,5vw,48px);line-height:1.1;margin:14px 0 12px;font-weight:800;letter-spacing:-.02em}
+    .subtitle{color:var(--muted);font-size:clamp(16px,2.5vw,18px);max-width:52ch}
+    .hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+    .hero-card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--stroke); border-radius:18px; padding:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.15);
+    }
+
+    /* How it works */
+    .section{padding:44px 0}
+    .section h2{font-size:clamp(22px,2.8vw,28px);margin:0 0 12px}
+    .muted{color:var(--muted)}
+    .step{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+    .num{min-width:28px;height:28px;border-radius:8px;background:var(--brand);color:var(--brand-ink);display:flex;align-items:center;justify-content:center;font-weight:800}
+
+    /* Leaderboard mock */
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:12px;border-bottom:1px dashed var(--stroke);text-align:left}
+    .table th{color:var(--muted);font-weight:600}
+    .badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:rgba(94,225,162,.15);border:1px solid var(--ring);font-size:12px}
+
+    /* CTA strip (kept simple) */
+    .cta{
+      display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--stroke);border-radius:18px;padding:18px
+    }
+
+    /* Footer */
+    footer{padding:36px 0;border-top:1px solid var(--stroke);color:var(--muted);font-size:14px}
+
+    /* Responsive */
+    .desktop-only{display:flex}
+    @media (max-width:960px){
+      .hero{padding-top:24px}
+      .hero-grid{grid-template-columns:1fr}
+      .hero-cta .btn{width:100%}
+      .desktop-only{display:none}
+      .hamburger{display:inline-flex}
+      .nav-wrap{padding:12px 0}
+    }
+    @media (max-width:360px){
+      .title{font-size:clamp(24px,9vw,34px)}
+      .subtitle{font-size:15px}
+    }
+
+    /* Touch & motion */
+    *{-webkit-tap-highlight-color:rgba(0,0,0,0)}
+    @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <header class="nav">
+    <div class="container nav-wrap">
+      <a class="brand" href="/">
+        <span class="logo" aria-hidden="true"></span>
+        <span>RunPool</span>
+      </a>
+
+      <!-- Hamburger (mobile) -->
+      <button class="hamburger" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <!-- Desktop links (trimmed) -->
+      <nav class="nav-links desktop-only">
+        <a class="btn btn-ghost" href="#how">How it works</a>
+        <a class="btn" href="/signin">Sign in</a>
+        <a class="btn btn-primary" href="/create">Create a Pool</a>
+      </nav>
+    </div>
+
+    <!-- Mobile menu -->
+    <nav id="mobile-menu" class="mobile-menu" hidden>
+      <a href="#how" class="mobile-link">How it works</a>
+      <a href="/signin" class="mobile-link">Sign in</a>
+      <a href="/create" class="mobile-link primary">Create a Pool</a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <h1 class="title">Create a Running Pool in Seconds</h1>
+        <p class="subtitle">Set the rules, invite your crew, log miles, and watch the leaderboard update automatically. Friendly stakes, serious momentum.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="/create">Create a Pool</a>
+        </div>
+      </div>
+
+      <div class="hero-card" aria-label="Leaderboard preview">
+        <strong style="display:block;margin-bottom:8px">Live Leaderboard</strong>
+        <table class="table" role="table" aria-label="Leaderboard">
+          <thead>
+            <tr><th>#</th><th>Runner</th><th>Miles</th><th>Status</th></tr>
+          </thead>
+          <tbody id="lb-body"><!-- populated by JS --></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="section">
+    <div class="container">
+      <h2>How it works</h2>
+      <p class="muted">Simple setup. Clear rules. Automatic tracking.</p>
+      <div class="step"><div class="num">1</div><div><strong>Set the rules</strong><p class="muted">Choose weekly goal, start/end dates, and stakes. You’re the admin.</p></div></div>
+      <div class="step"><div class="num">2</div><div><strong>Invite your crew</strong><p class="muted">Share a link. Teammates join in one tap — no friction.</p></div></div>
+      <div class="step"><div class="num">3</div><div><strong>Log and compete</strong><p class="muted">Members log miles; the leaderboard updates instantly. Winners settle up offline.</p></div></div>
+    </div>
+  </section>
+
+  <!-- CTA STRIP -->
+  <section class="section">
+    <div class="container">
+      <div class="cta">
+        <div>
+          <strong style="display:block;font-size:18px;margin-bottom:6px">Ready to start your first pool?</strong>
+          <span class="muted">It takes under a minute. You can tweak rules later.</span>
+        </div>
+        <div>
+          <a class="btn btn-primary" href="/create">Create a Pool</a>
+          <a class="btn" href="/signin">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="logo" aria-hidden="true"></span>
+        <span>RunPool</span>
+      </div>
+      <div>© <span id="year"></span> RunPool — Built for runners, not spreadsheets.</div>
+      <div><a href="/privacy">Privacy</a> • <a href="/terms">Terms</a> • <a href="/contact">Contact</a></div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Mobile menu
+    const btn = document.querySelector('.hamburger');
+    const panel = document.getElementById('mobile-menu');
+    btn?.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      expanded ? panel.setAttribute('hidden','') : panel.removeAttribute('hidden');
+    });
+    panel?.addEventListener('click', (e) => {
+      if (e.target.matches('a')) { btn.setAttribute('aria-expanded','false'); panel.setAttribute('hidden',''); }
+    });
+
+    // Lightweight animated leaderboard mock
+    const data = [
+      { name: "A. Rivera", miles: 18.6, status: "On pace" },
+      { name: "K. Patel", miles: 17.4, status: "On pace" },
+      { name: "M. Scott", miles: 15.2, status: "Needs 2.8" },
+      { name: "L. Chen", miles: 12.7, status: "Catch up" },
+      { name: "J. Gomez", miles: 9.9, status: "Behind" }
+    ];
+    const body = document.getElementById('lb-body');
+    function render(rows){
+      body.innerHTML = rows.map((r,i)=>`
+        <tr>
+          <td>${i+1}</td>
+          <td>${r.name}</td>
+          <td>${r.miles.toFixed(1)}</td>
+          <td><span class="badge">${r.status}</span></td>
+        </tr>
+      `).join('');
+    }
+    render(data);
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!reduce){
+      setInterval(()=>{
+        const idx = Math.floor(Math.random()*data.length);
+        data[idx].miles += Math.random()*0.3;
+        data.sort((a,b)=>b.miles-a.miles);
+        render(data);
+      }, 2400);
+    }
+  </script>
+</body>
+</html>

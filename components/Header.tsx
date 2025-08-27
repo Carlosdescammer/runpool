@@ -9,6 +9,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -29,47 +30,93 @@ export default function Header() {
   async function signOut() {
     await supabase.auth.signOut();
     router.replace('/signin');
+    setMobileMenuOpen(false);
   }
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <header style={{
-      background: 'var(--rp-surface)', color: 'var(--rp-text)',
-      padding: 'calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))',
-      position:'sticky', top:0, zIndex:20,
-      borderBottom:'1px solid #eee',
-      minHeight: 56,
-    }}>
-      <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-          <Link href="/" style={{ color:'var(--rp-text)', textDecoration:'none', fontWeight:800 }}>Run Pool</Link>
-        </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          {adminGroupId && (
-            <Link href={`/group/${adminGroupId}`} style={{ textDecoration:'none' }}>
-              <span style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, lineHeight:'24px', fontSize:16, borderRadius:10, fontWeight:700, display:'inline-flex', alignItems:'center' }}>← Back</span>
-            </Link>
-          )}
-          {isSignedIn ? (
-            pathname !== '/' && (
-              <>
-                <Link href="/settings" style={{ background:'var(--rp-accent)', color:'var(--rp-text)', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, textDecoration:'none', fontWeight:700, border: '1px solid var(--rp-accent)' }}>
-                  Settings
-                </Link>
-                <button onClick={signOut}
-                        style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, fontWeight:700, border:'none', cursor:'pointer' }}>
-                  Sign Out
-                </button>
-              </>
-            )
-          ) : (
-            showSignIn && (
-              <Link href="/signin" style={{ background:'var(--rp-primary)', color:'#fff', padding:'10px 14px', minHeight:44, fontSize:16, borderRadius:10, textDecoration:'none', fontWeight:700 }}>
-                Sign In
+    <>
+      <header className="nav">
+        <div className="container nav-wrap">
+          <Link href="/" className="brand">
+            <span className="logo" aria-hidden="true"></span>
+            <span>RunPool</span>
+          </Link>
+
+          <button 
+            className="hamburger" 
+            aria-expanded={mobileMenuOpen} 
+            aria-controls="mobile-menu" 
+            aria-label="Toggle menu"
+            onClick={toggleMobileMenu}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <nav className="nav-links desktop-only">
+            {adminGroupId ? (
+              <Link href={`/group/${adminGroupId}`} className="btn btn-ghost">
+                ← Back to Pool
               </Link>
-            )
-          )}
+            ) : pathname === '/' ? (
+              <>
+                <a href="#how" className="btn btn-ghost">How it works</a>
+                {!isSignedIn && <Link href="/signin" className="btn">Sign in</Link>}
+                <Link href="/group/new" className="btn btn-primary">Create a Pool</Link>
+              </>
+            ) : (
+              <>
+                {isSignedIn ? (
+                  <>
+                    <Link href="/settings" className="btn btn-secondary">Settings</Link>
+                    <button onClick={signOut} className="btn btn-primary">Sign Out</button>
+                  </>
+                ) : (
+                  showSignIn && <Link href="/signin" className="btn btn-primary">Sign In</Link>
+                )}
+              </>
+            )}
+          </nav>
         </div>
-      </div>
-    </header>
+
+        <nav 
+          id="mobile-menu" 
+          className="mobile-menu" 
+          hidden={!mobileMenuOpen}
+        >
+          {adminGroupId ? (
+            <Link href={`/group/${adminGroupId}`} className="mobile-link" onClick={closeMobileMenu}>
+              ← Back to Pool
+            </Link>
+          ) : pathname === '/' ? (
+            <>
+              <a href="#how" className="mobile-link" onClick={closeMobileMenu}>How it works</a>
+              {!isSignedIn && <Link href="/signin" className="mobile-link" onClick={closeMobileMenu}>Sign in</Link>}
+              <Link href="/group/new" className="mobile-link primary" onClick={closeMobileMenu}>Create a Pool</Link>
+            </>
+          ) : (
+            <>
+              {isSignedIn ? (
+                <>
+                  <Link href="/settings" className="mobile-link" onClick={closeMobileMenu}>Settings</Link>
+                  <button onClick={signOut} className="mobile-link primary">Sign Out</button>
+                </>
+              ) : (
+                showSignIn && <Link href="/signin" className="mobile-link primary" onClick={closeMobileMenu}>Sign In</Link>
+              )}
+            </>
+          )}
+        </nav>
+      </header>
+    </>
   );
 }
