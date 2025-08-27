@@ -222,7 +222,7 @@ export default function Admin() {
     });
 
     // Combine membership and profile data
-    const members: GroupMember[] = membershipsData.map((membership: { user_id: string; role: string }) => {
+    const members: GroupMember[] = membershipsData.map((membership: { user_id: string; role: 'owner' | 'admin' | 'member' }) => {
       const profile = profileMap.get(membership.user_id);
       
       return {
