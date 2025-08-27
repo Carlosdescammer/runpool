@@ -557,24 +557,102 @@ export default function GroupPage() {
     let image_url: string | null = null;
 
     if (file) {
-      const path = `proofs/${userId}/${Date.now()}_${file.name}`;
-      const up = await supabase.storage.from('proofs').upload(path, file);
-      if (up.error) { setStatus('error'); return; }
-      const signed = await supabase.storage.from('proofs').createSignedUrl(path, 3600);
-      if (signed.error) { setStatus('error'); return; }
-      image_url = signed.data.signedUrl;
+      setStatus('loading');
+      
+      try {
+        // Convert HEIC to JPEG if needed (common issue with iPhone photos)
+        let fileToUpload = file;
+        if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().includes('.heic')) {
+          // For HEIC files, we'll still upload but warn the user
+          console.warn('HEIC file detected. Consider converting to JPEG for better compatibility.');
+        }
+        
+        // Ensure proper file name
+        const timestamp = Date.now();
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const path = `proofs/${userId}/${timestamp}_${sanitizedFileName}`;
+        
+        console.log('Uploading file:', {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          path
+        });
+        
+        // Upload with proper content type
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('proofs')
+          .upload(path, fileToUpload, {
+            contentType: file.type || 'image/jpeg',
+            upsert: false
+          });
+          
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          setStatus('error');
+          toast.error(`Upload failed: ${uploadError.message}`);
+          return;
+        }
+        
+        console.log('Upload successful:', uploadData);
+        
+        // Get public URL instead of signed URL for better reliability
+        const { data: urlData } = supabase.storage
+          .from('proofs')
+          .getPublicUrl(path);
+          
+        if (urlData?.publicUrl) {
+          image_url = urlData.publicUrl;
+          console.log('Image URL:', image_url);
+        } else {
+          // Fallback to signed URL if public URL fails
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('proofs')
+            .createSignedUrl(path, 3600 * 24 * 7); // 1 week expiry
+            
+          if (signedError) {
+            console.error('Signed URL error:', signedError);
+            setStatus('error');
+            toast.error('Failed to generate image URL');
+            return;
+          }
+          
+          image_url = signedData.signedUrl;
+        }
+        
+      } catch (error) {
+        console.error('File processing error:', error);
+        setStatus('error');
+        toast.error('Failed to process image');
+        return;
+      }
     }
 
+    setStatus('loading');
     const { error } = await supabase.from('proofs').insert({
       challenge_id: challenge.id,
       user_id: userId,
       miles: milesNum,
       image_url
     });
-    if (error) { setStatus('error'); toast.error(error.message); return; }
+    
+    if (error) { 
+      console.error('Database error:', error);
+      setStatus('error'); 
+      toast.error(error.message); 
+      return; 
+    }
+    
     setStatus('success');
-    toast.success('Proof submitted');
+    toast.success('Proof submitted successfully!');
     try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
+
+    // Reset form
+    setMiles('');
+    setFile(null);
+    
+    // Reload leaderboard
+    await loadLeaderboard(challenge.id);
 
     // Fire-and-forget: notify group members by email via Resend
     try {
@@ -742,8 +820,28 @@ export default function GroupPage() {
             />
             <input
               type="file"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              accept="image/*,.heic,.heif"
+              onChange={(e) => {
+                const selectedFile = e.target.files?.[0] ?? null;
+                if (selectedFile) {
+                  // Validate file size (max 10MB)
+                  if (selectedFile.size > 10 * 1024 * 1024) {
+                    toast.error('Image must be smaller than 10MB');
+                    e.target.value = '';
+                    return;
+                  }
+                  // Validate file type
+                  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+                  if (selectedFile.type && !validTypes.includes(selectedFile.type.toLowerCase())) {
+                    toast.error('Please select a valid image file (JPEG, PNG, WebP, or HEIC)');
+                    e.target.value = '';
+                    return;
+                  }
+                }
+                setFile(selectedFile);
+              }}
               className="text-sm w-full sm:w-auto"
+              title="Upload proof image (JPEG, PNG, WebP, HEIC)"
             />
             <Button onClick={submitProof} variant="primary" className="w-full sm:w-auto">Submit</Button>
           </div>
