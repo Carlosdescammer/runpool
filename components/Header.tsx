@@ -50,14 +50,24 @@ export default function Header() {
             <span>RunPool</span>
           </Link>
 
+          {/* Hamburger (mobile only) */}
           <button 
-            className="btn btn-secondary" 
+            className="hamburger" 
             aria-expanded={mobileMenuOpen} 
             aria-controls="mobile-menu" 
             aria-label="Toggle menu"
             onClick={toggleMobileMenu}
+            style={{
+              ...(mobileMenuOpen && {
+                '& span:nth-child(1)': { transform: 'translateY(5px) rotate(45deg)' },
+                '& span:nth-child(2)': { opacity: 0 },
+                '& span:nth-child(3)': { transform: 'translateY(-5px) rotate(-45deg)' }
+              })
+            }}
           >
-            Menu
+            <span style={mobileMenuOpen ? { transform: 'translateY(5px) rotate(45deg)' } : {}}></span>
+            <span style={mobileMenuOpen ? { opacity: 0 } : {}}></span>
+            <span style={mobileMenuOpen ? { transform: 'translateY(-5px) rotate(-45deg)' } : {}}></span>
           </button>
 
           <nav className="nav-links desktop-only">

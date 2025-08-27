@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { ArrowUp, ArrowDown, Crown } from 'lucide-react';
+import { ArrowUp, ArrowDown, Crown, Trophy, Medal, Award } from 'lucide-react';
 
 type LeaderboardRow = {
   user_id: string;
@@ -30,10 +30,10 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center justify-between p-2 border rounded">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
-                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
+                <div className="w-8 h-8 rounded-full animate-pulse" style={{backgroundColor: 'var(--stroke)'}} />
+                <div className="h-4 rounded w-24 animate-pulse" style={{backgroundColor: 'var(--stroke)'}} />
               </div>
-              <div className="h-4 bg-gray-200 rounded w-12 animate-pulse" />
+              <div className="h-4 rounded w-12 animate-pulse" style={{backgroundColor: 'var(--stroke)'}} />
             </div>
           ))}
         </div>
@@ -45,24 +45,65 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
     return (
       <Card className="p-4">
         <h3 className="text-lg font-semibold">Leaderboard</h3>
-        <p className="mt-2 text-gray-500">No entries yet. Be the first to log your miles!</p>
+        <p className="mt-2" style={{color: 'var(--muted)'}}>No entries yet. Be the first to log your miles!</p>
       </Card>
     );
   }
 
   const getRankBadge = (rank: number) => {
-    const rankColors = {
-      1: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      2: 'bg-gray-100 text-gray-800 border-gray-300',
-      3: 'bg-amber-100 text-amber-800 border-amber-300',
-      default: 'bg-blue-50 text-blue-800 border-blue-200',
+    const getBadgeContent = (rank: number) => {
+      switch (rank) {
+        case 1:
+          return {
+            icon: <Trophy className="w-4 h-4" />,
+            style: { 
+              backgroundColor: '#eab308', 
+              color: '#ffffff', 
+              borderColor: '#f59e0b',
+              boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)'
+            }
+          };
+        case 2:
+          return {
+            icon: <Medal className="w-4 h-4" />,
+            style: { 
+              backgroundColor: '#6b7280', 
+              color: '#ffffff', 
+              borderColor: '#9ca3af',
+              boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
+            }
+          };
+        case 3:
+          return {
+            icon: <Award className="w-4 h-4" />,
+            style: { 
+              backgroundColor: '#ea580c', 
+              color: '#ffffff', 
+              borderColor: '#f97316',
+              boxShadow: '0 2px 8px rgba(234, 88, 12, 0.3)'
+            }
+          };
+        default:
+          return {
+            icon: <span className="text-xs font-bold">{rank}</span>,
+            style: { 
+              backgroundColor: 'var(--brand)', 
+              color: 'var(--brand-ink)', 
+              borderColor: 'var(--brand)',
+              boxShadow: '0 2px 8px var(--ring)'
+            }
+          };
+      }
     };
-
-    const colorClass = rank <= 3 ? rankColors[rank as keyof typeof rankColors] : rankColors.default;
+    
+    const { icon, style } = getBadgeContent(rank);
     
     return (
-      <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full border ${colorClass}`}>
-        {rank}
+      <span 
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full border"
+        style={style}
+      >
+        {icon}
       </span>
     );
   };
@@ -70,8 +111,8 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Weekly Leaderboard</h3>
-        <div className="text-sm text-gray-500">{leaderboard.length} participants</div>
+        <h3 className="text-lg font-semibold">Weekly Leaderboard - UPDATED</h3>
+        <div className="text-sm" style={{color: 'var(--muted)'}}>{leaderboard.length} participants</div>
       </div>
       
       <div className="space-y-3">
@@ -95,10 +136,10 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{backgroundColor: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--stroke)'}}>
                     {entry.name?.[0]?.toUpperCase() || '?'}
                   </div>
-                  <span className={`font-medium ${isCurrentUser ? 'text-blue-700' : ''}`}>
+                  <span className="font-medium" style={{color: isCurrentUser ? 'var(--brand)' : 'var(--text)'}}>
                     {entry.name || 'Anonymous'}
                     {isCurrentUser && ' (You)'}
                   </span>
@@ -107,7 +148,7 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
               
               <div className="flex items-center space-x-4">
                 {entry.streak && entry.streak > 1 && (
-                  <div className="hidden sm:flex items-center text-sm text-gray-500">
+                  <div className="hidden sm:flex items-center text-sm" style={{color: 'var(--muted)'}}>
                     <span className="font-medium text-amber-600">🔥</span>
                     <span className="ml-1">{entry.streak} weeks</span>
                   </div>
@@ -115,7 +156,7 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
                 
                 <div className="flex items-center space-x-2">
                   {entry.rankChange !== undefined && entry.rankChange !== 0 && (
-                    <div className="flex items-center text-xs text-gray-500">
+                    <div className="flex items-center text-xs" style={{color: 'var(--muted)'}}>
                       {entry.rankChange > 0 ? (
                         <ArrowUp className="w-3 h-3 text-green-500" />
                       ) : (
@@ -126,7 +167,7 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
                   )}
                   
                   <div className="font-semibold">
-                    {entry.miles.toFixed(1)} <span className="text-sm font-normal text-gray-500">miles</span>
+                    {entry.miles.toFixed(1)} <span className="text-sm font-normal" style={{color: 'var(--muted)'}}>miles</span>
                   </div>
                 </div>
               </div>
