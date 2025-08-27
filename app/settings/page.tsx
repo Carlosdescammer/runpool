@@ -151,6 +151,22 @@ export default function Settings() {
     }
   }
 
+  async function backToDashboard() {
+    // Check if user has any group memberships to redirect to
+    const { data: memberships } = await supabase
+      .from('memberships')
+      .select('group_id')
+      .eq('user_id', user?.id)
+      .limit(1);
+    
+    // Redirect to appropriate page
+    if (memberships && memberships.length > 0) {
+      router.replace(`/group/${memberships[0].group_id}`);
+    } else {
+      router.replace('/onboarding');
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     router.replace('/signin');
@@ -268,6 +284,9 @@ export default function Settings() {
         
         {/* Other Actions */}
         <div className="border-t pt-6 space-y-3">
+          <Button onClick={backToDashboard} variant="primary" size="sm" className="w-full">
+            ← Back to Dashboard
+          </Button>
           <Button onClick={signOut} variant="secondary" size="sm" className="w-full">
             Sign Out
           </Button>

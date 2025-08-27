@@ -51,15 +51,13 @@ export default function Header() {
           </Link>
 
           <button 
-            className="hamburger" 
+            className="btn btn-secondary" 
             aria-expanded={mobileMenuOpen} 
             aria-controls="mobile-menu" 
             aria-label="Toggle menu"
             onClick={toggleMobileMenu}
           >
-            <span></span>
-            <span></span>
-            <span></span>
+            Menu
           </button>
 
           <nav className="nav-links desktop-only">
