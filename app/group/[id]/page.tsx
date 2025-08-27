@@ -561,7 +561,7 @@ export default function GroupPage() {
       
       try {
         // Convert HEIC to JPEG if needed (common issue with iPhone photos)
-        let fileToUpload = file;
+        const fileToUpload = file;
         if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().includes('.heic')) {
           // For HEIC files, we'll still upload but warn the user
           console.warn('HEIC file detected. Consider converting to JPEG for better compatibility.');
