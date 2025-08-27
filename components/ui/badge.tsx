@@ -19,7 +19,7 @@ const variantClass: Record<BadgeVariant, string> = {
   default:
     "bg-[var(--rp-primary)] text-white",
   secondary:
-    "bg-[var(--rp-accent)] text-[var(--rp-text)]",
+    "bg-zinc-700 text-zinc-100",
   success:
     "bg-emerald-500/90 text-white",
   warning:

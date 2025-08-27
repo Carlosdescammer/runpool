@@ -173,13 +173,21 @@ export default function Admin() {
       return;
     }
 
-    const members: GroupMember[] = (data || []).map((item: any) => ({
-      user_id: item.user_id,
-      name: item.profiles?.name || null,
-      email: item.profiles?.email || null,
-      role: item.role as 'owner' | 'admin' | 'member',
-      joined_at: item.created_at
-    }));
+    const members: GroupMember[] = (data || []).map((item: unknown) => {
+      const typedItem = item as { 
+        user_id: string; 
+        profiles?: { name?: string; email?: string };
+        role: 'owner' | 'admin' | 'member';
+        created_at: string;
+      };
+      return {
+      user_id: typedItem.user_id,
+      name: typedItem.profiles?.name || null,
+      email: typedItem.profiles?.email || null,
+      role: typedItem.role,
+      joined_at: typedItem.created_at
+    };
+    });
 
     setGroupMembers(members);
   }, [groupId]);
@@ -314,7 +322,7 @@ export default function Admin() {
           <label className="text-xs font-semibold text-zinc-700">Entry Fee ($)</label>
           <Input type="number" value={entryFee} onChange={e=>setEntryFee(Number(e.target.value))} className="mt-1" />
           <div className="h-3" />
-          <div className="mb-3 flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-3">
+          <div className="mb-3 flex items-center justify-between card">
             <div>
               <div className="text-sm font-semibold">Instant email on miles</div>
               <div className="text-xs text-zinc-600">Email the group when a member logs miles</div>
@@ -341,12 +349,12 @@ export default function Admin() {
             <div className="min-w-[200px] flex-1">
               <div className="text-xs font-semibold text-zinc-700">Week start</div>
               <input type="date" value={weekStart} onChange={e=>setWeekStart(e.target.value)}
-                     className="mt-1 h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-[15px] text-zinc-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"/>
+                     className="input"/>
             </div>
             <div className="min-w-[200px] flex-1">
               <div className="text-xs font-semibold text-zinc-700">Week end</div>
               <input type="date" value={weekEnd} onChange={e=>setWeekEnd(e.target.value)}
-                     className="mt-1 h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-[15px] text-zinc-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rp-accent)] focus-visible:ring-offset-2"/>
+                     className="input"/>
             </div>
           </div>
           <div className="h-4" />
@@ -355,11 +363,11 @@ export default function Admin() {
           <div className="my-4 h-px bg-zinc-200" />
           <div className="text-sm font-extrabold">Invite Links</div>
           <div className="h-2" />
-          <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 shadow-[0_1px_0_rgba(124,58,237,0.15),0_8px_24px_rgba(124,58,237,0.08)]">
+          <div className="card rounded-2xl p-4">
             <div className="mb-2 flex items-center gap-2 font-extrabold">
               <span>🔗 Create invite link</span>
             </div>
-            <div className="mb-3 text-sm text-zinc-600">Generate a shareable link that anyone can use to join your group. Share it via text, email, social media, or anywhere you want!</div>
+            <div className="mb-3 text-sm muted">Generate a shareable link that anyone can use to join your group. Share it via text, email, social media, or anywhere you want!</div>
             <Button onClick={createInviteLink} className="w-full">
               Create New Invite Link
             </Button>
@@ -404,7 +412,7 @@ export default function Admin() {
           <div className="my-4 h-px bg-zinc-200" />
           <div className="text-sm font-extrabold">Group Members</div>
           <div className="h-2" />
-          <div className="rounded-xl border border-zinc-200 bg-white">
+          <div className="card">
             <div className="p-4 border-b border-zinc-100">
               <div className="flex items-center justify-between">
                 <div>
@@ -423,7 +431,7 @@ export default function Admin() {
                 const joinedDate = new Date(member.joined_at).toLocaleDateString();
                 
                 return (
-                  <div key={member.user_id} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div key={member.user_id} className="p-4 hover:opacity-80 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
