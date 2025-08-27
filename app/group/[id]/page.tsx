@@ -220,7 +220,7 @@ export default function GroupPage() {
 
       // Aggregate miles by user_id to handle multiple submissions from same user
       const userMiles = new Map<string, number>();
-      proofsData.forEach((proof: any) => {
+      proofsData.forEach((proof: { user_id: string; miles: number }) => {
         const currentMiles = userMiles.get(proof.user_id) || 0;
         userMiles.set(proof.user_id, currentMiles + proof.miles);
       });
@@ -243,7 +243,7 @@ export default function GroupPage() {
       const userNames = new Map();
       const foundUserIds = new Set();
       
-      (profilesData || []).forEach((profile: any) => {
+      (profilesData || []).forEach((profile: { id: string; name?: string }) => {
         foundUserIds.add(profile.id);
         const displayName = profile.name;
         if (displayName) {

@@ -217,12 +217,12 @@ export default function Admin() {
 
     // Create map for profile info (now includes additional_roles)
     const profileMap = new Map();
-    (profilesData || []).forEach((profile: any) => {
+    (profilesData || []).forEach((profile: { id: string; name?: string; additional_roles?: string[] }) => {
       profileMap.set(profile.id, profile);
     });
 
     // Combine membership and profile data
-    const members: GroupMember[] = membershipsData.map((membership: any) => {
+    const members: GroupMember[] = membershipsData.map((membership: { user_id: string; role: string }) => {
       const profile = profileMap.get(membership.user_id);
       
       return {
