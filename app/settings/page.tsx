@@ -19,6 +19,16 @@ export default function Settings() {
   const [status, setStatus] = useState<string>('');
   const [nameStatus, setNameStatus] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [emailPrefs, setEmailPrefs] = useState({
+    weekly_goal_reminders: true,
+    top_performer_alerts: true,
+    admin_new_user_alerts: true,
+    top_three_milestone: true,
+    proof_notifications: true,
+    weekly_recap: true,
+    invite_notifications: true,
+  });
+  const [emailPrefsStatus, setEmailPrefsStatus] = useState<string>('');
   const router = useRouter();
 
   useEffect(() => {
@@ -30,16 +40,34 @@ export default function Settings() {
       }
       setUser(user);
 
-      // Load user profile name
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('name')
-        .eq('id', user.id)
-        .single();
+      // Load user profile name and email preferences
+      const [{ data: profile }, { data: prefs }] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .rpc('get_user_email_preferences', { target_user_id: user.id })
+          .single()
+      ]);
       
       const currentName = profile?.name || '';
       setName(currentName);
       setOriginalName(currentName);
+      
+      if (prefs) {
+        setEmailPrefs({
+          weekly_goal_reminders: prefs.weekly_goal_reminders ?? true,
+          top_performer_alerts: prefs.top_performer_alerts ?? true,
+          admin_new_user_alerts: prefs.admin_new_user_alerts ?? true,
+          top_three_milestone: prefs.top_three_milestone ?? true,
+          proof_notifications: prefs.proof_notifications ?? true,
+          weekly_recap: prefs.weekly_recap ?? true,
+          invite_notifications: prefs.invite_notifications ?? true,
+        });
+      }
+      
       setLoading(false);
     };
 
@@ -90,6 +118,34 @@ export default function Settings() {
       
     } catch {
       setNameStatus('An error occurred. Please try again.');
+    }
+  }
+
+  async function updateEmailPreferences() {
+    setEmailPrefsStatus('Updating preferences…');
+
+    try {
+      const { error } = await supabase.rpc('upsert_user_email_preferences', {
+        target_user_id: user?.id,
+        weekly_goal_reminders: emailPrefs.weekly_goal_reminders,
+        top_performer_alerts: emailPrefs.top_performer_alerts,
+        admin_new_user_alerts: emailPrefs.admin_new_user_alerts,
+        top_three_milestone: emailPrefs.top_three_milestone,
+        proof_notifications: emailPrefs.proof_notifications,
+        weekly_recap: emailPrefs.weekly_recap,
+        invite_notifications: emailPrefs.invite_notifications,
+      });
+
+      if (error) {
+        setEmailPrefsStatus(error.message);
+        return;
+      }
+
+      setEmailPrefsStatus('✅ Email preferences updated!');
+      toast.success('Email preferences updated successfully!');
+      
+    } catch {
+      setEmailPrefsStatus('An error occurred. Please try again.');
     }
   }
 
@@ -226,6 +282,147 @@ export default function Settings() {
             </Button>
             
             <div className="min-h-[18px] text-sm muted">{nameStatus}</div>
+          </div>
+        </div>
+
+        {/* Email Preferences Section */}
+        <div className="border-t pt-6">
+          <h2 className="text-lg font-semibold mb-4">Email Notifications</h2>
+          
+          <div className="space-y-4">
+            <div className="text-sm text-zinc-600 mb-4">
+              Choose which email notifications you'd like to receive. You can always update these preferences later.
+            </div>
+
+            {/* Weekly Goal Reminders */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">Weekly goal reminders</div>
+                <div className="text-sm text-zinc-600">Get reminded when you're behind on your weekly mileage goal</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.weekly_goal_reminders}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, weekly_goal_reminders: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Top Performer Alerts */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">Top performer alerts</div>
+                <div className="text-sm text-zinc-600">Get notified when you enter the top 3 rankings</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.top_performer_alerts}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, top_performer_alerts: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Top 3 Milestone */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">Top 3 milestone notifications</div>
+                <div className="text-sm text-zinc-600">Get notified when top 3 performers log new miles</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.top_three_milestone}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, top_three_milestone: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Proof Notifications */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">Activity notifications</div>
+                <div className="text-sm text-zinc-600">Get notified when other group members log miles</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.proof_notifications}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, proof_notifications: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Admin New User Alerts */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">New member alerts (Admin only)</div>
+                <div className="text-sm text-zinc-600">Get notified when new users join groups you admin</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.admin_new_user_alerts}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, admin_new_user_alerts: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Weekly Recap */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">Weekly recap emails</div>
+                <div className="text-sm text-zinc-600">Receive weekly summaries of group performance</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.weekly_recap}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, weekly_recap: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Invite Notifications */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">Invite notifications</div>
+                <div className="text-sm text-zinc-600">Receive group invitations and related emails</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={emailPrefs.invite_notifications}
+                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, invite_notifications: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <Button 
+              onClick={updateEmailPreferences} 
+              variant="primary" 
+              size="lg" 
+              className="w-full mt-4"
+            >
+              Save Email Preferences
+            </Button>
+            
+            <div className="min-h-[18px] text-sm muted">{emailPrefsStatus}</div>
           </div>
         </div>
 

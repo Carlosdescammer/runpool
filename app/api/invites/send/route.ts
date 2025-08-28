@@ -21,19 +21,108 @@ function siteOriginFrom(req: Request): string {
 }
 
 function emailHtml(inviter: string | null, groupName: string, inviteUrl: string): string {
-  const who = inviter ? `${inviter} invited you` : 'You\'re invited';
-  return `
-  <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.6; color:#111">
-    <h2 style="margin:0 0 8px 0">${who} to join ${groupName}</h2>
-    <p style="margin:0 0 12px 0">Tap the button below to join the group in Runpool.</p>
-    <p style="margin:16px 0"><a href="${inviteUrl}"
-      style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;font-weight:700;">
-      Join ${groupName}
-    </a></p>
-    <p style="margin:12px 0;color:#555;font-size:14px">If the button doesn\'t work, copy and paste this link into your browser:<br/>
-      <a href="${inviteUrl}" style="color:#0a66c2">${inviteUrl}</a>
-    </p>
-  </div>`;
+  const who = inviter ? `${inviter} invited you` : 'You are invited';
+  const welcomeMessage = inviter 
+    ? `${inviter} has invited you to join their running group!` 
+    : 'You have been invited to join a running group!';
+  
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎉 You're Invited - Runpool</title>
+</head>
+<body style="margin: 0; padding: 0; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; line-height: 1.6;">
+  
+  <!-- Email Container -->
+  <table role="presentation" style="width: 100%; border: none; border-spacing: 0;">
+    <tr>
+      <td align="center" style="padding: 20px;">
+        
+        <!-- Main Card -->
+        <div style="max-width: 600px; background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          
+          <!-- Header Section -->
+          <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; text-align: center; padding: 32px;">
+            <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">
+              ${who} to join ${groupName}
+            </h1>
+            <p style="margin: 0; font-size: 16px; opacity: 0.9;">
+              Your running journey starts here
+            </p>
+          </div>
+
+          <!-- Content Section -->
+          <div style="padding: 32px;">
+            
+            <!-- Welcome Banner -->
+            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 20px; padding: 28px; margin-bottom: 32px; border: 2px solid #10b981; text-align: center;">
+              <h2 style="color: #047857; font-size: 22px; font-weight: 800; margin: 0 0 12px 0;">
+                Welcome to the Team! 🏃‍♂️
+              </h2>
+              <p style="color: #059669; font-size: 16px; margin: 0; line-height: 1.5;">
+                ${welcomeMessage} Get ready to track your miles, compete with friends, and achieve your running goals together.
+              </p>
+            </div>
+
+            <!-- Group Info -->
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 16px; padding: 24px; margin-bottom: 32px; border-left: 4px solid #0ea5e9;">
+              <h3 style="color: #0c4a6e; font-size: 18px; font-weight: 700; margin: 0 0 12px 0;">
+                About ${groupName} 📊
+              </h3>
+              <ul style="color: #0369a1; margin: 0; padding-left: 20px; line-height: 1.6;">
+                <li>Track your daily and weekly running miles</li>
+                <li>Compete with friends on the leaderboard</li>
+                <li>Get motivated by group challenges</li>
+                <li>Share your progress and celebrate wins</li>
+              </ul>
+            </div>
+
+            <!-- Call to Action -->
+            <div style="text-align: center; margin-bottom: 32px;">
+              <a href="${inviteUrl}" 
+                 style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: #ffffff; text-decoration: none; padding: 18px 36px; border-radius: 50px; font-weight: 700; font-size: 18px; box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4); text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 16px;">
+                Join ${groupName} 🚀
+              </a>
+              
+              <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-top: 16px;">
+                <p style="color: #64748b; font-size: 14px; margin: 0 0 8px 0; font-weight: 500;">
+                  Having trouble with the button? Copy and paste this link:
+                </p>
+                <p style="margin: 0;">
+                  <a href="${inviteUrl}" style="color: #3b82f6; text-decoration: none; font-weight: 500; word-break: break-all; font-family: 'SF Mono', Monaco, monospace; background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 6px; font-size: 12px;">
+                    ${inviteUrl}
+                  </a>
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f8fafc; text-align: center; padding: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="color: #64748b; font-size: 14px; margin: 0 0 8px 0; font-weight: 500;">
+              Ready to start your running journey? Let's go! 🏃‍♀️💨
+            </p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+              Questions? Contact your group admin for help.
+            </p>
+          </div>
+
+        </div>
+        
+        <!-- Email Footer -->
+        <div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">
+          <p style="margin: 0;">© Runpool • Making every mile count</p>
+        </div>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 export async function POST(req: Request) {

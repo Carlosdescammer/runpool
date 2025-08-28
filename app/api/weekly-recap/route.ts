@@ -94,21 +94,123 @@ async function sendResendEmail(to: string[], subject: string, html: string) {
 }
 
 function recapHtml(groupName: string, period: string, recap: Recap): string {
-  const top = recap.top3.map((r: LeaderboardRow, i: number) => `<li>#${i + 1} ${r.name ?? r.user_id} — ${r.miles} miles</li>`).join('');
-  return `
-  <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5; color:#111">
-    <h2 style="margin:0 0 8px 0">${groupName} — Weekly Recap</h2>
-    <div style="color:#555; margin-bottom:12px">${period}</div>
-    <div style="margin:12px 0">
-      <strong>Participants:</strong> ${recap.summary.participants}<br/>
-      <strong>Total miles:</strong> ${recap.summary.totalMiles}<br/>
-      <strong>Average miles:</strong> ${recap.summary.avgMiles}
-    </div>
-    <div>
-      <strong>Top 3</strong>
-      <ol>${top}</ol>
-    </div>
-  </div>`;
+  const podiumEmojis = ['🥇', '🥈', '🥉'];
+  const podiumColors = ['#fbbf24', '#9ca3af', '#cd7c2f'];
+  const top3Cards = recap.top3.map((r: LeaderboardRow, i: number) => 
+    `<div style="background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 16px; margin: 8px 0; border-left: 4px solid ${podiumColors[i]}; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center;">
+        <span style="font-size: 24px; margin-right: 12px;">${podiumEmojis[i]}</span>
+        <div>
+          <div style="font-weight: 700; color: #1f2937; font-size: 16px;">${r.name ?? 'Runner'}</div>
+          <div style="color: #6b7280; font-size: 14px;">Position #${i + 1}</div>
+        </div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-weight: 800; color: #1f2937; font-size: 18px;">${r.miles}</div>
+        <div style="color: #6b7280; font-size: 12px;">miles</div>
+      </div>
+    </div>`
+  ).join('');
+  
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 Weekly Recap - Runpool</title>
+</head>
+<body style="margin: 0; padding: 0; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; line-height: 1.6;">
+  
+  <!-- Email Container -->
+  <table role="presentation" style="width: 100%; border: none; border-spacing: 0;">
+    <tr>
+      <td align="center" style="padding: 20px;">
+        
+        <!-- Main Card -->
+        <div style="max-width: 600px; background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); overflow: hidden;">
+          
+          <!-- Header Section -->
+          <div style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; text-align: center; padding: 32px;">
+            <div style="font-size: 48px; margin-bottom: 12px;">📊</div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">
+              ${groupName} — Weekly Recap
+            </h1>
+            <p style="margin: 0; font-size: 16px; opacity: 0.9;">
+              ${period}
+            </p>
+          </div>
+
+          <!-- Content Section -->
+          <div style="padding: 32px;">
+            
+            <!-- Summary Stats -->
+            <div style="background: linear-gradient(135deg, #fef7ff 0%, #f3e8ff 100%); border-radius: 20px; padding: 28px; margin-bottom: 32px; border: 2px solid #a855f7;">
+              <h2 style="color: #7c2d12; font-size: 22px; font-weight: 800; margin: 0 0 20px 0; text-align: center; text-transform: uppercase; letter-spacing: 0.025em;">
+                Week Summary 📈
+              </h2>
+              
+              <!-- Stats Grid -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+                <div style="background: rgba(168, 85, 247, 0.1); padding: 20px; border-radius: 12px;">
+                  <div style="color: #7c3aed; font-size: 14px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">Participants</div>
+                  <div style="color: #5b21b6; font-size: 28px; font-weight: 900;">${recap.summary.participants}</div>
+                </div>
+                <div style="background: rgba(34, 197, 94, 0.1); padding: 20px; border-radius: 12px;">
+                  <div style="color: #16a34a; font-size: 14px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">Total Miles</div>
+                  <div style="color: #15803d; font-size: 28px; font-weight: 900;">${recap.summary.totalMiles}</div>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.1); padding: 20px; border-radius: 12px;">
+                  <div style="color: #3b82f6; font-size: 14px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">Average</div>
+                  <div style="color: #1d4ed8; font-size: 28px; font-weight: 900;">${recap.summary.avgMiles}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Podium Section -->
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 20px; padding: 28px; margin-bottom: 32px; border: 2px solid #f59e0b;">
+              <h3 style="color: #92400e; font-size: 20px; font-weight: 800; margin: 0 0 20px 0; text-align: center; text-transform: uppercase; letter-spacing: 0.025em;">
+                🏆 Top 3 Performers
+              </h3>
+              
+              <div style="margin: 16px 0;">
+                ${top3Cards}
+              </div>
+            </div>
+
+            <!-- Motivation Section -->
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 16px; padding: 24px; margin-bottom: 32px; border-left: 4px solid #0ea5e9; text-align: center;">
+              <h3 style="color: #0c4a6e; font-size: 18px; font-weight: 700; margin: 0 0 8px 0;">
+                Great Week Everyone! 🎉
+              </h3>
+              <p style="color: #0369a1; font-size: 16px; margin: 0; line-height: 1.5;">
+                Another week of amazing progress! Keep up the momentum and let's make next week even better.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f8fafc; text-align: center; padding: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="color: #64748b; font-size: 14px; margin: 0 0 8px 0; font-weight: 500;">
+              Every mile counts! Keep running strong! 💪
+            </p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+              <a href="/settings" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Update preferences</a>
+            </p>
+          </div>
+
+        </div>
+        
+        <!-- Email Footer -->
+        <div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">
+          <p style="margin: 0;">© Runpool • Making every mile count</p>
+        </div>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 export async function POST(req: Request) {

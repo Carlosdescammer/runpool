@@ -11,7 +11,61 @@ A lightweight group challenge app built with Next.js App Router and Supabase. It
 - **Client-side guards**: admin page checks current user membership role and redirects non-admins.
 - **RLS-secured**: relies on Supabase Row Level Security to enforce permissions.
 
-## Recent Updates (2025-08-23)
+## Recent Updates (2025-08-28)
+
+### 📧 Comprehensive Email Notification System
+
+- **Complete Email Infrastructure**: Built full-featured email notification system with Resend integration
+  - **Weekly goal reminders**: Automated Saturday evening alerts for users behind on weekly goals
+  - **Top performer celebrations**: Personal congratulation emails when users reach top 3 rankings
+  - **Admin notifications**: Alerts when new members join groups
+  - **Activity notifications**: Real-time alerts for proof submissions and top-3 milestone updates
+  - **Weekly recap emails**: Automated Monday morning summaries with leaderboards and stats
+
+- **Premium Email Templates**: Completely redesigned all email templates with professional HTML structure
+  - Table-based layouts for email client compatibility across Gmail, Outlook, Apple Mail
+  - Gradient backgrounds, shadows, and modern typography
+  - Fixed UTF-8 character encoding issues that caused "funny characters"
+  - Consistent Runpool branding and responsive design
+  - Personalized content with user names and group-specific information
+
+- **User Email Preferences**: Full opt-in/opt-out system with granular controls
+  - Database schema: `email_preferences` table with RLS policies
+  - Settings UI: Toggle switches for each notification type
+  - Preference checking: All email endpoints respect user preferences
+  - API: `get_user_email_preferences()` and `update_user_email_preferences()` functions
+
+- **Automated Scheduling**: Vercel Cron integration for hands-off email automation
+  - Saturday 8PM: Weekly goal reminder checks
+  - Monday 9AM: Weekly recap email delivery
+  - Configurable via `vercel.json` cron jobs
+
+- **Email Testing System**: Comprehensive preview and testing infrastructure
+  - Test endpoint: `/api/test-emails` with all template previews
+  - Environment-based recipient configuration
+  - Easy template debugging and validation
+
+### 🐛 Major Bugs Fixed
+
+- **Duplicate RESEND_FROM Environment Variables** (Critical Fix)
+  - **Problem**: `.env.local` had two `RESEND_FROM` entries, second one overriding first with incorrect format
+  - **Impact**: All email sending was failing silently
+  - **Fix**: Removed duplicate entry, kept proper format `"Runpool <no-reply@runpool.space>"`
+  - **File**: `.env.local`
+
+- **Character Encoding Issues in Emails** (Critical Fix)
+  - **Problem**: Emails displayed "funny characters that don't make sense" due to missing charset declarations
+  - **Impact**: Poor user experience with garbled text in email clients
+  - **Fix**: Added proper HTML DOCTYPE, UTF-8 charset declarations, and HTML entity encoding
+  - **Files**: All email template functions across `/api/notify/*` and `/api/weekly-recap`
+
+- **Top-Performer Template Inconsistency** (UI Fix)
+  - **Problem**: Test email template for top-performer alerts wasn't updated with premium design
+  - **Impact**: Inconsistent email appearance between test previews and actual notifications
+  - **Fix**: Updated `/api/test-emails/route.ts` with matching premium template design
+  - **Files**: `/api/test-emails/route.ts`
+
+### Previous Updates (2025-08-23)
 
 - **Light-only Sage Theme**: Removed all Tailwind `dark:` classes and disabled dark mode across the app.
   - Forced light theme via `ThemeProvider` (`defaultTheme="light"`, `enableSystem={false}`) in `src/app/layout.tsx`.
@@ -87,30 +141,40 @@ npm run lint      # run ESLint
 Create `.env.local` with your Supabase project values:
 
 ```bash
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...     # server-only, used by admin functions
+
+# Email System (Resend)
+RESEND_API_KEY=...                # Your Resend API key
+RESEND_FROM="Runpool <no-reply@runpool.space>"  # Must match verified domain
+
+# Email Testing & Security
+WEEKLY_RECAP_TEST_TO=you@example.com,teammate@example.com  # Test recipients
+CRON_SECRET=some-strong-secret    # Optional: protects cron endpoints
+
+# Site Configuration
+NEXT_PUBLIC_SITE_URL=https://yoursite.com  # Used for email links
 ```
 
-Client initialized in `lib/supabaseClient.ts`.
-
-Additional for weekly recap and email sending:
-
-```bash
-# Weekly recap and email
-SUPABASE_SERVICE_ROLE_KEY=...     # server-only, used by recap compute API
-CRON_SECRET=some-strong-secret    # optional: protects /api/weekly-recap endpoint
-
-# Resend
-RESEND_API_KEY=...
-RESEND_FROM="Runpool <no-reply@yourdomain.com>"
-WEEKLY_RECAP_TEST_TO=you@example.com,teammate@example.com  # optional default recipients
-```
+**Important**: Ensure `RESEND_FROM` uses proper email format with verified domain. Duplicate entries will cause the second to override the first.
 
 ## Supabase Setup
 
-- Ensure tables like `groups`, `memberships`, `challenges`, `proofs`, and `invites` exist.
+- Ensure tables like `groups`, `memberships`, `challenges`, `proofs`, `invites`, and `email_preferences` exist.
 - Enable RLS and add policies so only group owners/admins can edit/delete groups and manage invites.
 - Admin page includes a client guard, but security must be enforced by RLS.
+
+### Email Preferences Database Schema
+
+Apply the SQL from `supabase/sql/email_preferences.sql` to add:
+
+- `email_preferences` table with user notification controls
+- RLS policies for secure preference management  
+- Helper functions: `get_user_email_preferences()` and `update_user_email_preferences()`
+
+This enables granular opt-in/opt-out controls for all email notification types.
 
 ### Security: Recommended RPC & RLS (Email-locked joins)
 
@@ -159,42 +223,83 @@ Grant execute to relevant roles if needed.
 - `app/signin/page.tsx` – email/password auth + post-auth redirect.
 - `lib/supabaseClient.ts` – Supabase client.
 
-### Weekly Recap Email
+### Email Notification System
 
-- Next.js API route: `app/api/weekly-recap/route.ts` computes recaps for recent CLOSED challenges and can optionally send emails via Resend when `send=1` is passed. Protect with `x-cron-secret` if `CRON_SECRET` is set.
-- Supabase Edge Function: `supabase/functions/weekly-recap/index.ts` exists as a stub (returns 501) and can be used if you prefer Supabase Scheduled Functions; logic can be ported from the API route.
+The comprehensive email system includes multiple notification types:
 
-How to test locally:
+**API Endpoints:**
+- `app/api/notify/weekly-goals/route.ts` - End-of-week goal reminder emails
+- `app/api/notify/top-performer/route.ts` - Personal celebration emails for top 3 achievements  
+- `app/api/notify/admin-new-user/route.ts` - Admin alerts for new group members
+- `app/api/notify/proof/route.ts` - Activity notifications and top-3 milestone updates
+- `app/api/weekly-recap/route.ts` - Weekly summary emails with leaderboards
+- `app/api/test-emails/route.ts` - Template preview and testing interface
+
+**Testing Email Templates:**
+
+Visit `/api/test-emails` to preview all email templates or test individual endpoints:
 
 ```bash
-# compute only
-curl -s -X POST 'http://localhost:3000/api/weekly-recap?limit=5' -H 'x-cron-secret: some-strong-secret' | jq .
+# Test weekly goal reminders
+curl -X POST 'http://localhost:3000/api/notify/weekly-goals' \
+  -H 'Content-Type: application/json' \
+  -d '{"group_id":"uuid","test_mode":true}'
 
-# send via Resend using default recipients from WEEKLY_RECAP_TEST_TO
-curl -s -X POST 'http://localhost:3000/api/weekly-recap?limit=5&send=1' -H 'x-cron-secret: some-strong-secret' | jq .
+# Test weekly recap
+curl -X POST 'http://localhost:3000/api/weekly-recap?limit=5&send=1' \
+  -H 'x-cron-secret: your-secret'
 
-# send to explicit recipients (comma-separated)
-curl -s -X POST 'http://localhost:3000/api/weekly-recap?limit=5&send=1&to=first@example.com,second@example.com' -H 'x-cron-secret: some-strong-secret' | jq .
+# Test top performer notifications  
+curl -X POST 'http://localhost:3000/api/notify/top-performer' \
+  -H 'Content-Type: application/json' \
+  -d '{"user_id":"uuid","group_id":"uuid","rank":1,"test_mode":true}'
 ```
 
-Scheduling options:
+**Automated Scheduling (Vercel Cron):**
 
-- Vercel Cron → POST `/api/weekly-recap?limit=10&send=1` with header `x-cron-secret: <CRON_SECRET>`.
-- Supabase Scheduled Functions → deploy and schedule the Edge Function (after porting compute logic).
+Configured in `vercel.json`:
+- Saturday 8PM: Weekly goal reminder checks (`/api/notify/weekly-goals`)
+- Monday 9AM: Weekly recap delivery (`/api/weekly-recap?send=1`)
 
-What’s next:
+All endpoints respect user email preferences and include proper error handling.
 
-- Improve email template and add per-group recipient lists/opt-in.
-- Optionally port recap compute to the Supabase Edge Function.
-- Add fine-grained RLS around invites if needed, keeping RPCs as the public interface.
+### Email System Files
+
+**Database Schema:**
+- `supabase/sql/email_preferences.sql` - Email preferences table and functions
+
+**API Routes:**
+- `app/api/notify/weekly-goals/route.ts` - Saturday evening goal reminders
+- `app/api/notify/top-performer/route.ts` - Top 3 celebration emails
+- `app/api/notify/admin-new-user/route.ts` - Admin new member alerts  
+- `app/api/notify/proof/route.ts` - Activity and milestone notifications
+- `app/api/weekly-recap/route.ts` - Monday morning recap emails
+- `app/api/invites/send/route.ts` - Enhanced invitation emails
+- `app/api/test-emails/route.ts` - Template preview dashboard
+
+**Frontend:**
+- `app/settings/page.tsx` - Email preferences toggle switches
+
+**Configuration:**
+- `vercel.json` - Automated cron job scheduling
 
 ## E2E Test Checklist
 
+### Core Functionality
 - **Sign in**: create account or sign in with email/password.
 - **Admin access**: visit `/group/[id]/admin` as owner/admin; non-admins are redirected.
 - **Invite flow**: generate invite, copy URL, join via `/join?token=...`, confirm membership.
 - **Revoke invite**: revoke and verify link no longer works.
 - **Delete group**: use Danger Zone; verify RPC path works or client cascade fallback.
+
+### Email System Testing
+- **Email preferences**: Visit `/settings`, toggle notification preferences, verify database updates
+- **Template previews**: Visit `/api/test-emails` to view all email templates
+- **Weekly reminders**: Test `/api/notify/weekly-goals` with test mode
+- **Top performer alerts**: Test `/api/notify/top-performer` with different ranks
+- **Admin notifications**: Test `/api/notify/admin-new-user` when new members join
+- **Weekly recap**: Test `/api/weekly-recap?send=1` with test recipients
+- **Invitation emails**: Test `/api/invites/send` with proper email formatting
 
 ## Learn More
 
