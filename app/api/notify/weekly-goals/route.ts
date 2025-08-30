@@ -262,7 +262,7 @@ export async function POST(req: Request) {
           .rpc('get_user_email_preferences', { target_user_id: member.user_id })
           .single();
         
-        if (!prefs?.weekly_goal_reminders) continue;
+        if (!(prefs as { weekly_goal_reminders?: boolean })?.weekly_goal_reminders) continue;
 
         // Get user email
         const { data: userData } = await supabase.auth.admin.getUserById(member.user_id);

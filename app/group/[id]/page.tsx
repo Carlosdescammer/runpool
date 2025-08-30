@@ -63,7 +63,6 @@ export default function GroupPage() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentUserMiles, setCurrentUserMiles] = useState<number | null>(null);
   
   // UI State
   const [loading, setLoading] = useState({
@@ -101,82 +100,133 @@ export default function GroupPage() {
     }
   }, [groupId]);
 
-  const handleMileageSubmit = async (miles: number, file: File | null) => {
-    if (!challenge || !userId) return;
-    
-    try {
-      // First, check if user already has an entry for this challenge
-      const { data: existingEntry } = await supabase
-        .from('challenge_entries')
-        .select('id')
-        .eq('challenge_id', challenge.id)
-        .eq('user_id', userId)
-        .maybeSingle();
+  async function submitProof() {
+    if (!userId) { setStatus('error'); return; }
+    if (!challenge) { setStatus('error'); return; }
+    if (!miles) { setStatus('error'); return; }
+    const milesNum = Number(miles);
+    let image_url: string | null = null;
 
-      let fileUrl = null;
+    if (file) {
+      setStatus('loading');
       
-      // Handle file upload if provided
-      if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${userId}-${Date.now()}.${fileExt}`;
-        const filePath = `proofs/${challenge.id}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('proofs')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
+      try {
+        // Convert HEIC to JPEG if needed (common issue with iPhone photos)
+        const fileToUpload = file;
+        if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().includes('.heic')) {
+          // For HEIC files, we'll still upload but warn the user
+          console.warn('HEIC file detected. Consider converting to JPEG for better compatibility.');
+        }
         
-        // Get the public URL
-        const { data: { publicUrl } } = supabase.storage
+        // Ensure proper file name
+        const timestamp = Date.now();
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const path = `proofs/${userId}/${timestamp}_${sanitizedFileName}`;
+        
+        console.log('Uploading file:', {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          path
+        });
+        
+        // Upload with proper content type
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('proofs')
-          .getPublicUrl(filePath);
+          .upload(path, fileToUpload, {
+            contentType: file.type || 'image/jpeg',
+            upsert: false
+          });
           
-        fileUrl = publicUrl;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          setStatus('error');
+          toast.error(`Upload failed: ${uploadError.message}`);
+          return;
+        }
+        
+        console.log('Upload successful:', uploadData);
+        
+        // Get public URL instead of signed URL for better reliability
+        const { data: urlData } = supabase.storage
+          .from('proofs')
+          .getPublicUrl(path);
+          
+        if (urlData?.publicUrl) {
+          image_url = urlData.publicUrl;
+          console.log('Image URL:', image_url);
+        } else {
+          // Fallback to signed URL if public URL fails
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('proofs')
+            .createSignedUrl(path, 3600 * 24 * 7); // 1 week expiry
+            
+          if (signedError) {
+            console.error('Signed URL error:', signedError);
+            setStatus('error');
+            toast.error('Failed to generate image URL');
+            return;
+          }
+          
+          image_url = signedData.signedUrl;
+        }
+        
+      } catch (error) {
+        console.error('File processing error:', error);
+        setStatus('error');
+        toast.error('Failed to process image');
+        return;
       }
-
-      if (existingEntry) {
-        // Update existing entry
-        const { error: updateError } = await supabase
-          .from('challenge_entries')
-          .update({ 
-            miles,
-            ...(fileUrl && { proof_url: fileUrl }),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingEntry.id);
-
-        if (updateError) throw updateError;
-        toast.success('Mileage updated successfully!');
-      } else {
-        // Create new entry
-        const { error: insertError } = await supabase
-          .from('challenge_entries')
-          .insert([
-            { 
-              challenge_id: challenge.id,
-              user_id: userId,
-              miles,
-              proof_url: fileUrl,
-              group_id: groupId
-            }
-          ]);
-
-        if (insertError) throw insertError;
-        toast.success('Mileage submitted successfully!');
-      }
-
-      // Refresh leaderboard
-      await loadLeaderboard(challenge.id);
-      
-    } catch (error) {
-      console.error('Error submitting mileage:', error);
-      toast.error('Failed to submit mileage. Please try again.');
-      throw error;
     }
-  };
 
-  const loadLeaderboard = async (challengeId: string) => {
+    setStatus('loading');
+    const { error } = await supabase.from('proofs').insert({
+      challenge_id: challenge.id,
+      user_id: userId,
+      miles: milesNum,
+      image_url
+    });
+    
+    if (error) { 
+      console.error('Database error:', error);
+      setStatus('error'); 
+      toast.error(error.message); 
+      return; 
+    }
+    
+    setStatus('success');
+    toast.success('Proof submitted successfully!');
+    try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
+
+    // Reset form
+    setMiles('');
+    setFile(null);
+    
+    // Reload leaderboard
+    await loadLeaderboard(challenge.id);
+
+    // Fire-and-forget: notify group members by email via Resend
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (token) {
+        fetch('/api/notify/proof', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ challenge_id: challenge.id, miles: milesNum }),
+        }).catch(() => {});
+      }
+    } catch {}
+
+    setMiles('');
+    setFile(null);
+    await loadLeaderboard(challenge.id);
+  }
+
+  async function loadLeaderboard(challengeId: string) {
     setLoading(prev => ({ ...prev, leaderboard: true }));
     
     try {
@@ -205,16 +255,12 @@ export default function GroupPage() {
         ];
         
         setLeaderboard(placeholderData);
-        if (userId) {
-          setCurrentUserMiles(15.2);
-        }
         return;
       }
 
       // If no proofs found, show empty leaderboard
       if (!proofsData || proofsData.length === 0) {
         setLeaderboard([]);
-        setCurrentUserMiles(null);
         return;
       }
 
@@ -278,12 +324,6 @@ export default function GroupPage() {
         }));
 
       setLeaderboard(formattedData);
-      
-      // Find current user's miles if they've submitted
-      if (userId) {
-        const userEntry = formattedData.find(entry => entry.user_id === userId);
-        setCurrentUserMiles(userEntry?.miles || null);
-      }
     } catch (error) {
       console.error('Error loading leaderboard:', error instanceof Error ? error.message : String(error));
       
@@ -296,9 +336,6 @@ export default function GroupPage() {
         { user_id: '5', name: 'J. Gomez', miles: 9.9, rank: 5 },
       ];
       setLeaderboard(placeholderData);
-      if (userId) {
-        setCurrentUserMiles(15.2);
-      }
     } finally {
       setLoading(prev => ({ ...prev, leaderboard: false }));
     }
@@ -548,132 +585,6 @@ export default function GroupPage() {
       return '';
     }
   }, [challenge]);
-
-  async function submitProof() {
-    if (!userId) { setStatus('error'); return; }
-    if (!challenge) { setStatus('error'); return; }
-    if (!miles) { setStatus('error'); return; }
-    const milesNum = Number(miles);
-    let image_url: string | null = null;
-
-    if (file) {
-      setStatus('loading');
-      
-      try {
-        // Convert HEIC to JPEG if needed (common issue with iPhone photos)
-        const fileToUpload = file;
-        if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().includes('.heic')) {
-          // For HEIC files, we'll still upload but warn the user
-          console.warn('HEIC file detected. Consider converting to JPEG for better compatibility.');
-        }
-        
-        // Ensure proper file name
-        const timestamp = Date.now();
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const path = `proofs/${userId}/${timestamp}_${sanitizedFileName}`;
-        
-        console.log('Uploading file:', {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          path
-        });
-        
-        // Upload with proper content type
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('proofs')
-          .upload(path, fileToUpload, {
-            contentType: file.type || 'image/jpeg',
-            upsert: false
-          });
-          
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          setStatus('error');
-          toast.error(`Upload failed: ${uploadError.message}`);
-          return;
-        }
-        
-        console.log('Upload successful:', uploadData);
-        
-        // Get public URL instead of signed URL for better reliability
-        const { data: urlData } = supabase.storage
-          .from('proofs')
-          .getPublicUrl(path);
-          
-        if (urlData?.publicUrl) {
-          image_url = urlData.publicUrl;
-          console.log('Image URL:', image_url);
-        } else {
-          // Fallback to signed URL if public URL fails
-          const { data: signedData, error: signedError } = await supabase.storage
-            .from('proofs')
-            .createSignedUrl(path, 3600 * 24 * 7); // 1 week expiry
-            
-          if (signedError) {
-            console.error('Signed URL error:', signedError);
-            setStatus('error');
-            toast.error('Failed to generate image URL');
-            return;
-          }
-          
-          image_url = signedData.signedUrl;
-        }
-        
-      } catch (error) {
-        console.error('File processing error:', error);
-        setStatus('error');
-        toast.error('Failed to process image');
-        return;
-      }
-    }
-
-    setStatus('loading');
-    const { error } = await supabase.from('proofs').insert({
-      challenge_id: challenge.id,
-      user_id: userId,
-      miles: milesNum,
-      image_url
-    });
-    
-    if (error) { 
-      console.error('Database error:', error);
-      setStatus('error'); 
-      toast.error(error.message); 
-      return; 
-    }
-    
-    setStatus('success');
-    toast.success('Proof submitted successfully!');
-    try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
-
-    // Reset form
-    setMiles('');
-    setFile(null);
-    
-    // Reload leaderboard
-    await loadLeaderboard(challenge.id);
-
-    // Fire-and-forget: notify group members by email via Resend
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      if (token) {
-        fetch('/api/notify/proof', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ challenge_id: challenge.id, miles: milesNum }),
-        }).catch(() => {});
-      }
-    } catch {}
-
-    setMiles('');
-    setFile(null);
-    await loadLeaderboard(challenge.id);
-  }
 
   return (
     <div className="min-h-svh px-4 pb-6 pt-6 md:px-6">

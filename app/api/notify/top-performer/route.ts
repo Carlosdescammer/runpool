@@ -265,7 +265,7 @@ export async function POST(req: Request) {
       .rpc('get_user_email_preferences', { target_user_id: body.user_id })
       .single();
     
-    if (!prefs?.top_performer_alerts) {
+    if (!(prefs as { top_performer_alerts?: boolean })?.top_performer_alerts) {
       return new Response(JSON.stringify({ ok: true, email_sent: false, message: 'User opted out of top performer alerts' }), {
         status: 200,
         headers: { 'content-type': 'application/json' }

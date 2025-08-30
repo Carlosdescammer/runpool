@@ -177,6 +177,17 @@ function newUserHtml(
 </html>`;
 }
 
+interface NotificationSettings {
+  admin_new_user_alerts: boolean;
+  // other notification settings
+}
+
+interface UserWithSettings {
+  user: {
+    settings: NotificationSettings;
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const url = required('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -262,7 +273,7 @@ export async function POST(req: Request) {
     }
 
     // Get total member count
-    const { data: allMemberships, count } = await supabase
+    const { count } = await supabase
       .from('memberships')
       .select('user_id', { count: 'exact' })
       .eq('group_id', body.group_id);
@@ -278,11 +289,10 @@ export async function POST(req: Request) {
     // Send notification to each admin
     for (const adminMembership of adminMemberships) {
       // Check admin's email preferences
-      const { data: prefs } = await supabase
-        .rpc('get_user_email_preferences', { target_user_id: adminMembership.user_id })
-        .single();
+      const { data } = await supabase.auth.admin.getUserById(adminMembership.user_id);
+      const { user } = data as UserWithSettings;
       
-      if (!prefs?.admin_new_user_alerts) {
+      if (!user.settings?.admin_new_user_alerts) {
         emailsSent.push({
           admin_id: adminMembership.user_id,
           sent: false,

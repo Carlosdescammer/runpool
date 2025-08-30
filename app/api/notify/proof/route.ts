@@ -146,7 +146,7 @@ export async function POST(req: Request) {
     const actorInTop3 = leaderboard?.some(entry => entry.user_id === actorId) || false;
 
     // Collect recipients (all members of the group except the actor)
-    let recipientData: Array<{ user_id: string; email: string; prefs: any }> = [];
+    const recipientData: { user_id: string; email: string; prefs: { proof_notifications?: boolean; top_three_milestone?: boolean } }[] = [];
     if (supaAdmin) {
       const { data: members } = await supaAdmin
         .from('memberships')

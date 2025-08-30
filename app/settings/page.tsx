@@ -9,6 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+interface UserSettings {
+  weekly_goal_reminders: boolean;
+  top_performer_alerts: boolean;
+  admin_new_user_alerts: boolean;
+  top_three_milestone: boolean;
+  proof_notifications: boolean;
+  weekly_recap: boolean;
+  invite_notifications: boolean;
+}
+
 export default function Settings() {
   const [user, setUser] = useState<{email?: string; id: string} | null>(null);
   const [name, setName] = useState('');
@@ -19,7 +29,7 @@ export default function Settings() {
   const [status, setStatus] = useState<string>('');
   const [nameStatus, setNameStatus] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [emailPrefs, setEmailPrefs] = useState({
+  const [emailPrefs, setEmailPrefs] = useState<UserSettings>({
     weekly_goal_reminders: true,
     top_performer_alerts: true,
     admin_new_user_alerts: true,
@@ -49,22 +59,22 @@ export default function Settings() {
           .single(),
         supabase
           .rpc('get_user_email_preferences', { target_user_id: user.id })
-          .single()
+          .single<{data: UserSettings}>(),
       ]);
       
       const currentName = profile?.name || '';
       setName(currentName);
       setOriginalName(currentName);
       
-      if (prefs) {
+      if (prefs?.data) {
         setEmailPrefs({
-          weekly_goal_reminders: prefs.weekly_goal_reminders ?? true,
-          top_performer_alerts: prefs.top_performer_alerts ?? true,
-          admin_new_user_alerts: prefs.admin_new_user_alerts ?? true,
-          top_three_milestone: prefs.top_three_milestone ?? true,
-          proof_notifications: prefs.proof_notifications ?? true,
-          weekly_recap: prefs.weekly_recap ?? true,
-          invite_notifications: prefs.invite_notifications ?? true,
+          weekly_goal_reminders: prefs.data.weekly_goal_reminders ?? true,
+          top_performer_alerts: prefs.data.top_performer_alerts ?? true,
+          admin_new_user_alerts: prefs.data.admin_new_user_alerts ?? true,
+          top_three_milestone: prefs.data.top_three_milestone ?? true,
+          proof_notifications: prefs.data.proof_notifications ?? true,
+          weekly_recap: prefs.data.weekly_recap ?? true,
+          invite_notifications: prefs.data.invite_notifications ?? true
         });
       }
       
@@ -291,14 +301,14 @@ export default function Settings() {
           
           <div className="space-y-4">
             <div className="text-sm text-zinc-600 mb-4">
-              Choose which email notifications you'd like to receive. You can always update these preferences later.
+              Choose which email notifications you&apos;d like to receive. You can always update these preferences later.
             </div>
 
             {/* Weekly Goal Reminders */}
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div>
                 <div className="font-medium">Weekly goal reminders</div>
-                <div className="text-sm text-zinc-600">Get reminded when you're behind on your weekly mileage goal</div>
+                <div className="text-sm text-zinc-600">Get reminded when you&apos;re behind on your weekly mileage goal</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
