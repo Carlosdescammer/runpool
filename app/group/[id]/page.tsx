@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Leaderboard } from './components/Leaderboard/Leaderboard';
 import { MileageSubmission } from './components/MileageSubmission/MileageSubmission';
 import { GroupInfo } from './components/GroupInfo/GroupInfo';
+import { SocialShare } from '@/components/SocialShare';
 import { supabase } from '@/lib/supabaseClient';
 
 // Types
@@ -767,6 +768,17 @@ export default function GroupPage() {
                 <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
               )}
             </div>
+            {/* Social Share Button - only show if user is in leaderboard */}
+            {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
+              <SocialShare
+                userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
+                userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
+                miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
+                groupName={group?.name || 'RunPool Group'}
+                totalRunners={leaderboard.length}
+                groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
+              />
+            )}
           </div>
 
           {loading.leaderboard ? (

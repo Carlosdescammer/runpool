@@ -136,7 +136,7 @@ export default function Join() {
     if (error) {
       // Handle common signup errors with better messaging
       if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
-        setStatus('This email already has an account! Try signing in instead using the "I already have an account" button.');
+        setStatus('This email already has an account! Try signing in instead using the "Sign in to existing account" button.');
         toast.error('Email already registered - try signing in instead!');
         // Auto-switch to sign in mode and prefill email
         setMode('signin');
@@ -259,7 +259,7 @@ export default function Join() {
                 Create account
               </Button>
               <Button onClick={()=>setMode('signin')} variant={mode==='signin' ? 'primary' : 'secondary'}>
-                I already have an account
+                Sign in to existing account
               </Button>
             </div>
 
