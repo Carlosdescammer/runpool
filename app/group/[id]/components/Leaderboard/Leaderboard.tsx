@@ -200,7 +200,7 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
                     lineHeight: '1.2'
                   }}
                 >
-                  {entry.miles.toFixed(1)}km • PACE WARRIOR
+                  {entry.miles.toFixed(1)} miles • PACE WARRIOR
                 </div>
               </div>
 
