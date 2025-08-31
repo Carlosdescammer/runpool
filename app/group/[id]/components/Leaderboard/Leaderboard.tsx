@@ -115,61 +115,66 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
         <div className="text-sm" style={{color: 'var(--muted)'}}>{leaderboard.length} participants</div>
       </div>
       
-      <div className="space-y-3">
+      <div className="bg-card rounded-lg p-4">
         {leaderboard.map((entry, index) => {
           const isCurrentUser = entry.user_id === currentUserId;
           const isAdmin = entry.user_id === groupOwnerId;
+          const isLastItem = index === leaderboard.length - 1;
           
           return (
             <div 
               key={entry.user_id}
-              className={`leaderboard-item flex items-center justify-between p-2 card transition-colors ${
-                isCurrentUser ? 'ring-2 ring-brand' : 'hover:opacity-80'
+              className={`grid grid-cols-[auto_1fr_auto] items-center min-h-[72px] gap-3 transition-colors ${
+                !isLastItem ? 'border-b border-stroke' : ''
+              } ${
+                isCurrentUser ? 'bg-brand/5' : 'hover:bg-muted/10'
               }`}
             >
-              <div className="flex items-center space-x-3">
-                <div className="relative">
+              {/* Zone 1: Medal + Avatar */}
+              <div className="grid grid-cols-[28px_36px] items-center gap-2">
+                <div className="relative flex justify-center">
                   {getRankBadge(index + 1)}
                   {isAdmin && (
-                    <Crown className="absolute -top-2 -right-2 w-4 h-4 text-yellow-500" />
+                    <Crown className="absolute -top-1 -right-1 w-2.5 h-2.5 text-yellow-500" />
                   )}
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{backgroundColor: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--stroke)'}}>
-                    {entry.name?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <span className="font-medium" style={{color: isCurrentUser ? 'var(--brand)' : 'var(--text)'}}>
-                    {entry.name || 'Anonymous'}
-                    {isCurrentUser && ' (You)'}
-                  </span>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium" style={{backgroundColor: 'var(--background)', color: 'var(--muted)', border: '1px solid var(--stroke)'}}>
+                  {entry.name?.[0]?.toUpperCase() || '?'}
                 </div>
               </div>
               
-              <div className="flex items-center space-x-4">
+              {/* Zone 2: Name (+You) */}
+              <div className="min-w-0">
+                <div className="font-medium text-base truncate m-0" style={{color: isCurrentUser ? 'var(--brand)' : 'var(--text)'}}>
+                  {entry.name || 'Anonymous'}
+                  {isCurrentUser && ' (You)'}
+                </div>
                 {entry.streak && entry.streak > 1 && (
-                  <div className="hidden sm:flex items-center text-sm" style={{color: 'var(--muted)'}}>
-                    <span className="font-medium text-amber-600">🔥</span>
-                    <span className="ml-1">{entry.streak} weeks</span>
+                  <div className="flex items-center text-sm m-0" style={{color: 'var(--muted)', marginTop: '2px'}}>
+                    <span className="text-amber-600">🔥</span>
+                    <span className="ml-1">{entry.streak}</span>
                   </div>
                 )}
-                
-                <div className="flex items-center space-x-2">
-                  {entry.rankChange !== undefined && entry.rankChange !== 0 && (
-                    <div className="flex items-center text-xs" style={{color: 'var(--muted)'}}>
-                      {entry.rankChange > 0 ? (
-                        <ArrowUp className="w-3 h-3 text-green-500" />
-                      ) : (
-                        <ArrowDown className="w-3 h-3 text-red-500" />
-                      )}
-                      <span>{Math.abs(entry.rankChange)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="font-semibold">
-                    {entry.miles.toFixed(1)} <span className="text-sm font-normal" style={{color: 'var(--muted)'}}>miles</span>
-                  </div>
+              </div>
+              
+              {/* Zone 3: Miles Block */}
+              <div className="text-right">
+                <div className="font-bold text-xl m-0" style={{color: 'var(--text)', lineHeight: 1}}>
+                  {entry.miles.toFixed(1)}
                 </div>
+                <div className="text-sm m-0" style={{color: 'var(--muted)', lineHeight: 1}}>
+                  miles
+                </div>
+                {entry.rankChange !== undefined && entry.rankChange !== 0 && (
+                  <div className="flex items-center justify-end text-xs m-0" style={{color: 'var(--muted)', marginTop: '2px'}}>
+                    {entry.rankChange > 0 ? (
+                      <ArrowUp className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <ArrowDown className="w-3 h-3 text-red-500" />
+                    )}
+                    <span className="ml-1">{Math.abs(entry.rankChange)}</span>
+                  </div>
+                )}
               </div>
             </div>
           );
