@@ -83,14 +83,18 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200">
-          <Plus className="w-5 h-5 mr-2" />
+        <Button 
+          variant="primary" 
+          disabled={isChallengeClosed}
+          className="w-full sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
           Log Miles
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md w-[95vw] max-w-[95vw] sm:w-full sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold" style={{ color: 'var(--text)' }}>Log Your Miles</DialogTitle>
+          <DialogTitle style={{color: 'var(--text)'}}>Log Your Miles</DialogTitle>
         </DialogHeader>
         
         {currentMiles !== null && (

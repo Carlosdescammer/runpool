@@ -716,7 +716,7 @@ export default function GroupPage() {
         )}
 
         {group && (
-          <Card className="flex flex-wrap items-center justify-start gap-3 p-4 md:justify-between">
+          <Card className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-start gap-3 p-4 md:justify-between">
             <div>
               <h1 className="m-0 text-[22px] font-extrabold">{group.name}</h1>
               <div className="text-zinc-700">{group.rule}</div>
@@ -727,11 +727,11 @@ export default function GroupPage() {
                 Pot: <span className="font-bold">${challenge.pot}</span>
               </Badge>
             )}
-            <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary" className="w-full sm:w-auto">
+            <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary" className="w-full sm:w-auto order-2 sm:order-none">
               View Rules
             </Button>
             {isAdmin && (
-              <a href={`/group/${groupId}/admin`} className="no-underline">
+              <a href={`/group/${groupId}/admin`} className="no-underline w-full sm:w-auto">
                 <Button variant="primary" className="w-full sm:w-auto">Admin</Button>
               </a>
             )}
@@ -753,15 +753,15 @@ export default function GroupPage() {
             )}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Input readOnly value={joinLink} className="min-w-0 w-full sm:flex-1" />
+            <Input readOnly value={joinLink} className="min-w-0 w-full sm:flex-1 text-sm" />
             <Button onClick={copyInvite} variant="secondary" size="sm" className="w-full sm:w-auto">
               {copied ? 'Copied' : 'Copy link'}
             </Button>
           </div>
         </Card>
 
-        <Card className="p-4">
-          <div className="mb-4 text-lg font-extrabold">Submit Weekly Data</div>
+        <Card className="p-3 sm:p-4">
+          <div className="mb-3 sm:mb-4 text-base sm:text-lg font-extrabold">Submit Weekly Data</div>
           <MileageSubmissionModal
             onSubmit={submitProof}
             isLoading={status === 'loading'}
@@ -770,25 +770,27 @@ export default function GroupPage() {
           />
         </Card>
 
-        <Card className="p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
+        <Card className="p-3 sm:p-4">
+          <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <div className="text-base sm:text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
               {challenge && (
                 <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
               )}
             </div>
             {/* Social Share Button - only show if user is in leaderboard */}
             {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
-              <SocialShare
-                userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
-                userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
-                miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
-                groupName={group?.name || 'RunPool Group'}
-                totalRunners={leaderboard.length}
-                groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                leaderboard={leaderboard}
-              />
+              <div className="w-full sm:w-auto">
+                <SocialShare
+                  userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
+                  userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
+                  miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
+                  groupName={group?.name || 'RunPool Group'}
+                  totalRunners={leaderboard.length}
+                  groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                  leaderboard={leaderboard}
+                />
+              </div>
             )}
           </div>
 

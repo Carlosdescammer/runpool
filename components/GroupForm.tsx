@@ -295,12 +295,12 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
                       placeholder="25"
                       {...field}
                       disabled={isLoading}
+                      className="w-full"
                     />
                   </FormControl>
                   <FormDescription>
                     Default weekly running goal in kilometers.
                   </FormDescription>
-                  <FormMessage />
                 </FormItem>
               )}
             />
