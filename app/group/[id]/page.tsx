@@ -715,50 +715,53 @@ export default function GroupPage() {
           </Card>
         )}
 
-        {group && (
-          <Card className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-start gap-3 p-4 md:justify-between">
-            <div>
-              <h1 className="m-0 text-[22px] font-extrabold">{group.name}</h1>
-              <div className="text-zinc-700">{group.rule}</div>
-              {challenge && <div className="text-sm text-zinc-700">Week: {period}</div>}
-            </div>
-            {challenge && (
-              <Badge variant="outline" className="rounded-xl px-3 py-2 order-3 w-full sm:order-none sm:w-auto">
-                Pot: <span className="font-bold">${challenge.pot}</span>
-              </Badge>
+        <div className="grid gap-4 lg:gap-6 lg:grid-cols-3">
+          {/* Left Column - Group Info */}
+          <div className="lg:col-span-1">
+            {group && (
+              <GroupInfo 
+                group={group}
+                isAdmin={isAdmin}
+                joinLink={joinLink}
+                onEditGroup={() => router.push(`/group/${groupId}/edit`)}
+              />
             )}
-            <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary" className="w-full sm:w-auto order-2 sm:order-none">
-              View Rules
-            </Button>
-            {isAdmin && (
-              <a href={`/group/${groupId}/admin`} className="no-underline w-full sm:w-auto">
-                <Button variant="primary" className="w-full sm:w-auto">Admin</Button>
-              </a>
-            )}
-          </Card>
-        )}
+          </div>
 
-        <Card className="p-4">
-          <div className="mb-2 text-lg font-extrabold">This week at a glance</div>
-          <div className="text-sm text-muted-foreground">Week: {period}</div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {group.rule && (
-              <Badge variant="secondary" className="rounded-full">Rule: {group.rule}</Badge>
-            )}
-            {typeof group.entry_fee === 'number' && (
-              <Badge variant="secondary" className="rounded-full">Entry: ${group.entry_fee}</Badge>
-            )}
-            {deadlineLabel && (
-              <Badge variant="secondary" className="rounded-full">Deadline: {deadlineLabel}</Badge>
-            )}
+          {/* Right Column - Weekly Overview */}
+          <div className="lg:col-span-2">
+            <Card className="p-3 sm:p-4">
+              <div className="mb-3 text-base sm:text-lg font-extrabold">This week at a glance</div>
+              <div className="text-sm text-muted-foreground">Week: {period}</div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {group?.rule && (
+                  <Badge variant="secondary" className="rounded-full">Rule: {group.rule}</Badge>
+                )}
+                {typeof group?.entry_fee === 'number' && (
+                  <Badge variant="secondary" className="rounded-full">Entry: ${group.entry_fee}</Badge>
+                )}
+                {deadlineLabel && (
+                  <Badge variant="secondary" className="rounded-full">Deadline: {deadlineLabel}</Badge>
+                )}
+                {challenge && (
+                  <Badge variant="outline" className="rounded-xl px-3 py-2">
+                    Pot: <span className="font-bold">${challenge.pot}</span>
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary" size="sm">
+                  View Rules
+                </Button>
+                {isAdmin && (
+                  <a href={`/group/${groupId}/admin`} className="no-underline">
+                    <Button variant="primary" size="sm">Admin</Button>
+                  </a>
+                )}
+              </div>
+            </Card>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Input readOnly value={joinLink} className="min-w-0 w-full sm:flex-1 text-sm" />
-            <Button onClick={copyInvite} variant="secondary" size="sm" className="w-full sm:w-auto">
-              {copied ? 'Copied' : 'Copy link'}
-            </Button>
-          </div>
-        </Card>
+        </div>
 
         <Card className="p-3 sm:p-4">
           <div className="mb-3 sm:mb-4 text-base sm:text-lg font-extrabold">Submit Weekly Data</div>
@@ -770,207 +773,35 @@ export default function GroupPage() {
           />
         </Card>
 
-        <Card className="p-3 sm:p-4">
-          <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <div className="text-base sm:text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
-              {challenge && (
-                <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
-              )}
-            </div>
-            {/* Social Share Button - only show if user is in leaderboard */}
-            {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
-              <div className="w-full sm:w-auto">
-                <SocialShare
-                  userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
-                  userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
-                  miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
-                  groupName={group?.name || 'RunPool Group'}
-                  totalRunners={leaderboard.length}
-                  groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                  leaderboard={leaderboard}
-                />
-              </div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</h3>
+            {challenge && (
+              <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
             )}
           </div>
-
-          {loading.leaderboard ? (
-            <>
-              {/* Table (sm and up) */}
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="min-w-[640px] w-full border-collapse">
-                  <thead>
-                    <tr className="sticky top-0 z-10" style={{backgroundColor: 'var(--card)', color: 'var(--muted)'}}>
-                      <th className="p-2 text-left">Rank</th>
-                      <th className="p-2 text-left">Runner</th>
-                      <th className="p-2 text-right">Miles</th>
-                      <th className="p-2 text-left">Status</th>
-                      <th className="p-2 text-left">Award</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <tr key={i} className="border-t border-stroke" style={{backgroundColor: 'var(--card)', color: 'var(--text)'}}>
-                        <td className="p-2"><Skeleton className="h-6 w-6 rounded-full" /></td>
-                        <td className="p-2"><Skeleton className="h-5 w-40" /></td>
-                        <td className="p-2 text-right"><Skeleton className="ml-auto h-5 w-10" /></td>
-                        <td className="p-2"><Skeleton className="h-5 w-16" /></td>
-                        <td className="p-2"><Skeleton className="h-5 w-16" /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="grid gap-2 sm:hidden">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="card">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-6 w-6 rounded-full" />
-                        <Skeleton className="h-4 w-28" />
-                      </div>
-                      <Skeleton className="h-5 w-10" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Table (sm and up) */}
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="min-w-[640px] w-full border-collapse">
-                  <thead>
-                    <tr className="sticky top-0 z-10" style={{backgroundColor: 'var(--card)', color: 'var(--muted)'}}>
-                      <th className="p-2 text-left">Rank</th>
-                      <th className="p-2 text-left">Runner</th>
-                      <th className="p-2 text-right">Miles</th>
-                      <th className="p-2 text-left">Status</th>
-                      <th className="p-2 text-left">Award</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(leaderboard ?? []).map((r, i) => {
-                      const rank = i + 1;
-                      const uid = r.user_id;
-                      const st = streaks[uid] ?? 0;
-                      const delta = rankDelta[uid] ?? 0;
-                      const move = movement[uid] ?? 'same';
-                      const medalClass = rank === 1
-                        ? 'border-amber-400 bg-amber-200 text-amber-900'
-                        : rank === 2
-                        ? 'border-gray-400 bg-gray-200 text-gray-900'
-                        : rank === 3
-                        ? 'border-orange-400 bg-orange-200 text-orange-900'
-                        : 'border-gray-400 bg-gray-200 text-gray-900';
-                      const rowPulse = joinTop3[uid] || dropTop3[uid] ? 'animate-pulse' : '';
-                      return (
-                        <tr
-                          key={`table-${uid}`}
-                          className={`border-t border-stroke odd:bg-card even:bg-card hover:bg-card/80 transition-colors ${rowPulse}`}
-                          style={{ color: 'var(--text)' }}
-                        >
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${medalClass}`}>
-                                {rank === 1 ? <Crown className="h-3.5 w-3.5" /> : rank}
-                              </div>
-                              <div className="flex items-center text-xs">
-                                {move === 'up' && (
-                                  <span className="inline-flex items-center gap-0.5 text-emerald-600"><ArrowUp className="h-3 w-3" />+{Math.abs(delta)}</span>
-                                )}
-                                {move === 'down' && (
-                                  <span className="inline-flex items-center gap-0.5 text-rose-600"><ArrowDown className="h-3 w-3" />-{Math.abs(delta)}</span>
-                                )}
-                                {move === 'same' && (
-                                  <span className="inline-flex items-center gap-0.5 text-zinc-500"><Minus className="h-3 w-3" />0</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              <Avatar name={r.name ?? r.user_id} size={rank === 1 ? 'md' : 'sm'} />
-                              <div className={`font-semibold ${rank === 1 ? 'text-[15px]' : ''}`}>{r.name ?? r.user_id}</div>
-                              {st >= 3 && (
-                                <Badge className="ml-1 rounded-full" variant="secondary">🔥 {st}w</Badge>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-2 text-right tabular-nums">{Number(r.miles).toFixed(1)}</td>
-                          <td className="p-2">—</td>
-                          <td className="p-2">—</td>
-                        </tr>
-                      );
-                    })}
-
-                    {(!leaderboard || leaderboard.length === 0) && (
-                      <tr>
-                        <td colSpan={5} className="p-3 text-zinc-600">No submissions yet.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="grid gap-2 sm:hidden">
-                {(leaderboard ?? []).map((r, i) => {
-                  const rank = i + 1;
-                  const uid = r.user_id;
-                  const st = streaks[uid] ?? 0;
-                  const delta = rankDelta[uid] ?? 0;
-                  const move = movement[uid] ?? 'same';
-                  const medalClass = rank === 1
-                    ? 'border-amber-400 bg-amber-200 text-amber-900'
-                    : rank === 2
-                    ? 'border-gray-400 bg-gray-200 text-gray-900'
-                    : rank === 3
-                    ? 'border-orange-400 bg-orange-200 text-orange-900'
-                    : 'border-gray-400 bg-gray-200 text-gray-900';
-                  const rowPulse = joinTop3[uid] || dropTop3[uid] ? 'animate-pulse' : '';
-                  return (
-                    <div key={`mobile-${uid}`} className={`card ${rowPulse}`} style={{color: 'var(--text)'}}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${medalClass}`}>
-                            {rank === 1 ? <Crown className="h-3.5 w-3.5" /> : rank}
-                          </div>
-                          <Avatar name={r.name ?? r.user_id} size={rank === 1 ? 'md' : 'sm'} />
-                          <div className="font-semibold">{r.name ?? r.user_id}</div>
-                          {st >= 3 && (
-                            <Badge className="ml-1 rounded-full" variant="secondary">🔥 {st}w</Badge>
-                          )}
-                        </div>
-                        <div className="text-right tabular-nums text-lg font-bold">{Number(r.miles).toFixed(1)}</div>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-xs">
-                        <div className="text-zinc-600">{challenge ? period : ''}</div>
-                        <div>
-                          {move === 'up' && (
-                            <span className="inline-flex items-center gap-0.5 text-emerald-600"><ArrowUp className="h-3 w-3" />+{Math.abs(delta)}</span>
-                          )}
-                          {move === 'down' && (
-                            <span className="inline-flex items-center gap-0.5 text-rose-600"><ArrowDown className="h-3 w-3" />-{Math.abs(delta)}</span>
-                          )}
-                          {move === 'same' && (
-                            <span className="inline-flex items-center gap-0.5 text-zinc-500"><Minus className="h-3 w-3" />0</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {(!leaderboard || leaderboard.length === 0) && (
-                  <div className="card text-center text-sm muted">No submissions yet.</div>
-                )}
-              </div>
-            </>
+          {/* Social Share Button - only show if user is in leaderboard */}
+          {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
+            <div className="w-full sm:w-auto">
+              <SocialShare
+                userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
+                userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
+                miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
+                groupName={group?.name || 'RunPool Group'}
+                totalRunners={leaderboard.length}
+                groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                leaderboard={leaderboard}
+              />
+            </div>
           )}
-        </Card>
+        </div>
+
+        <Leaderboard 
+          leaderboard={leaderboard ?? []}
+          currentUserId={userId}
+          groupOwnerId={group?.created_by || ''}
+          isLoading={loading.leaderboard}
+        />
       </div>
     </div>
   );

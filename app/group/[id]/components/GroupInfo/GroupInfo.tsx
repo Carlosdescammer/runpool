@@ -10,7 +10,7 @@ type GroupInfoProps = {
   group: {
     id: string;
     name: string;
-    rule: string;
+    rule?: string | null;
     entry_fee?: number;
   };
   isAdmin: boolean;
