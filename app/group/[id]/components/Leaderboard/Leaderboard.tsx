@@ -115,66 +115,125 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
         <div className="text-sm" style={{color: 'var(--muted)'}}>{leaderboard.length} participants</div>
       </div>
       
-      <div className="bg-card rounded-lg p-4">
+      <div className="space-y-3">
         {leaderboard.map((entry, index) => {
           const isCurrentUser = entry.user_id === currentUserId;
           const isAdmin = entry.user_id === groupOwnerId;
-          const isLastItem = index === leaderboard.length - 1;
+          
+          // Get rank-specific styling to match reference image
+          const getRankStyling = (rank: number) => {
+            switch (rank) {
+              case 1:
+                return {
+                  bg: 'linear-gradient(135deg, #5ee1a2, #4ade80)',
+                  text: '#000000'
+                };
+              case 2:
+                return {
+                  bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+                  text: '#000000'
+                };
+              case 3:
+                return {
+                  bg: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                  text: '#000000'
+                };
+              default:
+                return {
+                  bg: 'linear-gradient(135deg, #64748b, #475569)',
+                  text: '#000000'
+                };
+            }
+          };
+          
+          const rankStyle = getRankStyling(index + 1);
           
           return (
             <div 
               key={entry.user_id}
-              className={`grid grid-cols-[auto_1fr_auto] items-center min-h-[72px] gap-3 transition-colors ${
-                !isLastItem ? 'border-b border-stroke' : ''
-              } ${
-                isCurrentUser ? 'bg-brand/5' : 'hover:bg-muted/10'
-              }`}
+              className="relative rounded-full px-4 py-3 transition-all duration-200 hover:scale-[1.02] mb-3"
+              style={{
+                background: rankStyle.bg,
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                border: isCurrentUser ? '2px solid var(--brand)' : 'none',
+                minHeight: '60px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
             >
-              {/* Zone 1: Medal + Avatar */}
-              <div className="grid grid-cols-[28px_36px] items-center gap-2">
-                <div className="relative flex justify-center">
-                  {getRankBadge(index + 1)}
-                  {isAdmin && (
-                    <Crown className="absolute -top-1 -right-1 w-2.5 h-2.5 text-yellow-500" />
-                  )}
-                </div>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium" style={{backgroundColor: 'var(--background)', color: 'var(--muted)', border: '1px solid var(--stroke)'}}>
+              {/* Avatar */}
+              <div className="relative flex-shrink-0 mr-3">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold border border-black/20" 
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.5)', 
+                    color: '#000000',
+                    fontSize: '14px'
+                  }}
+                >
                   {entry.name?.[0]?.toUpperCase() || '?'}
                 </div>
+                {isAdmin && (
+                  <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-600" />
+                )}
               </div>
-              
-              {/* Zone 2: Name (+You) */}
-              <div className="min-w-0">
-                <div className="font-medium text-base truncate m-0" style={{color: isCurrentUser ? 'var(--brand)' : 'var(--text)'}}>
+
+              {/* Name and Stats */}
+              <div className="flex-1 min-w-0 mr-3">
+                <div 
+                  className="font-bold truncate" 
+                  style={{
+                    color: '#000000',
+                    fontSize: '16px',
+                    lineHeight: '1.2'
+                  }}
+                >
                   {entry.name || 'Anonymous'}
                   {isCurrentUser && ' (You)'}
                 </div>
-                {entry.streak && entry.streak > 1 && (
-                  <div className="flex items-center text-sm m-0" style={{color: 'var(--muted)', marginTop: '2px'}}>
-                    <span className="text-amber-600">🔥</span>
-                    <span className="ml-1">{entry.streak}</span>
-                  </div>
-                )}
+                <div 
+                  className="font-medium truncate" 
+                  style={{
+                    color: '#000000',
+                    fontSize: '12px',
+                    opacity: 0.8,
+                    lineHeight: '1.2'
+                  }}
+                >
+                  {entry.miles.toFixed(1)}km • PACE WARRIOR
+                </div>
               </div>
-              
-              {/* Zone 3: Miles Block */}
-              <div className="text-right">
-                <div className="font-bold text-xl m-0" style={{color: 'var(--text)', lineHeight: 1}}>
-                  {entry.miles.toFixed(1)}
+
+              {/* Streak */}
+              {entry.streak && entry.streak > 1 && (
+                <div 
+                  className="flex-shrink-0 mr-2 font-medium" 
+                  style={{
+                    color: '#000000',
+                    fontSize: '12px',
+                    opacity: 0.9
+                  }}
+                >
+                  🔥{entry.streak}
                 </div>
-                <div className="text-sm m-0" style={{color: 'var(--muted)', lineHeight: 1}}>
-                  miles
+              )}
+
+              {/* Rank Icon */}
+              <div className="flex-shrink-0">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center" 
+                  style={{backgroundColor: 'rgba(255,255,255,0.5)'}}
+                >
+                  {index === 0 ? (
+                    <Trophy className="w-4 h-4" style={{color: '#000000'}} />
+                  ) : index === 1 ? (
+                    <Medal className="w-4 h-4" style={{color: '#000000'}} />
+                  ) : index === 2 ? (
+                    <Award className="w-4 h-4" style={{color: '#000000'}} />
+                  ) : (
+                    <span className="font-bold" style={{color: '#000000', fontSize: '12px'}}>#{index + 1}</span>
+                  )}
                 </div>
-                {entry.rankChange !== undefined && entry.rankChange !== 0 && (
-                  <div className="flex items-center justify-end text-xs m-0" style={{color: 'var(--muted)', marginTop: '2px'}}>
-                    {entry.rankChange > 0 ? (
-                      <ArrowUp className="w-3 h-3 text-green-500" />
-                    ) : (
-                      <ArrowDown className="w-3 h-3 text-red-500" />
-                    )}
-                    <span className="ml-1">{Math.abs(entry.rankChange)}</span>
-                  </div>
-                )}
               </div>
             </div>
           );
