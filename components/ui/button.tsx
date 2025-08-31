@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "primary" | "secondary" | "destructive" | "ghost";
+  variant?: "default" | "primary" | "secondary" | "destructive" | "ghost" | "outline";
   size?: "sm" | "md" | "lg" | "icon";
 }
 
@@ -14,6 +14,7 @@ const variantClasses: Record<string, string> = {
   secondary: "btn btn-secondary",
   destructive: "btn btn-destructive",
   ghost: "btn btn-ghost",
+  outline: "btn btn-outline",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

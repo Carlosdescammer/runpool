@@ -1,17 +1,109 @@
 # Run Pool – Next.js + Supabase
 
-A lightweight group challenge app built with Next.js App Router and Supabase. It supports creating groups, weekly challenges, proofs, and admin tools to manage settings, invite links, and group deletion.
+A semi-automatic escrow system for weekly running challenges where participants compete to complete distance goals. The app handles payments, proof submission, and automatic prize distribution using Stripe Connect for secure fund handling.
 
-## Features
+## Core Features
 
-- **Group management**: create, view, and manage groups (`app/group/[id]/`).
-- **Admin controls**: edit group name/rules/entry fee, create weeks, delete group, and a prominent "Back to dashboard" control (`app/group/[id]/admin/page.tsx` + header).
-- **Email invites (primary)**: send magic-link invites by email, show invited email on each invite, resend magic link, revoke; legacy token link generation is available under a collapsed "Legacy" section.
-- **Leaderboard gamification**: color-coded podium for top 3, streak badges, rank change (up/down) indicators, and subtle animations for entering/leaving top 3.
-- **Client-side guards**: admin page checks current user membership role and redirects non-admins.
-- **RLS-secured**: relies on Supabase Row Level Security to enforce permissions.
+- **Automated Escrow System**: Secure handling of entry fees and prize distribution
+- **Stripe Connect Integration**: Secure payment processing and payouts
+- **Proof Verification**: Submit and verify run proofs with timestamps and distance
+- **Automated Payouts**: Winners are paid automatically when the challenge ends
+- **Transparent Fee Structure**: Clear breakdown of all fees before payment
+- **Real-time Leaderboard**: Track progress and standings throughout the week
 
-## Recent Updates (2025-08-28)
+## Key Features
+
+### Group & Challenge Management
+- **Group Creation**: Set up running groups with custom rules and entry fees
+- **Weekly Challenges**: Create time-bound running challenges with specific distance goals
+- **Role-Based Access**: Clear distinction between Coaches (admins) and Participants
+- **Email Notifications**: Automated reminders and status updates
+
+### Payment & Payouts
+- **Secure Payments**: Entry fees processed via Stripe Connect
+- **Automated Escrow**: Funds held securely until challenge completion
+- **Transparent Payouts**: Clear breakdown of prize distribution
+- **Multiple Payout Methods**: Support for bank transfers and instant payouts
+
+### Proof & Verification
+- **Proof Submission**: Upload run proofs with timestamps and distance
+- **Coach Verification**: Coaches review and verify submissions
+- **Status Tracking**: Real-time updates on verification status
+
+### Leaderboard & Analytics
+- **Real-time Updates**: Live leaderboard showing current standings
+- **Performance Metrics**: Track progress and improvements over time
+- **Historical Data**: View past challenge results and statistics
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Supabase account
+- Stripe account with Connect enabled
+
+### Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourusername/runpool.git
+   cd runpool
+   ```
+
+2. Install dependencies
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Set up environment variables
+   ```bash
+   cp .env.local.example .env.local
+   ```
+   Update the values in `.env.local` with your Supabase and Stripe credentials.
+
+4. Run the development server
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Database Schema
+
+We use Supabase with the following main tables:
+
+- `profiles`: User profiles (extends auth.users)
+- `groups`: Running challenge groups
+- `weeks`: Weekly challenge details
+- `participants`: User participation in weekly challenges
+- `payouts`: Record of prize distributions
+- `group_members`: User-group relationships
+
+## Security
+
+- Row Level Security (RLS) enabled on all tables
+- Secure payment processing with Stripe Connect
+- Encrypted storage of sensitive data
+- Regular security audits and updates
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Recent Updates (2025-08-30)
 
 ### 📧 Comprehensive Email Notification System
 

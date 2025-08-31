@@ -2,10 +2,10 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
-import { ArrowUp, ArrowDown, Minus, Crown } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Crown, Pencil } from 'lucide-react';
 
 // Components
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Leaderboard } from './components/Leaderboard/Leaderboard';
-import { MileageSubmission } from './components/MileageSubmission/MileageSubmission';
+import { MileageSubmissionModal } from './components/MileageSubmission/MileageSubmissionModal';
 import { GroupInfo } from './components/GroupInfo/GroupInfo';
 import { SocialShare } from '@/components/SocialShare';
 import { supabase } from '@/lib/supabaseClient';
@@ -57,6 +57,7 @@ export default function GroupPage() {
   // Router
   const { id: groupId } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // State
   const [userId, setUserId] = useState<string | null>(null);
@@ -77,9 +78,6 @@ export default function GroupPage() {
   const [joinLink, setJoinLink] = useState('');
   const [copied, setCopied] = useState(false);
   
-  // Mileage Submission
-  const [miles, setMiles] = useState('');
-  const [file, setFile] = useState<File | null>(null);
   
   // Animation/UI State
   const [showWelcome, setShowWelcome] = useState(false);
@@ -101,7 +99,7 @@ export default function GroupPage() {
     }
   }, [groupId]);
 
-  async function submitProof() {
+  async function submitProof(miles: number, file: File | null) {
     if (!userId) { setStatus('error'); return; }
     if (!challenge) { setStatus('error'); return; }
     if (!miles) { setStatus('error'); return; }
@@ -199,10 +197,6 @@ export default function GroupPage() {
     toast.success('Proof submitted successfully!');
     try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
 
-    // Reset form
-    setMiles('');
-    setFile(null);
-    
     // Reload leaderboard
     await loadLeaderboard(challenge.id);
 
@@ -211,6 +205,7 @@ export default function GroupPage() {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       if (token) {
+        // Notify group members about the proof submission
         fetch('/api/notify/proof', {
           method: 'POST',
           headers: {
@@ -219,11 +214,23 @@ export default function GroupPage() {
           },
           body: JSON.stringify({ challenge_id: challenge.id, miles: milesNum }),
         }).catch(() => {});
+
+        // Notify admins that a proof needs verification
+        fetch('/api/notify/admin-proof-pending', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ 
+            challenge_id: challenge.id, 
+            user_id: userId, 
+            miles: milesNum 
+          }),
+        }).catch(() => {});
       }
     } catch {}
 
-    setMiles('');
-    setFile(null);
     await loadLeaderboard(challenge.id);
   }
 
@@ -582,10 +589,43 @@ export default function GroupPage() {
     try {
       const d = new Date(challenge.week_end);
       return d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).replace(',', '');
-    } catch {
+    } catch (e) {
+      console.error('Error formatting date:', e);
       return '';
     }
   }, [challenge]);
+
+  // Handle loading state
+  if (loading.group) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded mt-6"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error or missing group
+  if (!group) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-md">
+          <h2 className="text-lg font-medium">Error</h2>
+          <p>Failed to load group data. The group may not exist or you may not have permission to view it.</p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => router.back()}
+          >
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-svh px-4 pb-6 pt-6 md:px-6">
@@ -700,12 +740,12 @@ export default function GroupPage() {
 
         <Card className="p-4">
           <div className="mb-2 text-lg font-extrabold">This week at a glance</div>
-          <div className="text-sm muted">Week: {period}</div>
+          <div className="text-sm text-muted-foreground">Week: {period}</div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {group?.rule && (
+            {group.rule && (
               <Badge variant="secondary" className="rounded-full">Rule: {group.rule}</Badge>
             )}
-            {typeof group?.entry_fee === 'number' && (
+            {typeof group.entry_fee === 'number' && (
               <Badge variant="secondary" className="rounded-full">Entry: ${group.entry_fee}</Badge>
             )}
             {deadlineLabel && (
@@ -714,53 +754,23 @@ export default function GroupPage() {
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Input readOnly value={joinLink} className="min-w-0 w-full sm:flex-1" />
-            <Button onClick={copyInvite} variant="secondary" size="sm" className="w-full sm:w-auto">{copied ? 'Copied' : 'Copy link'}</Button>
+            <Button onClick={copyInvite} variant="secondary" size="sm" className="w-full sm:w-auto">
+              {copied ? 'Copied' : 'Copy link'}
+            </Button>
           </div>
         </Card>
-
 
         <Card className="p-4">
-          <div className="mb-2 text-lg font-extrabold">Submit Weekly Data</div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="Miles e.g. 5.2"
-              value={miles}
-              onChange={(e) => setMiles(e.target.value)}
-              type="text"
-              inputMode="decimal"
-              className="max-w-[200px]"
-            />
-            <input
-              type="file"
-              accept="image/*,.heic,.heif"
-              onChange={(e) => {
-                const selectedFile = e.target.files?.[0] ?? null;
-                if (selectedFile) {
-                  // Validate file size (max 10MB)
-                  if (selectedFile.size > 10 * 1024 * 1024) {
-                    toast.error('Image must be smaller than 10MB');
-                    e.target.value = '';
-                    return;
-                  }
-                  // Validate file type
-                  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-                  if (selectedFile.type && !validTypes.includes(selectedFile.type.toLowerCase())) {
-                    toast.error('Please select a valid image file (JPEG, PNG, WebP, or HEIC)');
-                    e.target.value = '';
-                    return;
-                  }
-                }
-                setFile(selectedFile);
-              }}
-              className="text-sm w-full sm:w-auto"
-              title="Upload proof image (JPEG, PNG, WebP, HEIC)"
-            />
-            <Button onClick={submitProof} variant="primary" className="w-full sm:w-auto">Submit</Button>
-          </div>
-          <div className="mt-2 text-xs muted">{status}</div>
+          <div className="mb-4 text-lg font-extrabold">Submit Weekly Data</div>
+          <MileageSubmissionModal
+            onSubmit={submitProof}
+            isLoading={status === 'loading'}
+            currentMiles={userId && leaderboard ? leaderboard.find(r => r.user_id === userId)?.miles : null}
+            isChallengeClosed={challenge?.status === 'CLOSED'}
+          />
         </Card>
 
-        <Card className="overflow-hidden p-4 md:p-5">
+        <Card className="p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</div>
@@ -777,6 +787,7 @@ export default function GroupPage() {
                 groupName={group?.name || 'RunPool Group'}
                 totalRunners={leaderboard.length}
                 groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                leaderboard={leaderboard}
               />
             )}
           </div>
