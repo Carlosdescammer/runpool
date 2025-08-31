@@ -234,7 +234,7 @@ footer{padding:36px 0;border-top:1px solid var(--stroke);color:var(--muted);font
   /* Force single column layout */
   .grid {
     grid-template-columns: 1fr !important;
-    gap: 20px !important;
+    gap: 16px !important;
   }
   
   /* Better container padding */
@@ -242,19 +242,36 @@ footer{padding:36px 0;border-top:1px solid var(--stroke);color:var(--muted);font
     padding: 0 16px !important;
   }
   
-  /* Card improvements for portrait */
+  /* Leaderboard card size fixes - make them smaller and more proportional */
   .card { 
-    margin: 0 0 20px 0 !important; 
-    padding: 20px !important; 
+    margin: 0 0 12px 0 !important; 
+    padding: 12px !important; 
     width: 100% !important;
     box-sizing: border-box !important;
+    min-height: auto !important;
+  }
+  
+  /* Specific leaderboard item styling */
+  .leaderboard-item {
+    padding: 8px !important;
+    min-height: auto !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .leaderboard-item .flex {
+    gap: 8px !important;
+  }
+  
+  /* Reduce spacing in leaderboard cards */
+  .space-y-3 > * + * {
+    margin-top: 8px !important;
   }
   
   /* Stack flex items vertically in portrait */
   .flex {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 16px !important;
+    gap: 12px !important;
   }
   
   /* Keep small inline flex items horizontal */
@@ -269,32 +286,32 @@ footer{padding:36px 0;border-top:1px solid var(--stroke);color:var(--muted);font
   button, .btn {
     width: 100% !important;
     justify-content: center !important;
-    padding: 16px !important;
-    min-height: 52px !important;
-    margin: 8px 0 !important;
+    padding: 12px !important;
+    min-height: 44px !important;
+    margin: 6px 0 !important;
   }
   
   /* Text improvements for portrait readability */
   h1 { 
-    font-size: 22px !important; 
-    line-height: 1.3 !important;
-    margin-bottom: 16px !important; 
-  }
-  h2 { 
     font-size: 20px !important; 
     line-height: 1.3 !important;
     margin-bottom: 12px !important; 
   }
-  h3 { 
+  h2 { 
     font-size: 18px !important; 
     line-height: 1.3 !important;
     margin-bottom: 10px !important; 
   }
+  h3 { 
+    font-size: 16px !important; 
+    line-height: 1.3 !important;
+    margin-bottom: 8px !important; 
+  }
   
   /* Better spacing for all text elements */
   p, div, span {
-    line-height: 1.5 !important;
-    margin-bottom: 12px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 8px !important;
   }
   
   /* Modal improvements for portrait */
@@ -302,6 +319,15 @@ footer{padding:36px 0;border-top:1px solid var(--stroke);color:var(--muted);font
     width: 95vw !important;
     max-width: 95vw !important;
     margin: 20px auto !important;
+  }
+  
+  /* Hamburger menu text styling */
+  .hamburger {
+    font-size: 14px !important;
+    padding: 8px 12px !important;
+    min-height: auto !important;
+    width: auto !important;
+    margin: 0 !important;
   }
 }
 

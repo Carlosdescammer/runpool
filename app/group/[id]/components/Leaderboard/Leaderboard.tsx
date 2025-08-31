@@ -123,7 +123,7 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
           return (
             <div 
               key={entry.user_id}
-              className={`flex items-center justify-between p-3 card transition-colors ${
+              className={`leaderboard-item flex items-center justify-between p-2 card transition-colors ${
                 isCurrentUser ? 'ring-2 ring-brand' : 'hover:opacity-80'
               }`}
             >
