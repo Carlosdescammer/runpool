@@ -5,7 +5,37 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const { email, amount, weekId, challengeName } = await req.json();
+    const { email, amount, weekId, challengeName, userEmail, userName } = await req.json();
+    
+    // Use provided email or fallback
+    const recipientEmail = email || userEmail;
+    const displayName = challengeName || 'Test Challenge';
+    
+    console.log('Payment success email request:', { recipientEmail, amount, displayName });
+    
+    if (!recipientEmail) {
+      console.error('No email address provided');
+      return NextResponse.json(
+        { error: 'Email address is required' },
+        { status: 400 }
+      );
+    }
+    
+    if (!amount) {
+      console.error('No amount provided');
+      return NextResponse.json(
+        { error: 'Amount is required' },
+        { status: 400 }
+      );
+    }
+    
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY not configured');
+      return NextResponse.json(
+        { error: 'Email service not configured' },
+        { status: 500 }
+      );
+    }
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -106,16 +136,17 @@ export async function POST(req: Request) {
 </body>
 </html>`;
 
-    await resend.emails.send({
-      from: process.env.RESEND_FROM!,
-      to: email,
+    const emailResult = await resend.emails.send({
+      from: process.env.RESEND_FROM || 'noreply@runpool.app',
+      to: recipientEmail,
       subject: '💳 Payment Confirmed - You\'re in the challenge!',
       html,
     });
 
-    return NextResponse.json({ success: true });
+    console.log('Email sent successfully:', emailResult);
+    return NextResponse.json({ success: true, emailId: emailResult.data?.id });
   } catch (error) {
     console.error('Payment success email error:', error);
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to send email', details: error.message }, { status: 500 });
   }
 }

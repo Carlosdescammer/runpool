@@ -219,22 +219,31 @@ async function handlePaymentIntentSucceeded(paymentIntent: any, supabase: any) {
 
   // Send payment success email
   try {
-    const { data: userData } = await supabase.auth.admin.getUserById(userId);
-    const { data: weekData } = await supabase
-      .from('weeks')
-      .select('*, groups(*)')
-      .eq('id', weekId)
-      .single();
+    // For test payments, use metadata email, otherwise get from database
+    let userEmail = paymentIntent.metadata.user_email;
+    let challengeName = 'Test Challenge';
+    
+    if (!userEmail || paymentIntent.metadata.source !== 'test-payments-page') {
+      const { data: userData } = await supabase.auth.admin.getUserById(userId);
+      const { data: weekData } = await supabase
+        .from('weeks')
+        .select('*, groups(*)')
+        .eq('id', weekId)
+        .single();
+      
+      userEmail = userData.user?.email;
+      challengeName = weekData?.groups?.name || 'Running Challenge';
+    }
 
-    if (userData.user?.email && weekData) {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/notify/payment-success`, {
+    if (userEmail) {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3006'}/api/notify/payment-success`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: userData.user.email,
+          email: userEmail,
           amount: paymentIntent.amount,
           weekId,
-          challengeName: weekData.groups?.name || 'Running Challenge'
+          challengeName
         }),
       });
     }
