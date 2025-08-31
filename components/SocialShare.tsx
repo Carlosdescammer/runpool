@@ -92,16 +92,15 @@ export function SocialShare({
   };
 
   return (
-    <div className="relative">
+    <div className="flex items-center gap-2 w-full sm:w-auto">
       <Button
-        variant="secondary"
+        variant="outline"
         size="sm"
-        onClick={handleNativeShare}
-        className="flex items-center gap-1"
+        onClick={() => setShowShareMenu(true)}
+        className="text-blue-600 hover:text-blue-800 w-full sm:w-auto text-xs sm:text-sm"
       >
-        <Twitter className="h-4 w-4" />
-        <Facebook className="h-4 w-4" />
-        <Share2 className="h-4 w-4" />
+        <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+        Share
       </Button>
 
       {showShareMenu && (

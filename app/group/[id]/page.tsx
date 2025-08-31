@@ -773,35 +773,37 @@ export default function GroupPage() {
           />
         </Card>
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base sm:text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</h3>
-            {challenge && (
-              <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <h3 className="text-base sm:text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</h3>
+              {challenge && (
+                <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
+              )}
+            </div>
+            {/* Social Share Button - only show if user is in leaderboard */}
+            {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
+              <div className="w-full sm:w-auto">
+                <SocialShare
+                  userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
+                  userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
+                  miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
+                  groupName={group?.name || 'RunPool Group'}
+                  totalRunners={leaderboard.length}
+                  groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                  leaderboard={leaderboard}
+                />
+              </div>
             )}
           </div>
-          {/* Social Share Button - only show if user is in leaderboard */}
-          {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
-            <div className="w-full sm:w-auto">
-              <SocialShare
-                userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
-                userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
-                miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
-                groupName={group?.name || 'RunPool Group'}
-                totalRunners={leaderboard.length}
-                groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                leaderboard={leaderboard}
-              />
-            </div>
-          )}
-        </div>
 
-        <Leaderboard 
-          leaderboard={leaderboard ?? []}
-          currentUserId={userId}
-          groupOwnerId={group?.created_by || ''}
-          isLoading={loading.leaderboard}
-        />
+          <Leaderboard 
+            leaderboard={leaderboard ?? []}
+            currentUserId={userId}
+            groupOwnerId={group?.created_by || ''}
+            isLoading={loading.leaderboard}
+          />
+        </Card>
       </div>
     </div>
   );
