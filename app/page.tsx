@@ -32,16 +32,22 @@ export default function Home() {
           <div className="home-hero__card card">
             <div className="inner">
               <h3 className="home-card-title">This week at a glance</h3>
+
               <ul className="home-metrics">
-                <li><span>Goal</span><strong>25 mi</strong></li>
+                <li><span>Goal</span><strong>25&nbsp;mi</strong></li>
                 <li><span>Participants</span><strong>12</strong></li>
                 <li><span>Pot</span><strong>$120</strong></li>
-                <li><span>Deadline</span><strong>Sat 8:00 PM</strong></li>
+                <li><span>Deadline</span><strong>Sat&nbsp;8:00&nbsp;PM</strong></li>
               </ul>
+
               <div className="home-progress">
                 <div className="progress"><span style={{ ["--pct" as any]: "64%" }} /></div>
-                <div className="home-progress__label">Team total: <b>160/250 miles</b></div>
+                <div className="home-progress__label">
+                  <span>Team total</span>
+                  <b>160 / 250 miles</b>
+                </div>
               </div>
+
               <div className="home-hero__actions">
                 <Link href="/group/new" className="btn btn-primary">Start your pool</Link>
                 <Link href="#how" className="btn">How it works</Link>
