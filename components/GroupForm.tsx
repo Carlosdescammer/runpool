@@ -40,7 +40,7 @@ type GroupFormValues = z.infer<typeof groupFormSchema>;
 
 interface GroupFormProps {
   groupId?: string;
-  onSuccess?: () => void;
+  onSuccess?: (groupId?: string) => void;
   defaultValues?: Partial<GroupFormValues>;
 }
 
@@ -106,14 +106,23 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
         
-        const { error } = await supabase
+        const { data: newGroup, error } = await supabase
           .from('groups')
-          .insert([{ ...groupData, owner_id: user.id }]);
+          .insert([{ ...groupData, owner_id: user.id }])
+          .select('id')
+          .single();
 
         if (error) {
           console.error('Supabase error:', error);
           throw error;
         }
+
+        if (!newGroup) {
+          throw new Error('Failed to create group - no data returned');
+        }
+
+        onSuccess?.(newGroup.id);
+        return;
       }
 
       onSuccess?.();
