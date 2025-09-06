@@ -139,7 +139,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
   const loadGroupMembers = useCallback(async () => {
     if (!groupId) return;
     const { data: membershipsData, error: membershipsError } = await supabase
-      .from('memberships')
+      .from('group_members')
       .select('user_id, role')
       .eq('group_id', groupId);
 
@@ -156,7 +156,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
 
     const userIds = membershipsData.map(m => m.user_id);
     const { data: profilesData, error: profilesError } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('id, name, additional_roles')
       .in('id', userIds);
 
@@ -213,7 +213,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
     
     try {
       const { error } = await supabase
-        .from('memberships')
+        .from('group_members')
         .delete()
         .eq('group_id', groupId)
         .eq('user_id', userId);
@@ -241,7 +241,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
       };
       
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .upsert(profileData);
 
       if (error) {
@@ -298,7 +298,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
     }
     const { error: dChErr } = await supabase.from('challenges').delete().eq('group_id', groupId);
     if (dChErr) { setMsg(dChErr.message); return; }
-    const { error: mErr } = await supabase.from('memberships').delete().eq('group_id', groupId);
+    const { error: mErr } = await supabase.from('group_members').delete().eq('group_id', groupId);
     if (mErr) { setMsg(mErr.message); return; }
     const { error: iErr } = await supabase.from('invites').delete().eq('group_id', groupId);
     if (iErr) { setMsg(iErr.message); return; }

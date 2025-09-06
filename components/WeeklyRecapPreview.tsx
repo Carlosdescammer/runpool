@@ -32,7 +32,7 @@ export default function WeeklyRecapPreview() {
         let groupId: string | undefined = undefined;
         if (user) {
           const { data: m } = await supabase
-            .from('memberships')
+            .from('group_members')
             .select('group_id')
             .eq('user_id', user.id)
             .limit(1);
