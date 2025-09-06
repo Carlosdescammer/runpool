@@ -63,7 +63,7 @@ export default function Settings() {
       // Load user profile, email preferences, and admin groups
       const [{ data: profile }, { data: prefs }, { data: adminMemberships }] = await Promise.all([
         supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('name')
           .eq('id', user.id)
           .single(),
@@ -71,7 +71,7 @@ export default function Settings() {
           .rpc('get_user_email_preferences', { target_user_id: user.id })
           .single<{data: UserSettings}>(),
         supabase
-          .from('group_members')
+          .from('memberships')
           .select('group_id, groups!inner(name)')
           .in('role', ['admin', 'owner'])
           .eq('user_id', user.id)
@@ -122,7 +122,7 @@ export default function Settings() {
 
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('user_profiles')
         .upsert({ 
           id: user?.id, 
           name: name.trim()
@@ -136,7 +136,7 @@ export default function Settings() {
       showToast('Name updated ✅');
       
       const { data: memberships } = await supabase
-        .from('group_members')
+        .from('memberships')
         .select('group_id')
         .eq('user_id', user?.id)
         .limit(1);
@@ -237,7 +237,7 @@ export default function Settings() {
 
   async function backToDashboard() {
     const { data: memberships } = await supabase
-      .from('group_members')
+      .from('memberships')
       .select('group_id')
       .eq('user_id', user?.id)
       .limit(1);

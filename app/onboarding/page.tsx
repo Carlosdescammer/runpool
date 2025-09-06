@@ -27,7 +27,7 @@ export default function OnboardingPage() {
       }
       // If already in a group, send to that dashboard
       const { data: memberships } = await supabase
-        .from('group_members')
+        .from('memberships')
         .select('group_id')
         .eq('user_id', uid)
         .limit(1);
@@ -40,10 +40,9 @@ export default function OnboardingPage() {
   async function saveProfile() {
     if (!userId) { setStatus('Please sign in first.'); return; }
     setStatus('Saving profile…');
-    const { error } = await supabase.from('profiles').upsert({ 
+    const { error } = await supabase.from('user_profiles').upsert({ 
       id: userId, 
-      full_name: name,
-      email: '' // This will be populated from auth.users
+      name: name
     });
     if (error) setStatus(error.message); else setStatus('Profile saved.');
   }

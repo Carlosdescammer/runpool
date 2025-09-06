@@ -107,9 +107,9 @@ export default function GroupPage() {
         console.log('=== DISCOVERING DATABASE SCHEMA ===');
         
         // First, let's discover what tables and columns actually exist
-        console.log('Step 1: Discovering group_members table schema...');
+        console.log('Step 1: Discovering memberships table schema...');
         const { data: sampleMembership, error: membershipSchemaError } = await supabase
-          .from('group_members')
+          .from('memberships')
           .select('*')
           .limit(1);
         
@@ -155,9 +155,9 @@ export default function GroupPage() {
           console.log('No proofs data found or error:', proofSchemaError);
         }
         
-        console.log('Step 5: Discovering profiles table schema...');
+        console.log('Step 5: Discovering user_profiles table schema...');
         const { data: sampleProfile, error: profileSchemaError } = await supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('*')
           .limit(1);
         
@@ -172,7 +172,7 @@ export default function GroupPage() {
         // Now check if user is a member of this group using discovered schema
         console.log('Step 6: Checking membership with discovered schema...');
         const { data: membershipData, error: membershipError } = await supabase
-          .from('group_members')
+          .from('memberships')
           .select('*')
           .eq('group_id', groupId)
           .eq('user_id', userId)
@@ -394,7 +394,7 @@ export default function GroupPage() {
       // First, get all group members with accurate schema
       console.log('Step 1: Loading all group members...');
       const { data: members, error: membersError } = await supabase
-        .from('group_members')
+        .from('memberships')
         .select('*')
         .eq('group_id', groupId);
       
@@ -415,7 +415,7 @@ export default function GroupPage() {
       console.log('Step 2: Loading user profiles for user IDs:', userIds);
       
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+        .from('user_profiles')
         .select('*')
         .in('id', userIds);
       

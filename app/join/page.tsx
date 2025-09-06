@@ -73,7 +73,7 @@ export default function Join() {
 
         // Load inviter name (optional)
         const { data: p } = await supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('full_name')
           .eq('id', inv.created_by)
           .maybeSingle();
@@ -153,10 +153,9 @@ export default function Join() {
     // If not, we must ask the user to confirm; Supabase returns no session.
     if (data.session) {
       setUserId(data.user?.id ?? null);
-      await supabase.from('profiles').upsert({ 
+      await supabase.from('user_profiles').upsert({ 
         id: data.user?.id, 
-        full_name: displayName,
-        email: data.user?.email || ''
+        name: displayName
       });
       await joinNow();
     } else {
