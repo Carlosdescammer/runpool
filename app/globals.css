@@ -221,3 +221,65 @@ input.field, textarea.field{-webkit-appearance:none; -moz-appearance:none; appea
 
 /* Section headings */
 .section-title{display:flex; align-items:center; justify-content:space-between; gap:12px}
+
+/* ---------- Home page layout ---------- */
+.home-hero{
+  display:grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 24px;
+  align-items: center;
+  margin: 12px 0 28px;
+}
+.home-hero__copy{ padding-right: 8px; }
+
+.home-title{ font-size: clamp(28px, 4.6vw, 44px); line-height: 1.1; margin: 6px 0 10px; }
+.home-accent{ color: var(--accent); }
+.home-sub{ color: var(--muted); max-width: 62ch; }
+.home-cta{ display:flex; gap:12px; flex-wrap:wrap; margin:16px 0 6px; }
+
+.home-checks{
+  display:grid; gap:8px; margin-top: 14px; padding-left: 0; list-style:none;
+  color: var(--text);
+}
+.home-checks li{ display:flex; gap:8px; align-items:center; }
+.check{ color: var(--success); flex: 0 0 auto; }
+
+.home-hero__card .home-card-title{ margin: 0 0 8px; }
+.home-metrics{
+  display:grid; grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 10px 16px; margin: 8px 0 10px; list-style:none; padding:0;
+}
+.home-metrics span{ color: var(--muted); font-size: 12px; display:block; }
+.home-metrics strong{ font-size: 16px; }
+
+.home-progress{ margin: 10px 0 14px; }
+.home-progress__label{ color: var(--muted); font-size: 12px; margin-top: 8px; }
+.home-hero__actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.home-section{ margin: 24px 0 10px; }
+.home-h2{ font-size: clamp(22px, 2.6vw, 28px); margin-bottom: 6px; }
+.home-h3{ font-size: clamp(16px, 2vw, 20px); margin: 6px 0; }
+.home-muted{ color: var(--muted); }
+
+.steps-grid{
+  display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-top: 14px;
+}
+.step-card .step-num{
+  width: 28px; height: 28px; border-radius: 8px;
+  display:grid; place-items:center; font-weight:800;
+  background: var(--success); color: #06140e; margin-bottom: 8px;
+}
+
+.home-cta-strip .inner{ display:flex; gap: 18px; align-items:center; justify-content:space-between; }
+.home-cta-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+
+.home-footer{ display:flex; justify-content:center; padding: 32px 0; color: var(--muted); font-size: 14px; }
+
+/* Responsive */
+@media (max-width: 960px){
+  .home-hero{ grid-template-columns: 1fr; }
+}
+@media (max-width: 720px){
+  .steps-grid{ grid-template-columns: 1fr; }
+  .home-cta-strip .inner{ flex-direction: column; align-items: flex-start; }
+}
