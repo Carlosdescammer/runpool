@@ -125,64 +125,82 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-[100svh] grid place-items-center">
-      <div className="container">
-        <Card className="w-full max-w-[480px] mx-auto p-6">
-        {userId && (
-          <div className="mb-2 text-sm text-zinc-700">You’re already signed in.</div>
-        )}
-        <h1 className="m-0 text-2xl font-extrabold">Sign in to your account</h1>
-        <div className="h-3" />
+    <main className="auth-shell">
+      <section className="card auth-card">
+        <div className="inner">
+          {userId && (
+            <div className="mb-2 text-sm">You're already signed in.</div>
+          )}
+          
+          <header className="auth-head">
+            <h1 className="auth-title">Sign in to your account</h1>
+            <p className="auth-sub">Welcome back — let's get you on the board.</p>
+          </header>
 
-        <Label>Email</Label>
-        <Input
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoCapitalize="none"
-          autoCorrect="off"
-          inputMode="email"
-          autoComplete="email"
-          enterKeyHint="next"
-          className="mt-2"
-        />
+          <div className="auth-form">
+            <div className="field">
+              <label htmlFor="email" className="label">Email</label>
+              <input 
+                id="email" 
+                type="email" 
+                placeholder="you@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                inputMode="email"
+                autoComplete="email"
+                enterKeyHint="next"
+                required 
+              />
+            </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <Label>Password</Label>
-          <div className="flex items-center gap-3 text-sm text-[color:var(--rp-text)]">
-            <label className="flex items-center gap-1.5">
-              <input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} />
-              Remember me
-            </label>
-            <button onClick={forgotPassword} className="text-[color:var(--rp-text)] underline">
-              Forgot your password?
+            <div className="field">
+              <div className="row-between">
+                <label htmlFor="password" className="label">Password</label>
+                <button onClick={forgotPassword} className="link-muted">Forgot your password?</button>
+              </div>
+              <input 
+                id="password" 
+                type="password" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                enterKeyHint="done"
+                required 
+              />
+            </div>
+
+            <div className="field-row between">
+              <label className="checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={remember} 
+                  onChange={(e) => setRemember(e.target.checked)} 
+                /> 
+                <span>Remember me</span>
+              </label>
+            </div>
+
+            <button 
+              onClick={smartAuth} 
+              className="btn btn-primary auth-submit" 
+              disabled={isSmartAuth}
+            >
+              {isSmartAuth ? 'Checking...' : 'Sign in / Create account'}
             </button>
           </div>
-        </div>
-        <Input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          enterKeyHint="done"
-          className="mt-2"
-        />
 
-        <div className="h-4" />
-        <Button onClick={smartAuth} variant="primary" size="lg" className="w-full" disabled={isSmartAuth}>
-          {isSmartAuth ? 'Checking...' : 'Sign in / Create account'}
-        </Button>
-
-        <div className="h-3" />
-        <div className="text-center text-xs text-zinc-600 muted">
-          Will automatically sign you in or create an account as needed.
+          <p className="auth-note">
+            We'll automatically sign you in or create an account as needed.
+          </p>
+          
+          {status && (
+            <div className="mt-3 text-sm">{status}</div>
+          )}
         </div>
-        <div className="h-3" />
-        <div className="min-h-[18px] text-sm text-zinc-700">{status}</div>
-        </Card>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
