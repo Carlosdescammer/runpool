@@ -3,11 +3,14 @@
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { GroupAdminPanel } from '@/components/GroupAdminPanel';
+import { NotificationSwitch } from '@/components/NotificationSwitch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UserSettings {
   weekly_goal_reminders: boolean;
@@ -17,6 +20,11 @@ interface UserSettings {
   proof_notifications: boolean;
   weekly_recap: boolean;
   invite_notifications: boolean;
+}
+
+interface AdminGroup {
+  id: string;
+  name: string;
 }
 
 export default function Settings() {
@@ -39,6 +47,8 @@ export default function Settings() {
     invite_notifications: true,
   });
   const [emailPrefsStatus, setEmailPrefsStatus] = useState<string>('');
+  const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -50,8 +60,8 @@ export default function Settings() {
       }
       setUser(user);
 
-      // Load user profile name and email preferences
-      const [{ data: profile }, { data: prefs }] = await Promise.all([
+      // Load user profile, email preferences, and admin groups
+      const [{ data: profile }, { data: prefs }, { data: adminMemberships }] = await Promise.all([
         supabase
           .from('user_profiles')
           .select('name')
@@ -60,12 +70,25 @@ export default function Settings() {
         supabase
           .rpc('get_user_email_preferences', { target_user_id: user.id })
           .single<{data: UserSettings}>(),
+        supabase
+          .from('memberships')
+          .select('group_id, groups!inner(name)')
+          .in('role', ['admin', 'owner'])
+          .eq('user_id', user.id)
       ]);
       
       const currentName = profile?.name || '';
       setName(currentName);
       setOriginalName(currentName);
       
+      if (adminMemberships) {
+        const groups = adminMemberships.map((m: any) => ({ id: m.group_id, name: m.groups.name }));
+        setAdminGroups(groups);
+        if (groups.length > 0) {
+          setSelectedGroupId(groups[0].id);
+        }
+      }
+
       if (prefs?.data) {
         setEmailPrefs({
           weekly_goal_reminders: prefs.data.weekly_goal_reminders ?? true,
@@ -110,16 +133,14 @@ export default function Settings() {
         return;
       }
 
-      toast.success('Name updated successfully! Redirecting...');
+      showToast('Name updated ✅');
       
-      // Check if user has any group memberships to redirect to
       const { data: memberships } = await supabase
         .from('memberships')
         .select('group_id')
         .eq('user_id', user?.id)
         .limit(1);
       
-      // Redirect to appropriate page
       if (memberships && memberships.length > 0) {
         router.replace(`/group/${memberships[0].group_id}`);
       } else {
@@ -152,7 +173,7 @@ export default function Settings() {
       }
 
       setEmailPrefsStatus('✅ Email preferences updated!');
-      toast.success('Email preferences updated successfully!');
+      showToast('Preferences saved ✅');
       
     } catch {
       setEmailPrefsStatus('An error occurred. Please try again.');
@@ -183,9 +204,8 @@ export default function Settings() {
     setStatus('Changing password…');
 
     try {
-      // First verify current password by trying to sign in with it
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
+        email: user!.email!,
         password: currentPassword
       });
 
@@ -194,7 +214,6 @@ export default function Settings() {
         return;
       }
 
-      // Update to new password
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -205,9 +224,8 @@ export default function Settings() {
       }
 
       setStatus('✅ Password changed successfully!');
-      toast.success('Password changed successfully!');
+      showToast('Password updated ✅');
       
-      // Clear form
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -218,14 +236,12 @@ export default function Settings() {
   }
 
   async function backToDashboard() {
-    // Check if user has any group memberships to redirect to
     const { data: memberships } = await supabase
       .from('memberships')
       .select('group_id')
       .eq('user_id', user?.id)
       .limit(1);
     
-    // Redirect to appropriate page
     if (memberships && memberships.length > 0) {
       router.replace(`/group/${memberships[0].group_id}`);
     } else {
@@ -238,270 +254,337 @@ export default function Settings() {
     router.replace('/signin');
   }
 
+  // Toast function
+  const showToast = (msg = 'Saved') => {
+    const toastElement = document.getElementById('toast');
+    if (toastElement) {
+      toastElement.textContent = msg;
+      toastElement.classList.add('show');
+      setTimeout(() => toastElement.classList.remove('show'), 1300);
+    }
+  };
+
+  // Bind switch behavior
+  useEffect(() => {
+    const switches = document.querySelectorAll('.switch');
+    
+    const bindSwitch = (sw: Element) => {
+      const element = sw as HTMLElement;
+      const handleClick = () => {
+        const currentState = element.dataset.on === 'true';
+        const newState = !currentState;
+        element.dataset.on = newState.toString();
+        element.setAttribute('aria-checked', newState.toString());
+      };
+      
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleClick();
+        }
+      };
+      
+      element.addEventListener('click', handleClick);
+      element.addEventListener('keydown', handleKeyDown as EventListener);
+    };
+    
+    switches.forEach(bindSwitch);
+    
+    // Cleanup event listeners
+    return () => {
+      switches.forEach(sw => {
+        const element = sw as HTMLElement;
+        element.removeEventListener('click', () => {});
+        element.removeEventListener('keydown', () => {});
+      });
+    };
+  }, [emailPrefs]);
+
   if (loading) {
     return (
-      <div className="min-h-[100svh] grid place-items-center px-4 py-6 md:px-6">
-        <Card className="w-full max-w-[480px] p-6">
-          <div>Loading...</div>
-        </Card>
+      <div className="wrap">
+        <section className="card">
+          <div className="inner">
+            <div>Loading settings...</div>
+          </div>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100svh] grid place-items-center px-4 py-6 md:px-6">
-      <Card className="w-full max-w-[480px] p-6">
-        <h1 className="m-0 text-2xl font-extrabold">Account Settings</h1>
-        
-        <div className="h-4" />
-        
-        {/* User Info */}
-        <div className="mb-6 p-4 card">
-          <div className="text-sm muted">Signed in as:</div>
-          <div className="font-medium">{user?.email}</div>
+    <div className="wrap">
+      {/* Topbar */}
+      <div className="topbar">
+        <div className="brand">
+          <div className="logo" aria-hidden="true"></div>
+          <h1>RunPool</h1>
+          <span className="pill">Settings</span>
         </div>
+        <div className="row">
+          <button onClick={backToDashboard} className="btn ghost">
+            ← Back to Dashboard
+          </button>
+          <button className="btn">Help</button>
+          <button onClick={signOut} className="btn primary">
+            Sign Out
+          </button>
+        </div>
+      </div>
 
-        {/* Update Name Section */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-4">Profile Name</h2>
-          
-          <div className="space-y-4">
+      {/* Profile */}
+      <section className="card">
+        <div className="inner">
+          <h2>Profile</h2>
+          <div className="grid-2">
             <div>
-              <Label>Display name</Label>
-              <Input
+              <label htmlFor="gname">Display name</label>
+              <input
+                id="gname"
                 type="text"
                 placeholder="Enter your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-2"
+                className="field"
                 autoComplete="name"
               />
-              <div className="mt-1 text-xs text-zinc-600">
+              <div className="muted" style={{marginTop: '4px'}}>
                 This name will be shown to other members in your groups.
               </div>
             </div>
-
-            <Button 
+          </div>
+          <div className="divider"></div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div className="muted" style={{minHeight: '18px', fontSize: '12px'}}>{nameStatus}</div>
+            <button 
               onClick={updateName} 
-              variant="primary" 
-              size="lg" 
-              className="w-full"
+              className="btn primary"
               disabled={name.trim() === originalName.trim() || !name.trim()}
             >
               Update Name
-            </Button>
-            
-            <div className="min-h-[18px] text-sm muted">{nameStatus}</div>
+            </button>
           </div>
         </div>
+      </section>
 
-        {/* Email Preferences Section */}
-        <div className="border-t pt-6">
-          <h2 className="text-lg font-semibold mb-4">Email Notifications</h2>
-          
-          <div className="space-y-4">
-            <div className="text-sm text-zinc-600 mb-4">
-              Choose which email notifications you&apos;d like to receive. You can always update these preferences later.
-            </div>
-
-            {/* Weekly Goal Reminders */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">Weekly goal reminders</div>
-                <div className="text-sm text-zinc-600">Get reminded when you&apos;re behind on your weekly mileage goal</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.weekly_goal_reminders}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, weekly_goal_reminders: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            {/* Top Performer Alerts */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">Top performer alerts</div>
-                <div className="text-sm text-zinc-600">Get notified when you enter the top 3 rankings</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.top_performer_alerts}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, top_performer_alerts: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            {/* Top 3 Milestone */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">Top 3 milestone notifications</div>
-                <div className="text-sm text-zinc-600">Get notified when top 3 performers log new miles</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.top_three_milestone}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, top_three_milestone: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            {/* Proof Notifications */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">Activity notifications</div>
-                <div className="text-sm text-zinc-600">Get notified when other group members log miles</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.proof_notifications}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, proof_notifications: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            {/* Admin New User Alerts */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">New member alerts (Admin only)</div>
-                <div className="text-sm text-zinc-600">Get notified when new users join groups you admin</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.admin_new_user_alerts}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, admin_new_user_alerts: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            {/* Weekly Recap */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">Weekly recap emails</div>
-                <div className="text-sm text-zinc-600">Receive weekly summaries of group performance</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.weekly_recap}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, weekly_recap: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            {/* Invite Notifications */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">Invite notifications</div>
-                <div className="text-sm text-zinc-600">Receive group invitations and related emails</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={emailPrefs.invite_notifications}
-                  onChange={(e) => setEmailPrefs(prev => ({ ...prev, invite_notifications: e.target.checked }))}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            <Button 
-              onClick={updateEmailPreferences} 
-              variant="primary" 
-              size="lg" 
-              className="w-full mt-4"
+      {/* Manage group selector */}
+      {adminGroups.length > 0 && (
+        <section className="card">
+          <div className="inner">
+            <label htmlFor="groupSelect">Select a group to manage</label>
+            <select 
+              id="groupSelect" 
+              className="field" 
+              value={selectedGroupId ?? ''}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
             >
-              Save Email Preferences
-            </Button>
-            
-            <div className="min-h-[18px] text-sm muted">{emailPrefsStatus}</div>
+              {adminGroups.map(group => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+      )}
+
+      {/* Group Settings */}
+      {selectedGroupId && (
+        <section className="card">
+          <div className="inner">
+            <h2>Group Settings</h2>
+            <GroupAdminPanel groupId={selectedGroupId} />
+          </div>
+        </section>
+      )}
+
+      {/* Email Notifications */}
+      <section className="card">
+        <div className="inner">
+          <h2>Email Notifications</h2>
+          <div className="muted" style={{marginBottom: '12px'}}>Choose which email notifications you'd like to receive.</div>
+
+          <div id="prefs">
+            <div className="inline" data-key="weekly_goal_reminders" style={{marginBottom: '8px'}}>
+              <div><div style={{fontWeight: '600'}}>Weekly goal reminders</div><div className="muted">Get reminded when you're behind on your weekly mileage goal</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.weekly_goal_reminders} 
+                tabIndex={0} 
+                data-on={emailPrefs.weekly_goal_reminders.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, weekly_goal_reminders: !prev.weekly_goal_reminders }))}
+              >
+                <span></span>
+              </div>
+            </div>
+
+            <div className="inline" data-key="top_performer_alerts" style={{marginBottom: '8px'}}>
+              <div><div style={{fontWeight: '600'}}>Top performer alerts</div><div className="muted">Get notified when you enter the top 3 rankings</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.top_performer_alerts} 
+                tabIndex={0} 
+                data-on={emailPrefs.top_performer_alerts.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, top_performer_alerts: !prev.top_performer_alerts }))}
+              >
+                <span></span>
+              </div>
+            </div>
+
+            <div className="inline" data-key="top_three_milestone" style={{marginBottom: '8px'}}>
+              <div><div style={{fontWeight: '600'}}>Top 3 milestone notifications</div><div className="muted">Get notified when top 3 performers log new miles</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.top_three_milestone} 
+                tabIndex={0} 
+                data-on={emailPrefs.top_three_milestone.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, top_three_milestone: !prev.top_three_milestone }))}
+              >
+                <span></span>
+              </div>
+            </div>
+
+            <div className="inline" data-key="proof_notifications" style={{marginBottom: '8px'}}>
+              <div><div style={{fontWeight: '600'}}>Activity notifications</div><div className="muted">Get notified when other group members log miles</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.proof_notifications} 
+                tabIndex={0} 
+                data-on={emailPrefs.proof_notifications.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, proof_notifications: !prev.proof_notifications }))}
+              >
+                <span></span>
+              </div>
+            </div>
+
+            <div className="inline" data-key="admin_new_user_alerts" style={{marginBottom: '8px'}}>
+              <div><div style={{fontWeight: '600'}}>New member alerts (Admin only)</div><div className="muted">Get notified when new users join groups you admin</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.admin_new_user_alerts} 
+                tabIndex={0} 
+                data-on={emailPrefs.admin_new_user_alerts.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, admin_new_user_alerts: !prev.admin_new_user_alerts }))}
+              >
+                <span></span>
+              </div>
+            </div>
+
+            <div className="inline" data-key="weekly_recap" style={{marginBottom: '8px'}}>
+              <div><div style={{fontWeight: '600'}}>Weekly recap emails</div><div className="muted">Receive weekly summaries of group performance</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.weekly_recap} 
+                tabIndex={0} 
+                data-on={emailPrefs.weekly_recap.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, weekly_recap: !prev.weekly_recap }))}
+              >
+                <span></span>
+              </div>
+            </div>
+
+            <div className="inline" data-key="invite_notifications">
+              <div><div style={{fontWeight: '600'}}>Invite notifications</div><div className="muted">Receive group invitations and related emails</div></div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={emailPrefs.invite_notifications} 
+                tabIndex={0} 
+                data-on={emailPrefs.invite_notifications.toString()}
+                onClick={() => setEmailPrefs(prev => ({ ...prev, invite_notifications: !prev.invite_notifications }))}
+              >
+                <span></span>
+              </div>
+            </div>
+          </div>
+
+          <div className="divider"></div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div className="muted" style={{minHeight: '18px', fontSize: '12px'}}>{emailPrefsStatus}</div>
+            <button onClick={updateEmailPreferences} className="btn primary">
+              Save Preferences
+            </button>
           </div>
         </div>
+      </section>
 
-        {/* Change Password Section */}
-        <div className="border-t pt-6">
-          <h2 className="text-lg font-semibold mb-4">Change Password</h2>
-          
-          <div className="space-y-4">
+      {/* Security */}
+      <section className="card">
+        <div className="inner">
+          <h2>Security</h2>
+          <div className="grid-2">
             <div>
-              <Label>Current password</Label>
-              <Input
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="mt-2"
-                autoComplete="current-password"
+              <label htmlFor="curpass">Current password</label>
+              <input 
+                id="curpass" 
+                type="password" 
+                placeholder="Enter current password" 
+                value={currentPassword} 
+                onChange={(e) => setCurrentPassword(e.target.value)} 
+                className="field" 
+                autoComplete="current-password" 
               />
             </div>
-
+            <div></div>
             <div>
-              <Label>New password</Label>
-              <Input
-                type="password"
-                placeholder="Enter new password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-2"
-                autoComplete="new-password"
+              <label htmlFor="newpass">New password</label>
+              <input 
+                id="newpass" 
+                type="password" 
+                placeholder="Enter new password" 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)} 
+                className="field" 
+                autoComplete="new-password" 
               />
             </div>
-
             <div>
-              <Label>Confirm new password</Label>
-              <Input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-2"
-                autoComplete="new-password"
+              <label htmlFor="confpass">Confirm new password</label>
+              <input 
+                id="confpass" 
+                type="password" 
+                placeholder="Confirm new password" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                className="field" 
+                autoComplete="new-password" 
               />
             </div>
-
-            <Button onClick={changePassword} variant="primary" size="lg" className="w-full">
+          </div>
+          <div className="divider"></div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div className="muted" style={{minHeight: '18px', fontSize: '12px', color: status.includes('✅') ? 'var(--success)' : '#ef4444'}}>{status}</div>
+            <button onClick={changePassword} className="btn">
               Change Password
-            </Button>
-            
-            <div className="text-xs text-zinc-600">
-              💡 <strong>Tip:</strong> Choose a strong password with at least 6 characters.
-            </div>
+            </button>
           </div>
         </div>
-
-        <div className="h-6" />
+      </section>
         
-        {/* Other Actions */}
-        <div className="border-t pt-6 space-y-3">
-          <Button onClick={backToDashboard} variant="primary" size="sm" className="w-full">
-            ← Back to Dashboard
-          </Button>
-          <Button onClick={signOut} variant="secondary" size="sm" className="w-full">
-            Sign Out
-          </Button>
+      {/* Account */}
+      <section className="card">
+        <div className="inner">
+          <h2>Account</h2>
+          <div className="inline">
+            <div>
+              <div className="muted">Signed in as</div>
+              <div style={{fontWeight: '600'}}>{user?.email}</div>
+            </div>
+            <button onClick={signOut} className="btn">
+              Sign Out
+            </button>
+          </div>
         </div>
+      </section>
 
-        <div className="h-3" />
-        <div className="min-h-[18px] text-sm muted">{status}</div>
-      </Card>
+      {/* Toast placeholder */}
+      <div className="toast" id="toast" role="status" aria-live="polite">Saved</div>
     </div>
   );
 }

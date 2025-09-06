@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RunPool – Dashboard</title>
+<style>
+  :root{
+    --bg:#0d1220;          /* page background */
+    --panel:#161b2e;       /* card background */
+    --panel-2:#12172a;     /* secondary panel */
+    --text:#e8ecff;        /* primary text */
+    --muted:#9aa3b2;       /* muted text */
+    --line:#273054;        /* borders */
+    --success:#33d18f;     /* success green */
+    --accent:#7aa2ff;      /* accent */
+    --chip:#232a46;        /* chip background */
+    --focus:#3d63ff88;     /* focus ring */
+    --shadow: 0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: radial-gradient(1200px 600px at 10% -10%, #152043 0%, transparent 60%) , var(--bg);
+    color:var(--text);
+    font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* Layout */
+  .wrap{max-width:1050px; margin:40px auto; padding:0 20px}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;
+  }
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{
+    width:28px; height:28px; border-radius:8px;
+    background: radial-gradient(circle at 25% 25%, #7af8d0, #3ce5a2 55%, #1fb275 100%);
+    box-shadow: 0 6px 18px rgba(31,178,117,.4);
+  }
+  .brand h1{font-size:18px; margin:0; letter-spacing:.2px}
+  .actions{display:flex; gap:10px}
+  .btn{
+    border:1px solid var(--line); background:var(--panel); color:var(--text);
+    padding:9px 14px; border-radius:999px; cursor:pointer;
+    box-shadow: var(--shadow); transition: transform .04s ease, background .2s ease, border-color .2s ease;
+  }
+  .btn:hover{transform:translateY(-1px); border-color:#3b4b7a}
+  .btn:focus-visible{outline:none; box-shadow:0 0 0 4px var(--focus)}
+  .btn.success{background:linear-gradient(180deg, #39e19b, #22c67f); color:#06140e; border-color:transparent}
+  .btn.ghost{background:transparent}
+
+  /* Grid */
+  .grid{display:grid; grid-template-columns: 1.1fr 1fr; gap:18px}
+  @media (max-width: 900px){ .grid{grid-template-columns:1fr} }
+
+  /* Cards */
+  .card{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card .inner{padding:18px}
+  .subtle{color:var(--muted)}
+  .divider{height:1px; background:var(--line); margin:12px 0}
+
+  /* Chips / badges */
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; color:#cbd3e8;
+    background:var(--chip); border:1px solid var(--line);
+    padding:6px 10px; border-radius:999px;
+  }
+  .chip .dot{width:8px; height:8px; border-radius:999px; background:var(--accent)}
+  .chip.green .dot{background:var(--success)}
+
+  /* Left column – Group card */
+  .group-title{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .muted-link{color:#c7d2fe; text-decoration:none; font-weight:500}
+  .muted-link:hover{text-decoration:underline}
+
+  .invite{
+    background:#0f1530; border:1px dashed #36406a; color:#b9c3de; padding:12px;
+    border-radius:12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    overflow:auto; white-space:nowrap;
+  }
+  .inline-actions{display:flex; align-items:center; gap:10px}
+
+  /* Right column – Week glance */
+  .row{display:flex; flex-wrap:wrap; gap:8px}
+  .kv{display:flex; align-items:center; gap:8px}
+  .kv .tag{background:var(--chip); border:1px solid var(--line); padding:6px 10px; border-radius:999px}
+
+  /* Submit block */
+  .submit{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  @media (max-width: 600px){ .submit{flex-direction:column; align-items:flex-start} }
+
+  /* Leaderboard */
+  .leader-header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;
+  }
+  .list{display:flex; flex-direction:column; gap:12px; margin-top:8px}
+  .row-item{
+    display:flex; align-items:center; gap:12px; background:#0f1427;
+    border:1px solid var(--line); border-radius:12px; padding:12px;
+  }
+  .ava{
+    display:grid; place-items:center; width:34px; height:34px; border-radius:999px; background:#1f2746; color:#fff; font-weight:700;
+    border:1px solid #2a3560;
+  }
+  .who{flex:1 1 auto}
+  .who .name{font-weight:700}
+  .who .meta{color:var(--muted); font-size:12px; margin-top:2px}
+
+  .progress{position:relative; width:38%; min-width:140px; height:10px; border-radius:999px; background:#0b1022; border:1px solid #223159; overflow:hidden}
+  .bar{position:absolute; inset:0; width:0; background:linear-gradient(90deg, #2eeaa0, #18c77d 45%, #0fb66f); transition:width .45s cubic-bezier(.22,1,.36,1)}
+  .pill{
+    background:#102338; border:1px solid #2a3860; color:#c8d3ee; padding:6px 10px; border-radius:999px; white-space:nowrap;
+    font-size:12px;
+  }
+  .iconbtn{
+    display:inline-grid; place-items:center; width:34px; height:34px; border-radius:999px; border:1px solid var(--line); background:var(--panel);
+    cursor:pointer; transition: transform .04s ease;
+  }
+  .iconbtn:hover{transform:translateY(-1px)}
+  .empty{
+    text-align:center; padding:30px 12px; color:#b5bed3; border:1px dashed #2a3560; border-radius:12px; background:#0f1426;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>RunPool</h1>
+        <span class="chip" title="Group status"><span class="dot"></span> Past Our Prime</span>
+      </div>
+      <div class="actions">
+        <button class="btn ghost">Settings</button>
+        <button class="btn success">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid">
+      <!-- Group / Left -->
+      <section class="card">
+        <div class="inner">
+          <div class="group-title">
+            <div>
+              <div style="font-weight:700; font-size:16px;">Past Our Prime</div>
+              <div class="subtle" style="margin-top:2px;">Challenge Rule: Run at least five total miles for the week.</div>
+            </div>
+            <a href="#" class="muted-link">Edit</a>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="inline-actions" style="margin-bottom:8px">
+            <span class="subtle">Entry Fee</span>
+            <span class="chip green"><span class="dot"></span>$10 / week</span>
+          </div>
+
+          <div style="margin:12px 0 6px; font-weight:600;">Invite Link <span class="subtle">· share to join</span></div>
+          <div class="invite">
+            http://localhost:3000/join?groupId=b47c967c-6a05-4d4a-a187-9729f2aef6ef
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <a class="btn" href="#" style="padding:8px 12px">Admin Settings</a>
+            <a class="btn" href="#" style="padding:8px 12px">View Payment History</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- This week at a glance / Right -->
+      <section class="card">
+        <div class="inner">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+            <div style="font-weight:700; font-size:16px;">This week at a glance</div>
+            <span class="pill">Aug 31 – Sep 6</span>
+          </div>
+
+          <div class="row" style="margin:12px 0 8px">
+            <span class="kv"><span class="tag">Rule: 5+ miles</span></span>
+            <span class="kv"><span class="tag">Entry: $10</span></span>
+            <span class="kv"><span class="tag">Deadline: Sat 8:00 PM</span></span>
+            <span class="kv"><span class="tag">Pot: $10</span></span>
+          </div>
+
+          <a href="#" class="muted-link">View Rules</a>
+        </div>
+      </section>
+
+      <!-- Submit weekly data -->
+      <section class="card" style="grid-column:1 / -1">
+        <div class="inner submit">
+          <div>
+            <div style="font-weight:700; font-size:16px; margin-bottom:4px;">Submit Weekly Data</div>
+            <div class="subtle">Log your miles before Saturday 8:00 PM.</div>
+          </div>
+          <div class="row">
+            <button class="btn success" id="logMiles">+ Log Miles</button>
+            <button class="btn" id="share">Share</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard -->
+      <section class="card" style="grid-column:1 / -1">
+        <div class="inner">
+          <div class="leader-header">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+              <div style="font-weight:800">Leaderboard — Aug 31 – Sep 6</div>
+              <span class="pill">Pot $10</span>
+              <span class="subtle">2 participants</span>
+            </div>
+            <div class="row">
+              <button class="iconbtn" id="sortBtn" title="Sort by miles">
+                <!-- bars icon -->
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 18h16M4 12h10M4 6h6" stroke="#9fb2ff" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button class="iconbtn" title="Share">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 12l10-7v14L7 12z" stroke="#9fb2ff" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list" id="lb">
+            <!-- Adrian -->
+            <div class="row-item" data-miles="3.2">
+              <div class="ava">A</div>
+              <div class="who">
+                <div class="name">Adrian</div>
+                <div class="meta">Week: 3.2 · Overall: 3.2 miles</div>
+              </div>
+              <div class="progress" aria-label="Adrian weekly progress">
+                <div class="bar" style="width:64%"></div>
+              </div>
+              <span class="pill" title="On pace">⏱ On Pace</span>
+            </div>
+
+            <!-- Jean -->
+            <div class="row-item" data-miles="0.0">
+              <div class="ava">J</div>
+              <div class="who">
+                <div class="name">Jean (You)</div>
+                <div class="meta">Week: 0.0 · Overall: –</div>
+              </div>
+              <div class="progress" aria-label="Jean weekly progress">
+                <div class="bar" style="width:2%"></div>
+              </div>
+              <span class="pill">🏁 Get Moving</span>
+            </div>
+          </div>
+
+          <!-- Empty state template (hidden) -->
+          <template id="emptyTpl">
+            <div class="empty">No entries yet. Click <strong>+ Log Miles</strong> to get on the board.</div>
+          </template>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+  // Simple “optimistic” add miles demo
+  const logBtn = document.getElementById('logMiles');
+  logBtn.addEventListener('click', () => {
+    const lb = document.getElementById('lb');
+    const me = [...lb.children].find(n => n.querySelector('.name')?.textContent.includes('(You)'));
+    const miles = +(me?.dataset.miles || 0) + 1.2; // pretend new entry
+    me.dataset.miles = miles.toFixed(1);
+    me.querySelector('.meta').textContent = `Week: ${miles.toFixed(1)} · Overall: –`;
+    me.querySelector('.bar').style.width = Math.min(100, (miles/5)*100) + '%';
+    me.querySelector('.pill').textContent = miles >= 5 ? '✅ Qualified' : '⏱ On Pace';
+    // (server call would happen here)
+  });
+
+  // Sort leaderboard by miles (desc)
+  document.getElementById('sortBtn').addEventListener('click', () => {
+    const lb = document.getElementById('lb');
+    const rows = [...lb.children];
+    rows.sort((a,b)=> (+b.dataset.miles) - (+a.dataset.miles));
+    rows.forEach(r => lb.appendChild(r));
+  });
+
+  // Share handler (copy invite)
+  document.getElementById('share').addEventListener('click', async () => {
+    const url = 'http://localhost:3000/join?groupId=b47c967c-6a05-4d4a-a187-9729f2aef6ef';
+    try{
+      await navigator.clipboard.writeText(url);
+      const old = event.target.textContent;
+      event.target.textContent = 'Copied ✅';
+      setTimeout(()=>event.target.textContent = old, 1200);
+    }catch{ alert('Link: ' + url) }
+  });
+</script>
+</body>
+</html>

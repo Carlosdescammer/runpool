@@ -316,23 +316,23 @@ export async function GET(req: Request) {
   switch (type) {
     case 'weekly-goal':
       html = weeklyGoalReminderHtml(
-        'John Runner', 
-        'SF Running Club',
+        'Sample Runner', 
+        'Sample Running Group',
         7.2,
         10.0,
         'Less than 24 hours',
-        'https://runpool.space/group/123'
+        '#'
       );
       break;
       
     case 'top-performer':
       html = topPerformerHtml(
-        'Sarah Champion',
-        'Marathon Squad',
+        'Sample Runner',
+        'Sample Group',
         1, // 1st place for gold theme
         15.5,
-        '2024-01-15 — 2024-01-21',
-        'https://runpool.space/group/456'
+        'Sample Period',
+        '#'
       );
       break;
       
@@ -362,7 +362,7 @@ export async function GET(req: Request) {
                 <span style="font-size: 36px;">👋</span>
               </div>
               <h1 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em;">Team Growth</h1>
-              <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 500;">SF Running Club</p>
+              <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 500;">Sample Running Group</p>
             </div>
           </div>
 
@@ -374,7 +374,7 @@ export async function GET(req: Request) {
               <div style="position: absolute; top: -30%; right: -15%; width: 150px; height: 150px; background: linear-gradient(45deg, #10b981, #059669); border-radius: 50%; opacity: 0.08;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: #10b981; color: white; padding: 8px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px;">New Member</div>
-                <h2 style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: #064e3b;">John Runner</h2>
+                <h2 style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: #064e3b;">Sample Runner</h2>
                 <p style="margin: 0 0 24px 0; font-size: 18px; color: #065f46; font-weight: 600;">joined your running community</p>
                 <div style="display: inline-flex; align-items: center; gap: 8px; background: #064e3b; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 700;">
                   <span>🎉</span>
@@ -456,7 +456,7 @@ export async function GET(req: Request) {
               <div style="position: absolute; top: -30%; right: -15%; width: 150px; height: 150px; background: linear-gradient(45deg, #fbbf24, #f59e0b); border-radius: 50%; opacity: 0.08;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: #f59e0b; color: white; padding: 8px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px;">Top 3 Achievement</div>
-                <h2 style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: #92400e;">Sarah Champion</h2>
+                <h2 style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: #92400e;">Sample Runner</h2>
                 <p style="margin: 0 0 24px 0; font-size: 18px; color: #a16207; font-weight: 600;">just logged <strong style="color: #92400e;">5.2 miles</strong> and is in the Top 3!</p>
                 <div style="display: inline-flex; align-items: center; gap: 8px; background: #92400e; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 700;">
                   <span>🔥</span>
@@ -472,21 +472,21 @@ export async function GET(req: Request) {
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; margin-bottom: 12px; border: 2px solid #fbbf24;">
                   <div style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-size: 24px;">🥇</span>
-                    <span style="font-weight: 800; color: #92400e; font-size: 16px;">Sarah Champion</span>
+                    <span style="font-weight: 800; color: #92400e; font-size: 16px;">Runner A</span>
                   </div>
                   <span style="font-weight: 700; color: #a16207; font-size: 16px;">24.8 mi</span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
                   <div style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-size: 24px;">🥈</span>
-                    <span style="font-weight: 700; color: #475569; font-size: 16px;">Mike Speed</span>
+                    <span style="font-weight: 700; color: #475569; font-size: 16px;">Runner B</span>
                   </div>
                   <span style="font-weight: 600; color: #64748b; font-size: 16px;">22.1 mi</span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #f1f5f9; border-radius: 12px; border: 1px solid #e2e8f0;">
                   <div style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-size: 24px;">🥉</span>
-                    <span style="font-weight: 700; color: #475569; font-size: 16px;">Alex Fast</span>
+                    <span style="font-weight: 700; color: #475569; font-size: 16px;">Runner C</span>
                   </div>
                   <span style="font-weight: 600; color: #64748b; font-size: 16px;">19.7 mi</span>
                 </div>
@@ -571,7 +571,7 @@ export async function GET(req: Request) {
                 <span style="font-size: 36px;">🏃‍♂️</span>
               </div>
               <h1 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em;">Activity Alert</h1>
-              <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 500;">SF Running Club</p>
+              <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 500;">Sample Running Group</p>
             </div>
           </div>
 
@@ -583,7 +583,7 @@ export async function GET(req: Request) {
               <div style="position: absolute; top: -50%; right: -20%; width: 200px; height: 200px; background: linear-gradient(45deg, #667eea, #764ba2); border-radius: 50%; opacity: 0.05;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: #667eea; color: white; padding: 8px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">New Activity</div>
-                <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 800; color: #1e293b;">Sarah Runner</h2>
+                <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 800; color: #1e293b;">Sample Runner</h2>
                 <p style="margin: 0 0 20px 0; font-size: 20px; color: #475569; font-weight: 600;">logged <strong style="color: #667eea;">5.2 miles</strong></p>
                 <div style="display: inline-flex; align-items: center; gap: 8px; background: #667eea; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 700;">
                   <span>🎯</span>
@@ -654,7 +654,7 @@ export async function GET(req: Request) {
               Proof Verification Needed
             </h1>
             <p style="margin: 0; font-size: 16px; opacity: 0.9;">
-              SF Running Club • 2024-01-15 — 2024-01-21
+              Sample Group • Sample Period
             </p>
           </div>
 
@@ -664,7 +664,7 @@ export async function GET(req: Request) {
             <!-- Submission Alert -->
             <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 20px; padding: 28px; margin-bottom: 32px; border: 2px solid #f59e0b; text-align: center;">
               <div style="color: #92400e; font-size: 24px; font-weight: 800; margin-bottom: 8px;">
-                John Runner
+                Sample Runner
               </div>
               <div style="color: #a16207; font-size: 18px; margin-bottom: 16px;">
                 submitted a run proof for 5.2 miles 📸
@@ -718,7 +718,7 @@ export async function GET(req: Request) {
     case 'payment-success':
       // Generate the HTML directly for preview
       const amount = 2500; // $25.00
-      const challengeName = 'SF Running Club';
+      const challengeName = 'Sample Running Group';
       html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -787,7 +787,7 @@ export async function GET(req: Request) {
     case 'payment-failure':
       // Generate the HTML directly for preview
       const failureAmount = 2500;
-      const failureChallengeName = 'SF Running Club';
+      const failureChallengeName = 'Sample Running Group';
       const failureReason = 'Your card was declined';
       html = `<!DOCTYPE html>
 <html lang="en">
@@ -850,7 +850,7 @@ export async function GET(req: Request) {
     case 'payout-success':
       // Generate the HTML directly for preview
       const payoutAmount = 15000; // $150.00
-      const payoutChallengeName = 'SF Running Club';
+      const payoutChallengeName = 'Sample Running Group';
       const position = 1;
       html = `<!DOCTYPE html>
 <html lang="en">
@@ -913,7 +913,7 @@ export async function GET(req: Request) {
     case 'stripe-setup':
       // Generate the HTML directly for preview
       const accountStatus = 'complete';
-      const groupName = 'SF Running Club';
+      const groupName = 'Sample Running Group';
       html = `<!DOCTYPE html>
 <html lang="en">
 <head>

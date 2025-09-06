@@ -5,19 +5,11 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
-import { ArrowUp, ArrowDown, Minus, Crown, Pencil } from 'lucide-react';
+// Remove unused imports
 
 // Components
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
 import { Leaderboard } from './components/Leaderboard/Leaderboard';
 import { MileageSubmissionModal } from './components/MileageSubmission/MileageSubmissionModal';
-import { GroupInfo } from './components/GroupInfo/GroupInfo';
-import { SocialShare } from '@/components/SocialShare';
 import { supabase } from '@/lib/supabaseClient';
 
 // Types
@@ -33,10 +25,7 @@ type Challenge = {
 type Group = {
   id: string;
   name: string;
-  description: string | null;
   created_at: string;
-  is_public: boolean;
-  created_by: string;
   member_count: number;
   is_member: boolean;
   rule?: string;
@@ -47,6 +36,7 @@ type LeaderboardRow = {
   user_id: string;
   name: string | null;
   miles: number;
+  overallMiles: number;
   rank: number;
   rankChange?: number;
   streak?: number;
@@ -76,20 +66,210 @@ export default function GroupPage() {
   
   // Invite State
   const [joinLink, setJoinLink] = useState('');
-  const [copied, setCopied] = useState(false);
-  
   
   // Animation/UI State
   const [showWelcome, setShowWelcome] = useState(false);
-  const [rankDelta, setRankDelta] = useState<Record<string, number>>({});
-  const [movement, setMovement] = useState<Record<string, 'up' | 'down' | 'same'>>({});
-  const [joinTop3, setJoinTop3] = useState<Record<string, boolean>>({});
-  const [dropTop3, setDropTop3] = useState<Record<string, boolean>>({});
-  const [streaks, setStreaks] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
+    const checkAuth = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Auth error:', error);
+        router.replace('/signin');
+        return;
+      }
+      
+      if (!user) {
+        console.log('No user found, redirecting to signin');
+        router.replace('/signin');
+        return;
+      }
+      
+      console.log('User authenticated:', user.id);
+      setUserId(user.id);
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  // Load group data
+  useEffect(() => {
+    if (!groupId || !userId) {
+      console.log('Missing groupId or userId:', { groupId, userId });
+      return;
+    }
+    
+    const loadGroupData = async () => {
+      console.log('Loading group data for:', { groupId, userId });
+      setLoading(prev => ({ ...prev, group: true }));
+      
+      try {
+        console.log('=== DISCOVERING DATABASE SCHEMA ===');
+        
+        // First, let's discover what tables and columns actually exist
+        console.log('Step 1: Discovering memberships table schema...');
+        const { data: sampleMembership, error: membershipSchemaError } = await supabase
+          .from('memberships')
+          .select('*')
+          .limit(1);
+        
+        if (sampleMembership && sampleMembership.length > 0) {
+          console.log('MEMBERSHIPS table columns:', Object.keys(sampleMembership[0]));
+        } else {
+          console.log('No memberships data found or error:', membershipSchemaError);
+        }
+        
+        console.log('Step 2: Discovering groups table schema...');
+        const { data: sampleGroup, error: groupSchemaError } = await supabase
+          .from('groups')
+          .select('*')
+          .limit(1);
+        
+        if (sampleGroup && sampleGroup.length > 0) {
+          console.log('GROUPS table columns:', Object.keys(sampleGroup[0]));
+        } else {
+          console.log('No groups data found or error:', groupSchemaError);
+        }
+        
+        console.log('Step 3: Discovering challenges table schema...');
+        const { data: sampleChallenge, error: challengeSchemaError } = await supabase
+          .from('challenges')
+          .select('*')
+          .limit(1);
+        
+        if (sampleChallenge && sampleChallenge.length > 0) {
+          console.log('CHALLENGES table columns:', Object.keys(sampleChallenge[0]));
+        } else {
+          console.log('No challenges data found or error:', challengeSchemaError);
+        }
+        
+        console.log('Step 4: Discovering proofs table schema...');
+        const { data: sampleProof, error: proofSchemaError } = await supabase
+          .from('proofs')
+          .select('*')
+          .limit(1);
+        
+        if (sampleProof && sampleProof.length > 0) {
+          console.log('PROOFS table columns:', Object.keys(sampleProof[0]));
+        } else {
+          console.log('No proofs data found or error:', proofSchemaError);
+        }
+        
+        console.log('Step 5: Discovering user_profiles table schema...');
+        const { data: sampleProfile, error: profileSchemaError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .limit(1);
+        
+        if (sampleProfile && sampleProfile.length > 0) {
+          console.log('USER_PROFILES table columns:', Object.keys(sampleProfile[0]));
+        } else {
+          console.log('No user_profiles data found or error:', profileSchemaError);
+        }
+        
+        console.log('=== NOW LOADING ACTUAL DATA ===');
+        
+        // Now check if user is a member of this group using discovered schema
+        console.log('Step 6: Checking membership with discovered schema...');
+        const { data: membershipData, error: membershipError } = await supabase
+          .from('memberships')
+          .select('*')
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .single();
+        
+        if (membershipError) {
+          console.error('Membership error:', membershipError.message, membershipError.details, membershipError.code);
+          if (membershipError.code === 'PGRST116') {
+            toast.error('You are not a member of this group');
+            router.replace('/onboarding');
+          } else {
+            toast.error('Failed to verify membership');
+          }
+          return;
+        }
+        
+        console.log('Step 7: Membership found:', membershipData);
+        
+        // Load group data using discovered schema
+        console.log('Step 8: Loading group data with discovered schema...');
+        const { data: groupData, error: groupError } = await supabase
+          .from('groups')
+          .select('*')
+          .eq('id', groupId)
+          .single();
+        
+        console.log('Loaded group data:', groupData);
+        
+        if (groupError) {
+          console.error('Group error:', groupError.message, groupError.details, groupError.code);
+          toast.error('Failed to load group information');
+          return;
+        }
+        
+        console.log('Step 9: Group data loaded:', groupData);
+        
+        const groupWithMemberCount = {
+          ...groupData,
+          member_count: 0,
+          is_member: true
+        };
+        
+        setGroup(groupWithMemberCount);
+        
+        // Check admin status using actual membership data structure
+        console.log('Membership data structure:', membershipData);
+        const userRole = membershipData?.role || membershipData?.user_role || 'member';
+        console.log('User role:', userRole);
+        setIsAdmin(['admin', 'owner'].includes(userRole));
+        
+        console.log('Step 10: Loading challenges with discovered schema...');
+        // Load current challenge
+        const { data: challengeData, error: challengeError } = await supabase
+          .from('challenges')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('week_start', { ascending: false })
+          .limit(1);
+        
+        console.log('Challenge data loaded:', challengeData);
+        if (challengeData && challengeData.length > 0) {
+          console.log('Challenge columns available:', Object.keys(challengeData[0]));
+        }
+          
+        if (challengeError) {
+          console.error('Challenge error:', challengeError.message, challengeError.details);
+          // Don't fail if no challenges exist, just log it
+        }
+        
+        console.log('Step 6: Challenge data:', challengeData);
+        
+        if (challengeData && challengeData.length > 0) {
+          setChallenge(challengeData[0]);
+          await loadLeaderboard(challengeData[0].id);
+        } else {
+          console.log('No active challenges found');
+          setLeaderboard([]);
+          setLoading(prev => ({ ...prev, leaderboard: false }));
+        }
+        
+        console.log('Step 7: Group loading completed successfully');
+        
+      } catch (error: any) {
+        console.error('Unexpected error loading group data:', {
+          error,
+          message: error?.message,
+          stack: error?.stack,
+          name: error?.name
+        });
+        toast.error(`Failed to load group data: ${error?.message || 'Unknown error'}`);
+      } finally {
+        setLoading(prev => ({ ...prev, group: false, challenge: false }));
+      }
+    };
+    
+    loadGroupData();
+  }, [groupId, userId, router]);
 
   useEffect(() => {
     try { 
@@ -98,326 +278,6 @@ export default function GroupPage() {
       console.error('Error setting join link:', error);
     }
   }, [groupId]);
-
-  async function submitProof(miles: number, file: File | null) {
-    if (!userId) { setStatus('error'); return; }
-    if (!challenge) { setStatus('error'); return; }
-    if (!miles) { setStatus('error'); return; }
-    const milesNum = Number(miles);
-    let image_url: string | null = null;
-
-    if (file) {
-      setStatus('loading');
-      
-      try {
-        // Convert HEIC to JPEG if needed (common issue with iPhone photos)
-        const fileToUpload = file;
-        if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().includes('.heic')) {
-          // For HEIC files, we'll still upload but warn the user
-          console.warn('HEIC file detected. Consider converting to JPEG for better compatibility.');
-        }
-        
-        // Ensure proper file name
-        const timestamp = Date.now();
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const path = `proofs/${userId}/${timestamp}_${sanitizedFileName}`;
-        
-        console.log('Uploading file:', {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          path
-        });
-        
-        // Upload with proper content type
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('proofs')
-          .upload(path, fileToUpload, {
-            contentType: file.type || 'image/jpeg',
-            upsert: false
-          });
-          
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          setStatus('error');
-          toast.error(`Upload failed: ${uploadError.message}`);
-          return;
-        }
-        
-        console.log('Upload successful:', uploadData);
-        
-        // Get public URL instead of signed URL for better reliability
-        const { data: urlData } = supabase.storage
-          .from('proofs')
-          .getPublicUrl(path);
-          
-        if (urlData?.publicUrl) {
-          image_url = urlData.publicUrl;
-          console.log('Image URL:', image_url);
-        } else {
-          // Fallback to signed URL if public URL fails
-          const { data: signedData, error: signedError } = await supabase.storage
-            .from('proofs')
-            .createSignedUrl(path, 3600 * 24 * 7); // 1 week expiry
-            
-          if (signedError) {
-            console.error('Signed URL error:', signedError);
-            setStatus('error');
-            toast.error('Failed to generate image URL');
-            return;
-          }
-          
-          image_url = signedData.signedUrl;
-        }
-        
-      } catch (error) {
-        console.error('File processing error:', error);
-        setStatus('error');
-        toast.error('Failed to process image');
-        return;
-      }
-    }
-
-    setStatus('loading');
-    const { error } = await supabase.from('proofs').insert({
-      challenge_id: challenge.id,
-      user_id: userId,
-      miles: milesNum,
-      image_url
-    });
-    
-    if (error) { 
-      console.error('Database error:', error);
-      setStatus('error'); 
-      toast.error(error.message); 
-      return; 
-    }
-    
-    setStatus('success');
-    toast.success('Proof submitted successfully!');
-    try { confetti({ particleCount: 45, spread: 60, origin: { y: 0.3 } }); } catch {}
-
-    // Reload leaderboard
-    await loadLeaderboard(challenge.id);
-
-    // Fire-and-forget: notify group members by email via Resend
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      if (token) {
-        // Notify group members about the proof submission
-        fetch('/api/notify/proof', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ challenge_id: challenge.id, miles: milesNum }),
-        }).catch(() => {});
-
-        // Notify admins that a proof needs verification
-        fetch('/api/notify/admin-proof-pending', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ 
-            challenge_id: challenge.id, 
-            user_id: userId, 
-            miles: milesNum 
-          }),
-        }).catch(() => {});
-      }
-    } catch {}
-
-    await loadLeaderboard(challenge.id);
-  }
-
-  async function loadLeaderboard(challengeId: string) {
-    setLoading(prev => ({ ...prev, leaderboard: true }));
-    
-    try {
-      if (!challengeId) {
-        console.warn('No challenge ID provided to loadLeaderboard');
-        setLeaderboard([]);
-        return;
-      }
-
-      // Get proofs for this challenge - sum miles by user_id to handle multiple submissions
-      const { data: proofsData, error: proofsError } = await supabase
-        .from('proofs')
-        .select('user_id, miles')
-        .eq('challenge_id', challengeId);
-
-      if (proofsError) {
-        console.warn('Supabase error loading proofs - using placeholder data:', JSON.stringify(proofsError));
-        
-        // If table doesn't exist or other errors, use placeholder data
-        const placeholderData: LeaderboardRow[] = [
-          { user_id: '1', name: 'A. Rivera', miles: 18.6, rank: 1 },
-          { user_id: '2', name: 'K. Patel', miles: 17.4, rank: 2 },
-          { user_id: '3', name: 'M. Scott', miles: 15.2, rank: 3 },
-          { user_id: '4', name: 'L. Chen', miles: 12.7, rank: 4 },
-          { user_id: '5', name: 'J. Gomez', miles: 9.9, rank: 5 },
-        ];
-        
-        setLeaderboard(placeholderData);
-        return;
-      }
-
-      // If no proofs found, show empty leaderboard
-      if (!proofsData || proofsData.length === 0) {
-        setLeaderboard([]);
-        return;
-      }
-
-      // Aggregate miles by user_id to handle multiple submissions from same user
-      const userMiles = new Map<string, number>();
-      proofsData.forEach((proof: { user_id: string; miles: number }) => {
-        const currentMiles = userMiles.get(proof.user_id) || 0;
-        userMiles.set(proof.user_id, currentMiles + proof.miles);
-      });
-
-      // Get unique user IDs
-      const userIds = Array.from(userMiles.keys());
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('id, name')
-        .in('id', userIds);
-
-      if (profilesError) {
-        console.warn('Error fetching user profiles:', profilesError);
-      }
-
-      console.log('User IDs with proofs:', userIds);
-      console.log('Profiles found:', profilesData);
-
-      // Create a map of user_id to name
-      const userNames = new Map();
-      const foundUserIds = new Set();
-      
-      (profilesData || []).forEach((profile: { id: string; name?: string }) => {
-        foundUserIds.add(profile.id);
-        const displayName = profile.name;
-        if (displayName) {
-          userNames.set(profile.id, displayName);
-        } else {
-          console.warn(`User ${profile.id} has no name in profile`);
-        }
-      });
-
-      // Check for users who don't have profiles at all
-      const missingProfiles = userIds.filter(id => !foundUserIds.has(id));
-      if (missingProfiles.length > 0) {
-        console.warn('Users with proofs but no profiles:', missingProfiles);
-        // Create basic profiles for missing users
-        for (const userId of missingProfiles) {
-          userNames.set(userId, `User ${userId.slice(0, 8)}`);
-        }
-      }
-
-      // Transform and sort the data
-      const formattedData: LeaderboardRow[] = Array.from(userMiles.entries())
-        .map(([user_id, miles]) => ({
-          user_id,
-          name: userNames.get(user_id) || 'Anonymous',
-          miles,
-          rank: 0, // Will be set after sorting
-        }))
-        .sort((a, b) => b.miles - a.miles) // Sort by miles descending
-        .map((entry, index) => ({
-          ...entry,
-          rank: index + 1,
-        }));
-
-      setLeaderboard(formattedData);
-    } catch (error) {
-      console.error('Error loading leaderboard:', error instanceof Error ? error.message : String(error));
-      
-      // Fallback to placeholder data on any error
-      const placeholderData: LeaderboardRow[] = [
-        { user_id: '1', name: 'A. Rivera', miles: 18.6, rank: 1 },
-        { user_id: '2', name: 'K. Patel', miles: 17.4, rank: 2 },
-        { user_id: '3', name: 'M. Scott', miles: 15.2, rank: 3 },
-        { user_id: '4', name: 'L. Chen', miles: 12.7, rank: 4 },
-        { user_id: '5', name: 'J. Gomez', miles: 9.9, rank: 5 },
-      ];
-      setLeaderboard(placeholderData);
-    } finally {
-      setLoading(prev => ({ ...prev, leaderboard: false }));
-    }
-  };
-
-  // Fetch group data
-  useEffect(() => {
-    const fetchGroupData = async () => {
-      try {
-        // Fetch group details
-        const { data: groupData, error: groupError } = await supabase
-          .from('groups')
-          .select('*')
-          .eq('id', groupId)
-          .single();
-
-        if (groupError) throw groupError;
-        setGroup(groupData);
-        setLoading(prev => ({ ...prev, group: false }));
-
-        // Fetch active challenge
-        const { data: challengeData, error: challengeError } = await supabase
-          .from('challenges')
-          .select('*')
-          .eq('group_id', groupId)
-          .order('week_start', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (challengeError) throw challengeError;
-        
-        if (challengeData) {
-          setChallenge(challengeData);
-          await loadLeaderboard(challengeData.id);
-        } else {
-          setLoading(prev => ({ ...prev, challenge: false, leaderboard: false }));
-        }
-      } catch (error) {
-        console.error('Error fetching group data:', error);
-        toast.error('Failed to load group data');
-        setLoading(prev => ({ ...prev, group: false, challenge: false, leaderboard: false }));
-      }
-    };
-
-    fetchGroupData();
-  }, [groupId]);
-
-  // Check if current user is admin of this group
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!userId || !group) return;
-      
-      try {
-        const { data: membership, error } = await supabase
-          .from('memberships')
-          .select('role')
-          .eq('group_id', groupId)
-          .eq('user_id', userId)
-          .single();
-
-        if (error) {
-          console.error('Supabase error checking admin status:', error);
-          setIsAdmin(false);
-          return;
-        }
-        const role = membership?.role as ('owner' | 'admin' | 'member' | undefined);
-        setIsAdmin(role === 'owner' || role === 'admin');
-      } catch (error) {
-        console.error('Error checking admin status:', error instanceof Error ? error.message : String(error));
-      }
-    };
-
-    checkAdminStatus();
-  }, [userId, group, groupId]);
 
   // Handle user authentication and welcome message
   useEffect(() => {
@@ -433,7 +293,7 @@ export default function GroupPage() {
       }, 1000);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUserId(session?.user?.id || null);
     });
 
@@ -447,136 +307,8 @@ export default function GroupPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const justJoined = searchParams.get('joined') === '1';
-    setShowWelcome(justJoined);
-    if (justJoined) {
-      // Celebrate join
-      setTimeout(() => {
-        try {
-          confetti({ particleCount: 90, spread: 70, origin: { y: 0.25 } });
-        } catch {}
-        toast.success('Welcome to the group!');
-      }, 200);
-    }
-  }, [searchParams]);
 
-  async function copyInvite() {
-    try {
-      await navigator.clipboard.writeText(joinLink);
-      setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-    } catch {
-      toast.error('Copy failed');
-    }
-  }
-
-
-
-  // Realtime: subscribe to proofs changes for current challenge to refresh leaderboard
-  useEffect(() => {
-    if (!challenge?.id) return;
-    const channel = supabase
-      .channel(`leaderboard_${challenge.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'proofs', filter: `challenge_id=eq.${challenge.id}` },
-        () => {
-          loadLeaderboard(challenge.id);
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [challenge?.id]);
-
-  // Compute rank deltas (vs previous render snapshot) and top-3 threshold animations
-  useEffect(() => {
-    if (!leaderboard || leaderboard.length === 0 || !groupId) return;
-    const ranks: Record<string, number> = {};
-    leaderboard.forEach((r, i) => { ranks[r.user_id] = i + 1; });
-
-    const key = `leader_prev_ranks_${groupId}_${challenge?.id ?? 'none'}`;
-    let prev: Record<string, number> = {};
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) prev = JSON.parse(raw);
-    } catch {}
-
-    const delta: Record<string, number> = {};
-    const move: Record<string, 'up' | 'down' | 'same'> = {};
-    const joinFlags: Record<string, boolean> = {};
-    const dropFlags: Record<string, boolean> = {};
-
-    leaderboard.forEach((r, i) => {
-      const currRank = i + 1;
-      const prevRank = prev[r.user_id];
-      if (typeof prevRank === 'number') {
-        const d = prevRank - currRank; // positive => moved up
-        delta[r.user_id] = d;
-        move[r.user_id] = d > 0 ? 'up' : d < 0 ? 'down' : 'same';
-        if (prevRank > 3 && currRank <= 3) joinFlags[r.user_id] = true;
-        if (prevRank <= 3 && currRank > 3) dropFlags[r.user_id] = true;
-      } else {
-        delta[r.user_id] = 0;
-        move[r.user_id] = 'same';
-      }
-    });
-
-    setRankDelta(delta);
-    setMovement(move);
-    if (Object.keys(joinFlags).length > 0) {
-      setJoinTop3(joinFlags);
-      setTimeout(() => setJoinTop3({}), 1500);
-    }
-    if (Object.keys(dropFlags).length > 0) {
-      setDropTop3(dropFlags);
-      setTimeout(() => setDropTop3({}), 1500);
-    }
-
-    try { localStorage.setItem(key, JSON.stringify(ranks)); } catch {}
-  }, [leaderboard, groupId, challenge?.id]);
-
-  // Compute current streaks from recent closed challenges (client-side)
-  useEffect(() => {
-    (async () => {
-      if (!groupId || !leaderboard || leaderboard.length === 0) { setStreaks({}); return; }
-      const { data: closed } = await supabase
-        .from('challenges')
-        .select('id, week_start')
-        .eq('group_id', groupId)
-        .eq('status', 'CLOSED')
-        .order('week_start', { ascending: false })
-        .limit(8);
-      const weeks = closed ?? [];
-      if (weeks.length === 0) { setStreaks({}); return; }
-      const ids = weeks.map(w => w.id);
-      const { data: proofs } = await supabase
-        .from('proofs')
-        .select('user_id, challenge_id')
-        .in('challenge_id', ids);
-      const hadProof = new Map<string, Set<string>>();
-      (proofs ?? []).forEach(p => {
-        const s = hadProof.get(p.user_id) ?? new Set<string>();
-        s.add(p.challenge_id);
-        hadProof.set(p.user_id, s);
-      });
-      const streakMap: Record<string, number> = {};
-      for (const r of leaderboard) {
-        let count = 0;
-        const set = hadProof.get(r.user_id) ?? new Set<string>();
-        for (const w of ids) {
-          if (set.has(w)) count += 1; else break;
-        }
-        streakMap[r.user_id] = count;
-      }
-      setStreaks(streakMap);
-    })();
-  }, [groupId, leaderboard]);
-
+  // Calculate period string from challenge dates
   const period = useMemo(() => {
     if (!challenge) return '';
     const s = new Date(challenge.week_start).toLocaleDateString(undefined, { month:'short', day:'numeric' });
@@ -584,6 +316,7 @@ export default function GroupPage() {
     return `${s} – ${e}`;
   }, [challenge]);
 
+  // Calculate deadline label
   const deadlineLabel = useMemo(() => {
     if (!challenge) return '';
     try {
@@ -595,215 +328,428 @@ export default function GroupPage() {
     }
   }, [challenge]);
 
-  // Handle loading state
+  // Submit proof function
+  const submitProof = async (miles: number, file: File | null) => {
+    if (!userId || !challenge) {
+      toast.error('You must be logged in and have an active challenge to submit proof');
+      return;
+    }
+
+    setStatus('loading');
+
+    try {
+      let imageUrl = null;
+      
+      // Upload file if provided
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('proof-images')
+          .upload(fileName, file);
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error('Failed to upload image. Submitting without proof.');
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('proof-images')
+            .getPublicUrl(uploadData.path);
+          imageUrl = urlData.publicUrl;
+        }
+      }
+
+      const { error } = await supabase
+        .from('proofs')
+        .upsert({
+          user_id: userId,
+          challenge_id: challenge.id,
+          miles,
+          image_url: imageUrl,
+        });
+
+      if (error) throw error;
+
+      toast.success('Proof submitted successfully!');
+      setStatus('success');
+      
+      // Refresh leaderboard
+      loadLeaderboard(challenge.id);
+    } catch (error) {
+      console.error('Error submitting proof:', error);
+      toast.error('Failed to submit proof. Please try again.');
+      setStatus('error');
+    }
+  };
+
+  // Load leaderboard function
+  const loadLeaderboard = async (challengeId: string) => {
+    setLoading(prev => ({ ...prev, leaderboard: true }));
+    
+    try {
+      console.log('=== LOADING ACCURATE LEADERBOARD DATA ===');
+      console.log('Loading leaderboard for challenge:', challengeId, 'in group:', groupId);
+      
+      // First, get all group members with accurate schema
+      console.log('Step 1: Loading all group members...');
+      const { data: members, error: membersError } = await supabase
+        .from('memberships')
+        .select('*')
+        .eq('group_id', groupId);
+      
+      console.log('Members data loaded:', members);
+      if (members && members.length > 0) {
+        console.log('Membership record structure:', Object.keys(members[0]));
+      }
+      
+      if (membersError) {
+        console.error('Members error:', membersError);
+        throw membersError;
+      }
+      
+      console.log('Group members found:', members?.length || 0);
+      
+      // Now get user profiles for all members
+      const userIds = members?.map(m => m.user_id).filter(Boolean) || [];
+      console.log('Step 2: Loading user profiles for user IDs:', userIds);
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .in('id', userIds);
+      
+      console.log('User profiles loaded:', profiles);
+      if (profiles && profiles.length > 0) {
+        console.log('Profile record structure:', Object.keys(profiles[0]));
+      }
+      
+      // Fetch weekly proofs for the current challenge
+      console.log('Step 3: Loading proofs for challenge:', challengeId);
+      const { data: proofs, error: proofsError } = await supabase
+        .from('proofs')
+        .select('*')
+        .eq('challenge_id', challengeId);
+      
+      if (proofsError) {
+        console.error('Proofs error:', proofsError);
+        // Don't throw - it's OK if there are no proofs yet
+      }
+      
+      console.log('Proofs found for this challenge:', proofs?.length || 0);
+      console.log('Proof data:', proofs);
+      if (proofs && proofs.length > 0) {
+        console.log('Proof record structure:', Object.keys(proofs[0]));
+      }
+      
+      // Aggregate miles by user from current challenge
+      console.log('Step 4: Calculating weekly miles from proofs...');
+      const milesByUser: Record<string, number> = {};
+      proofs?.forEach((proof, index) => {
+        console.log(`Processing proof ${index + 1}:`, proof);
+        
+        const userId = proof.user_id;
+        if (!userId) {
+          console.warn('Proof missing user_id:', proof);
+          return;
+        }
+        
+        // Try multiple possible column names for miles
+        let miles = 0;
+        const possibleColumns = ['miles', 'distance', 'mileage', 'total_miles', 'weekly_miles'];
+        
+        for (const col of possibleColumns) {
+          if (proof[col] !== undefined && proof[col] !== null) {
+            miles = parseFloat(proof[col]) || 0;
+            console.log(`Found miles in column '${col}': ${miles}`);
+            break;
+          }
+        }
+        
+        if (miles === 0) {
+          console.warn('No miles value found in proof:', proof);
+        }
+        
+        milesByUser[userId] = (milesByUser[userId] || 0) + miles;
+        console.log(`Added ${miles} miles for user ${userId}, total now: ${milesByUser[userId]}`);
+      });
+      console.log('Weekly miles by user:', milesByUser);
+      
+      // Fetch all-time proofs for overall miles calculation
+      console.log('Step 5: Loading all-time proofs for overall miles...');
+      const { data: allProofs, error: allProofsError } = await supabase
+        .from('proofs')
+        .select('*');
+        
+      if (allProofsError) {
+        console.error('All proofs error:', allProofsError);
+        // Don't throw - overall miles is optional
+      }
+      
+      console.log('All-time proofs loaded:', allProofs?.length || 0);
+      
+      // Calculate overall miles by user
+      const overallMilesByUser: Record<string, number> = {};
+      allProofs?.forEach((proof, index) => {
+        const userId = proof.user_id;
+        if (!userId) return;
+        
+        // Try multiple possible column names for miles
+        let miles = 0;
+        const possibleColumns = ['miles', 'distance', 'mileage', 'total_miles', 'weekly_miles'];
+        
+        for (const col of possibleColumns) {
+          if (proof[col] !== undefined && proof[col] !== null) {
+            miles = parseFloat(proof[col]) || 0;
+            break;
+          }
+        }
+        
+        overallMilesByUser[userId] = (overallMilesByUser[userId] || 0) + miles;
+      });
+      console.log('Overall miles by user:', overallMilesByUser);
+      
+      // Create leaderboard rows for ALL group members using actual data structure
+      console.log('Step 6: Creating leaderboard with accurate data...');
+      const rows: LeaderboardRow[] = members?.map(member => {
+        const userId = member.user_id;
+        const profile = profiles?.find(p => p.id === userId);
+        
+        const weeklyMiles = milesByUser[userId] || 0;
+        const totalMiles = overallMilesByUser[userId] || 0;
+        const userName = profile?.name || profile?.display_name || profile?.full_name || `User ${userId.slice(0, 8)}`;
+        
+        console.log(`Processing member ${userId}:`, {
+          membership: member,
+          profile: profile,
+          userName: userName,
+          weeklyMiles: weeklyMiles,
+          overallMiles: totalMiles,
+          milesType: typeof weeklyMiles,
+          isValidMiles: !isNaN(weeklyMiles) && weeklyMiles >= 0
+        });
+        
+        // Validate miles data
+        if (isNaN(weeklyMiles) || weeklyMiles < 0) {
+          console.warn(`Invalid weekly miles for user ${userId}: ${weeklyMiles}`);
+        }
+        if (isNaN(totalMiles) || totalMiles < 0) {
+          console.warn(`Invalid total miles for user ${userId}: ${totalMiles}`);
+        }
+        
+        return {
+          user_id: userId,
+          name: userName,
+          miles: Math.max(0, weeklyMiles), // Ensure non-negative
+          overallMiles: Math.max(0, totalMiles), // Ensure non-negative
+          rank: 0, // Will be set after sorting
+        };
+      }) || [];
+      
+      // Sort by miles (descending)
+      rows.sort((a, b) => b.miles - a.miles);
+      
+      // Assign ranks
+      rows.forEach((row, index) => {
+        row.rank = index + 1;
+      });
+      
+      console.log('=== FINAL LEADERBOARD DATA ===');
+      console.log('Leaderboard created with', rows.length, 'members');
+      rows.forEach((row, index) => {
+        console.log(`${index + 1}. ${row.name} - Weekly: ${row.miles} miles, Overall: ${row.overallMiles} miles, UserID: ${row.user_id}`);
+      });
+      console.log('================================');
+      
+      setLeaderboard(rows);
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+      toast.error('Failed to load leaderboard');
+    } finally {
+      setLoading(prev => ({ ...prev, leaderboard: false }));
+    }
+  };
+
   if (loading.group) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded mt-6"></div>
+      <div className="wrap">
+        <div className="topbar">
+          <div className="brand">
+            <div className="logo" aria-hidden="true"></div>
+            <h1>RunPool</h1>
+            <span className="chip">Loading...</span>
+          </div>
         </div>
+        <section className="card">
+          <div className="inner">
+            <div>Loading group data...</div>
+          </div>
+        </section>
       </div>
     );
   }
 
-  // Handle error or missing group
   if (!group) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-md">
-          <h2 className="text-lg font-medium">Error</h2>
-          <p>Failed to load group data. The group may not exist or you may not have permission to view it.</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => router.back()}
-          >
-            Go Back
-          </Button>
+      <div className="wrap">
+        <div className="topbar">
+          <div className="brand">
+            <div className="logo" aria-hidden="true"></div>
+            <h1>RunPool</h1>
+            <span className="chip">Error</span>
+          </div>
         </div>
+        <section className="card">
+          <div className="inner">
+            <div>Failed to load group. Please try refreshing the page.</div>
+            <div className="divider"></div>
+            <button onClick={() => window.location.reload()} className="btn primary">
+              Refresh Page
+            </button>
+          </div>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="min-h-svh px-4 pb-6 pt-6 md:px-6">
-      <div className="mx-auto grid max-w-[1000px] gap-4">
-        {showWelcome && group && (
-          <Card className="relative p-4">
-            <Button
+    <div className="wrap">
+      {/* Topbar */}
+      <div className="topbar">
+        <div className="brand">
+          <div className="logo" aria-hidden="true"></div>
+          <h1>RunPool</h1>
+          {group && <span className="chip" title="Group status"><span className="dot"></span> {group.name}</span>}
+        </div>
+        <div className="actions">
+          <button onClick={() => router.push('/settings')} className="btn ghost">Settings</button>
+          <button onClick={async () => { await supabase.auth.signOut(); router.replace('/signin'); }} className="btn success">Sign Out</button>
+        </div>
+      </div>
+
+      {showWelcome && group && (
+        <section className="card" style={{marginBottom: '18px'}}>
+          <div className="inner">
+            <button
               onClick={() => setShowWelcome(false)}
-              aria-label="Dismiss"
-              variant="secondary"
-              size="sm"
-              className="absolute right-2 top-2"
+              className="btn ghost"
+              style={{position: 'absolute', right: '12px', top: '12px', padding: '6px 8px'}}
             >
               ✕
-            </Button>
-            <div className="mb-2 text-[18px] font-black">Run Pool — Simple Rules</div>
-            <div className="text-zinc-900">
-              <ol className="ml-4 grid list-decimal gap-2">
-                <li>
-                  <strong>What this is</strong>
-                  <div>A weekly running game with friends. Do the miles, show proof, and share the prize.</div>
-                </li>
-                <li>
-                  <strong>Roles</strong>
-                  <div>Coach: made the group and sets the weekly rule.</div>
-                  <div>Banker: trusted person who holds the money (Apple Pay/Venmo).</div>
-                  <div>Players: everyone who joins.</div>
-                </li>
-                <li>
-                  <strong>This week’s rule (example)</strong>
-                  <div>
-                    Goal: <em>Run at least 5 miles between Mon–Sun 11:59 PM.</em> The rule stays the
-                    same all week. Changes apply next week.
-                  </div>
-                </li>
-                <li>
-                  <strong>How to join each week</strong>
-                  <div>Tap “Enter This Week.” Send the entry fee to the Banker. You’re in for this week’s game.</div>
-                </li>
-                <li>
-                  <strong>Do the run + show proof</strong>
-                  <div>
-                    Run anytime during the week. Upload one clear screenshot from a tracker (Apple
-                    Fitness, Strava, Nike Run Club, Garmin, etc.).
-                  </div>
-                  <div>
-                    Your proof must show: <em>distance</em>, <em>date</em>, <em>your name/initials</em> (if the app shows it).
-                  </div>
-                </li>
-                <li>
-                  <strong>End of week (what happens)</strong>
-                  <div>
-                    <strong>PASS</strong> = you met the goal with valid proof. <strong>FAIL</strong> = you didn’t meet the goal or
-                    didn’t upload proof.
-                  </div>
-                  <div>Prize = money from the FAIL players. Winners split the prize equally.</div>
-                  <div>If nobody passes → prize carries to next week. If everyone passes → no prize; fun only.</div>
-                </li>
-                <li>
-                  <strong>Leaderboard</strong>
-                  <div>Updates as proofs come in. Shows miles and PASS/FAIL. It’s public to the group.</div>
-                </li>
-                <li>
-                  <strong>Deadlines (don’t miss them)</strong>
-                  <div>Proof upload closes Sun 11:59 PM. Late = FAIL. No exceptions.</div>
-                </li>
-                <li>
-                  <strong>Fair play (no drama)</strong>
-                  <div>One account per person. Real runs only. No treadmill “keyboard miles.”</div>
-                  <div>Blurry or cropped proof = FAIL. Coach can reject suspicious proofs.</div>
-                </li>
-                <li>
-                  <strong>Money basics (kept offline)</strong>
-                  <div>
-                    Banker holds the money. The app only tracks who entered and who won. Payouts are sent by the Banker
-                    after results are posted.
-                  </div>
-                </li>
-              </ol>
-              <div className="mt-2 border-t border-dashed border-zinc-300 pt-2 text-zinc-700">
-                <div className="mb-1 font-extrabold">Quick example</div>
-                <div>Entry: $25. 12 players enter.</div>
-                <div>Results: 7 PASS, 5 FAIL.</div>
-                <div>Prize = 5 × $25 = $125 → split by 7 winners ≈ $17 each (leftover cents roll to next week).</div>
-              </div>
-            </div>
-          </Card>
-        )}
+            </button>
+            <div style={{fontWeight: '700', fontSize: '16px', marginBottom: '8px'}}>Group Rules</div>
+            <div className="subtle">{group.rule || 'No specific rule set for this group.'}</div>
+          </div>
+        </section>
+      )}
 
-        <div className="grid gap-4 lg:gap-6 lg:grid-cols-3">
-          {/* Left Column - Group Info */}
-          <div className="lg:col-span-1">
-            {group && (
-              <GroupInfo 
-                group={group}
-                isAdmin={isAdmin}
-                joinLink={joinLink}
-                onEditGroup={() => router.push(`/group/${groupId}/edit`)}
+      {/* Grid */}
+      <div className="grid">
+        {/* Group / Left */}
+        <section className="card">
+          <div className="inner">
+            <div className="group-title">
+              <div>
+                <div style={{fontWeight: '700', fontSize: '16px'}}>{group?.name || 'Loading...'}</div>
+                <div className="subtle" style={{marginTop: '2px'}}>{group?.rule || 'No rule specified'}</div>
+              </div>
+              {isAdmin && <a href={`/group/${groupId}/edit`} className="muted-link">Edit</a>}
+            </div>
+
+            <div className="divider"></div>
+
+            <div className="inline-actions" style={{marginBottom: '8px'}}>
+              <span className="subtle">Entry Fee</span>
+              <span className="chip green"><span className="dot"></span>${group?.entry_fee ? (group.entry_fee / 100).toFixed(2) : '0.00'} / week</span>
+            </div>
+
+            <div style={{margin: '12px 0 6px', fontWeight: '600'}}>Invite Link <span className="subtle">· share to join</span></div>
+            <div className="invite">
+              {joinLink}
+            </div>
+
+            <div className="divider"></div>
+
+            <div className="row">
+              {isAdmin && <a className="btn" href={`/group/${groupId}/edit`} style={{padding: '8px 12px'}}>Admin Settings</a>}
+              <button 
+                className="btn" 
+                style={{padding: '8px 12px'}}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(joinLink);
+                    toast.success('Invite link copied!');
+                  } catch {
+                    toast.error('Failed to copy link');
+                  }
+                }}
+              >
+                Share Group
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* This week at a glance / Right */}
+        <section className="card">
+          <div className="inner">
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'}}>
+              <div style={{fontWeight: '700', fontSize: '16px'}}>This week at a glance</div>
+              <span className="pill">{period}</span>
+            </div>
+
+            <div className="row" style={{margin: '12px 0 8px'}}>
+              {group?.rule && <span className="kv"><span className="tag">Rule: {group.rule}</span></span>}
+              {typeof group?.entry_fee === 'number' && <span className="kv"><span className="tag">Entry: ${(group.entry_fee / 100).toFixed(2)}</span></span>}
+              {deadlineLabel && <span className="kv"><span className="tag">Deadline: {deadlineLabel}</span></span>}
+              {group?.entry_fee && leaderboard.length > 0 && <span className="kv"><span className="tag">Pot: ${((leaderboard.length * group.entry_fee) / 100).toFixed(2)}</span></span>}
+            </div>
+
+            <button onClick={() => setShowWelcome(true)} className="btn ghost">View Rules</button>
+          </div>
+        </section>
+
+        {/* Submit weekly data */}
+        <section className="card" style={{gridColumn: '1 / -1'}}>
+          <div className="inner submit">
+            <div>
+              <div style={{fontWeight: '700', fontSize: '16px', marginBottom: '4px'}}>Submit Weekly Data</div>
+              <div className="subtle">Log your miles before the deadline.</div>
+            </div>
+            <div className="row">
+              <MileageSubmissionModal
+                onSubmit={submitProof}
+                isLoading={status === 'loading'}
+                currentMiles={userId && leaderboard ? leaderboard.find(r => r.user_id === userId)?.miles : null}
+                isChallengeClosed={challenge?.status === 'CLOSED'}
               />
-            )}
-          </div>
-
-          {/* Right Column - Weekly Overview */}
-          <div className="lg:col-span-2">
-            <Card className="p-3 sm:p-4">
-              <div className="mb-3 text-base sm:text-lg font-extrabold">This week at a glance</div>
-              <div className="text-sm text-muted-foreground">Week: {period}</div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {group?.rule && (
-                  <Badge variant="secondary" className="rounded-full">Rule: {group.rule}</Badge>
-                )}
-                {typeof group?.entry_fee === 'number' && (
-                  <Badge variant="secondary" className="rounded-full">Entry: ${group.entry_fee}</Badge>
-                )}
-                {deadlineLabel && (
-                  <Badge variant="secondary" className="rounded-full">Deadline: {deadlineLabel}</Badge>
-                )}
-                {challenge && (
-                  <Badge variant="outline" className="rounded-xl px-3 py-2">
-                    Pot: <span className="font-bold">${challenge.pot}</span>
-                  </Badge>
-                )}
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <Button onClick={() => setShowWelcome(true)} aria-label="View Rules" variant="secondary" size="sm">
-                  View Rules
-                </Button>
-                {isAdmin && (
-                  <a href={`/group/${groupId}/admin`} className="no-underline">
-                    <Button variant="primary" size="sm">Admin</Button>
-                  </a>
-                )}
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        <Card className="p-3 sm:p-4">
-          <div className="mb-3 sm:mb-4 text-base sm:text-lg font-extrabold">Submit Weekly Data</div>
-          <MileageSubmissionModal
-            onSubmit={submitProof}
-            isLoading={status === 'loading'}
-            currentMiles={userId && leaderboard ? leaderboard.find(r => r.user_id === userId)?.miles : null}
-            isChallengeClosed={challenge?.status === 'CLOSED'}
-          />
-        </Card>
-
-        <Card className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <h3 className="text-base sm:text-lg font-extrabold">Leaderboard {challenge ? `— ${period}` : ''}</h3>
-              {challenge && (
-                <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">{`Pot $${challenge.pot}`}</Badge>
-              )}
+              <button 
+                className="btn" 
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(joinLink);
+                    toast.success('Invite link copied!');
+                  } catch {
+                    toast.error('Failed to copy link');
+                  }
+                }}
+              >
+                Share
+              </button>
             </div>
-            {/* Social Share Button - only show if user is in leaderboard */}
-            {userId && leaderboard && leaderboard.some(r => r.user_id === userId) && (
-              <div className="w-full sm:w-auto">
-                <SocialShare
-                  userRank={leaderboard.findIndex(r => r.user_id === userId) + 1}
-                  userName={leaderboard.find(r => r.user_id === userId)?.name || 'Runner'}
-                  miles={Number(leaderboard.find(r => r.user_id === userId)?.miles || 0)}
-                  groupName={group?.name || 'RunPool Group'}
-                  totalRunners={leaderboard.length}
-                  groupUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                  leaderboard={leaderboard}
-                />
-              </div>
-            )}
           </div>
+        </section>
 
-          <Leaderboard 
-            leaderboard={leaderboard ?? []}
-            currentUserId={userId}
-            groupOwnerId={group?.created_by || ''}
-            isLoading={loading.leaderboard}
-          />
-        </Card>
+        {/* Leaderboard */}
+        <Leaderboard 
+          leaderboard={leaderboard ?? []}
+          currentUserId={userId}
+          groupOwnerId={''}
+          isLoading={loading.leaderboard}
+          groupRule={group?.rule}
+          challengePot={group?.entry_fee && leaderboard ? (leaderboard.length * group.entry_fee) / 100 : undefined}
+          challengePeriod={challenge ? `${new Date(challenge.week_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(challenge.week_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : null}
+        />
       </div>
     </div>
   );

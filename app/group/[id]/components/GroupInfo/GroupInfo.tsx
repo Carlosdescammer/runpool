@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Copy, Check } from 'lucide-react';
@@ -54,7 +55,7 @@ export function GroupInfo({ group, isAdmin, joinLink, onEditGroup }: GroupInfoPr
         {group.entry_fee && (
           <div>
             <h4 className="text-sm font-medium text-gray-500">Entry Fee</h4>
-            <p className="mt-1">${group.entry_fee} per week</p>
+            <p className="mt-1">${group.entry_fee.toFixed(2)} per week</p>
           </div>
         )}
         
@@ -92,11 +93,11 @@ export function GroupInfo({ group, isAdmin, joinLink, onEditGroup }: GroupInfoPr
           <div className="pt-2 border-t">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Admin Tools</h4>
             <div className="space-y-2">
-              <a href={`/group/${group.id}/admin`} className="block">
+              <Link href="/settings" className="block">
                 <Button variant="secondary" size="sm" className="w-full">
-                  Manage Members
+                  Admin Settings
                 </Button>
-              </a>
+              </Link>
               <Button variant="secondary" size="sm" className="w-full" disabled>
                 View Payment History
               </Button>

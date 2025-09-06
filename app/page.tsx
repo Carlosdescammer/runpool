@@ -3,30 +3,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
-  const [leaderboardData, setLeaderboardData] = useState([
-    { name: "A. Rivera", miles: 18.6, status: "On pace" },
-    { name: "K. Patel", miles: 17.4, status: "On pace" },
-    { name: "M. Scott", miles: 15.2, status: "Needs 2.8" },
-    { name: "L. Chen", miles: 12.7, status: "Catch up" },
-    { name: "J. Gomez", miles: 9.9, status: "Behind" }
-  ]);
-
-  useEffect(() => {
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduceMotion) {
-      const interval = setInterval(() => {
-        setLeaderboardData(prevData => {
-          const newData = [...prevData];
-          const idx = Math.floor(Math.random() * newData.length);
-          newData[idx].miles += Math.random() * 0.3;
-          newData.sort((a, b) => b.miles - a.miles);
-          return newData;
-        });
-      }, 2400);
-
-      return () => clearInterval(interval);
-    }
-  }, []);
 
   return (
     <>
@@ -42,23 +18,26 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hero-card" aria-label="Leaderboard preview">
-            <strong style={{display: 'block', marginBottom: '8px'}}>Live Leaderboard</strong>
-            <table className="table" role="table" aria-label="Leaderboard">
-              <thead>
-                <tr><th>#</th><th>Runner</th><th>Miles</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                {leaderboardData.map((runner, index) => (
-                  <tr key={runner.name}>
-                    <td>{index + 1}</td>
-                    <td>{runner.name}</td>
-                    <td>{runner.miles.toFixed(1)}</td>
-                    <td><span className="badge">{runner.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="hero-card" aria-label="Feature preview">
+            <strong style={{display: 'block', marginBottom: '8px'}}>Key Features</strong>
+            <div style={{padding: '20px 0'}}>
+              <div style={{marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <span style={{color: 'var(--success)'}}>✓</span>
+                <span>Real-time leaderboard tracking</span>
+              </div>
+              <div style={{marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <span style={{color: 'var(--success)'}}>✓</span>
+                <span>Automated mile logging</span>
+              </div>
+              <div style={{marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <span style={{color: 'var(--success)'}}>✓</span>
+                <span>Group challenges & stakes</span>
+              </div>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <span style={{color: 'var(--success)'}}>✓</span>
+                <span>Email notifications</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

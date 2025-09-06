@@ -1,6 +1,25 @@
-# Run Pool – Next.js + Supabase
+# RunPool – Social Running Challenges with Real Money Stakes
 
-A semi-automatic escrow system for weekly running challenges where participants compete to complete distance goals. The app handles payments, proof submission, and automatic prize distribution using Stripe Connect for secure fund handling.
+**RunPool** is a comprehensive platform that transforms running into a social, competitive, and financially motivated experience. Create weekly running challenges with friends, colleagues, or communities where participants put money on the line to achieve distance goals. Winners split the prize pool from those who don't complete their goals.
+
+## What RunPool Does
+
+RunPool gamifies running by combining social accountability, friendly competition, and real financial stakes. It's designed for groups who want to stay motivated, push each other, and make running more engaging through structured weekly challenges.
+
+### The Core Concept
+- **Create a Group**: Set up a running group with custom rules, entry fees, and weekly distance goals
+- **Weekly Challenges**: Each week, participants pay an entry fee to join that week's challenge
+- **Submit Proof**: Upload screenshots from fitness apps (Strava, Apple Fitness, Garmin, etc.) showing completed runs
+- **Automatic Payouts**: Winners who meet the goal split the prize money from those who don't
+- **Real-Time Competition**: Live leaderboards track progress throughout the week
+
+### How It Works
+1. **Group Setup**: A "Coach" creates a group and sets the weekly rule (e.g., "Run 5+ miles")
+2. **Weekly Entry**: Participants opt-in each week by paying the entry fee via Stripe
+3. **Run & Prove**: Complete your runs and upload proof screenshots showing distance, date, and time
+4. **Verification**: Coaches verify submitted proofs for authenticity
+5. **Payout**: At week's end, winners split the prize pool from participants who didn't complete the goal
+6. **Repeat**: New challenge starts the following week with the same or updated rules
 
 ## Core Features
 
@@ -11,222 +30,337 @@ A semi-automatic escrow system for weekly running challenges where participants 
 - **Transparent Fee Structure**: Clear breakdown of all fees before payment
 - **Real-time Leaderboard**: Track progress and standings throughout the week
 
-## Key Features
+## Complete Feature Set
 
-### Group & Challenge Management
-- **Group Creation**: Set up running groups with custom rules and entry fees
-- **Weekly Challenges**: Create time-bound running challenges with specific distance goals
-- **Role-Based Access**: Clear distinction between Coaches (admins) and Participants
-- **Email Notifications**: Automated reminders and status updates
+### 🏃‍♂️ Challenge Management
+- **Flexible Group Creation**: Set custom weekly distance goals, entry fees, and challenge periods
+- **Role-Based Access Control**: Coaches manage groups, participants compete
+- **Weekly Challenge Cycles**: Automatic challenge creation with configurable start/end dates
+- **Challenge Status Tracking**: Open, in-progress, and closed challenge states
+- **Group Membership Management**: Invite system with email-based joins
 
-### Payment & Payouts
-- **Secure Payments**: Entry fees processed via Stripe Connect
-- **Automated Escrow**: Funds held securely until challenge completion
-- **Transparent Payouts**: Clear breakdown of prize distribution
-- **Multiple Payout Methods**: Support for bank transfers and instant payouts
+### 💰 Payment & Prize System
+- **Stripe Connect Integration**: Secure payment processing with automatic escrow
+- **Entry Fee Collection**: Participants pay to join each week's challenge
+- **Automated Prize Distribution**: Winners automatically split the pot from non-completers
+- **Transparent Fee Structure**: Clear breakdown of entry fees, platform fees, and prize amounts
+- **Payment Status Tracking**: Real-time payment confirmation and failure handling
+- **Payout Notifications**: Automated emails for successful prize distributions
 
-### Proof & Verification
-- **Proof Submission**: Upload run proofs with timestamps and distance
-- **Coach Verification**: Coaches review and verify submissions
-- **Status Tracking**: Real-time updates on verification status
+### 📱 Proof Submission & Verification
+- **Multi-Platform Support**: Accept screenshots from Strava, Apple Fitness, Garmin, Nike Run Club, etc.
+- **Image Upload & Storage**: Secure cloud storage for proof images via Supabase Storage
+- **Coach Verification System**: Admins review and approve/reject submitted proofs
+- **Proof Requirements**: Distance, date, and user identification must be visible
+- **Status Tracking**: Pending, approved, and rejected proof states
 
-### Leaderboard & Analytics
-- **Real-time Updates**: Live leaderboard showing current standings
-- **Performance Metrics**: Track progress and improvements over time
-- **Historical Data**: View past challenge results and statistics
+### 📊 Real-Time Leaderboards & Analytics
+- **Live Progress Tracking**: Real-time updates as participants submit proofs
+- **Rank Change Animations**: Visual indicators for position changes and top-3 movements
+- **Streak Tracking**: Monitor consecutive week participation and success
+- **Performance History**: View past challenge results and personal statistics
+- **Social Sharing**: Share leaderboard positions and achievements
+- **Podium Recognition**: Special highlighting for top 3 performers
+
+### 📧 Comprehensive Email System
+- **Weekly Goal Reminders**: Saturday evening alerts for participants behind on goals
+- **Top Performer Celebrations**: Personal congratulations for reaching top 3
+- **Admin Notifications**: Alerts for new members, pending proofs, and group activity
+- **Payment Confirmations**: Success and failure notifications for all transactions
+- **Weekly Recap Emails**: Monday morning summaries with leaderboards and statistics
+- **Invitation System**: Email-based group invitations with secure token validation
+- **User Preferences**: Granular opt-in/opt-out controls for all notification types
+
+### 🔒 Security & Privacy
+- **Row Level Security (RLS)**: Database-level access controls via Supabase
+- **Secure Authentication**: Email/password auth with session management
+- **Payment Security**: PCI-compliant payment processing through Stripe
+- **Data Encryption**: Encrypted storage of sensitive user and financial data
+- **Email Verification**: Secure invite system with email validation
+- **Admin Controls**: Restricted access to group management and verification functions
+
+## Technology Stack
+
+**Frontend & Framework:**
+- **Next.js 15** - React framework with App Router and Server Components
+- **TypeScript** - Type-safe development
+- **Tailwind CSS 4** - Utility-first styling with custom design system
+- **Radix UI** - Accessible component primitives
+- **Lucide React** - Modern icon library
+
+**Backend & Database:**
+- **Supabase** - PostgreSQL database with real-time subscriptions
+- **Row Level Security (RLS)** - Database-level access controls
+- **Supabase Auth** - User authentication and session management
+- **Supabase Storage** - File storage for proof images
+- **Edge Functions** - Serverless functions for background tasks
+
+**Payments & Financial:**
+- **Stripe Connect** - Payment processing and marketplace functionality
+- **Stripe Webhooks** - Real-time payment event handling
+- **Automated Escrow** - Secure fund holding and distribution
+
+**Email & Notifications:**
+- **Resend** - Transactional email delivery
+- **Premium HTML Templates** - Professional email design with responsive layouts
+- **Vercel Cron Jobs** - Automated email scheduling
+- **Real-time Notifications** - Live updates via Supabase Realtime
+
+**Deployment & Infrastructure:**
+- **Vercel** - Hosting and deployment platform
+- **Vercel Analytics** - Performance monitoring
+- **Environment-based Configuration** - Secure credential management
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Supabase account
-- Stripe account with Connect enabled
+- **Node.js 18+** - JavaScript runtime
+- **npm/yarn/pnpm** - Package manager
+- **Supabase Account** - Database and auth provider
+- **Stripe Account** - Payment processing (Connect enabled)
+- **Resend Account** - Email delivery service
+- **Vercel Account** - Deployment platform (optional)
 
-### Installation
+### Quick Setup
 
-1. Clone the repository
+1. **Clone and Install**
    ```bash
    git clone https://github.com/yourusername/runpool.git
    cd runpool
-   ```
-
-2. Install dependencies
-   ```bash
    npm install
-   # or
-   yarn install
    ```
 
-3. Set up environment variables
+2. **Environment Configuration**
    ```bash
    cp .env.local.example .env.local
    ```
-   Update the values in `.env.local` with your Supabase and Stripe credentials.
+   Configure your `.env.local` with the required services (see Environment Variables section below).
 
-4. Run the development server
+3. **Database Setup**
    ```bash
-   npm run dev
-   # or
-   yarn dev
+   # Apply database migrations
+   npx supabase db push
+   
+   # Set up email preferences and security policies
+   # Run the SQL files in supabase/sql/ via Supabase dashboard
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. **Development Server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-## Database Schema
+## Database Architecture
 
-We use Supabase with the following main tables:
+RunPool uses **Supabase PostgreSQL** with a comprehensive schema designed for scalability and security:
 
-- `profiles`: User profiles (extends auth.users)
-- `groups`: Running challenge groups
-- `weeks`: Weekly challenge details
-- `participants`: User participation in weekly challenges
-- `payouts`: Record of prize distributions
-- `group_members`: User-group relationships
+### Core Tables
+- **`profiles`** - User profiles extending Supabase Auth with running-specific data
+- **`groups`** - Running challenge groups with coach ownership and settings
+- **`challenges`** - Weekly challenge instances with status tracking and prize pools
+- **`memberships`** - User-group relationships with role-based permissions
+- **`proofs`** - Run proof submissions with image storage and verification status
+- **`payouts`** - Prize distribution records with Stripe integration
+- **`invites`** - Secure group invitation system with email validation
+- **`email_preferences`** - Granular user notification preferences
 
-## Security
+### Advanced Features
+- **Row Level Security (RLS)** - Database-level access controls for all tables
+- **Real-time Subscriptions** - Live leaderboard updates via Supabase Realtime
+- **Automated Triggers** - Database functions for user creation and data consistency
+- **Security Definer Functions** - Secure server-side operations for sensitive actions
+- **Comprehensive Indexing** - Optimized queries for leaderboards and user lookups
 
-- Row Level Security (RLS) enabled on all tables
-- Secure payment processing with Stripe Connect
-- Encrypted storage of sensitive data
-- Regular security audits and updates
+## User Journey & Experience
+
+### For Group Creators (Coaches)
+1. **Setup**: Create account, set up Stripe Connect for payouts
+2. **Group Creation**: Define group name, weekly distance goal, entry fee
+3. **Member Management**: Send email invitations, manage member roles
+4. **Weekly Administration**: Review and verify submitted proofs
+5. **Prize Distribution**: Automatic payouts to winners via Stripe
+
+### For Participants
+1. **Join**: Receive email invitation, create account, join group
+2. **Weekly Entry**: Opt-in to each week's challenge by paying entry fee
+3. **Run & Submit**: Complete runs, upload proof screenshots
+4. **Track Progress**: Monitor real-time leaderboard and personal stats
+5. **Collect Winnings**: Automatic prize distribution for successful weeks
+
+### Example Challenge Flow
+**Monday**: New challenge opens, participants pay entry fees
+**Tuesday-Saturday**: Members run and submit proofs throughout the week
+**Sunday**: Challenge closes, coach verifies final proofs
+**Monday**: Winners receive automatic payouts, new challenge begins
+
+## Real-World Use Cases
+
+- **Corporate Wellness**: Companies create internal running challenges for employee health
+- **Friend Groups**: Social circles add stakes to weekend warrior running goals
+- **Running Clubs**: Formal clubs organize structured weekly competitions
+- **Fitness Communities**: Online communities create accountability through financial commitment
+- **Training Groups**: Marathon training groups maintain consistency through weekly challenges
+- **Charity Fundraising**: Groups donate winnings to charitable causes while staying fit
+
+## Security & Compliance
+
+### Financial Security
+- **PCI DSS Compliance**: All payment processing through Stripe's secure infrastructure
+- **Automated Escrow**: Funds held securely until challenge completion
+- **Fraud Prevention**: Stripe's built-in fraud detection and prevention
+- **Secure Payouts**: Direct bank transfers via Stripe Connect
+
+### Data Protection
+- **Row Level Security (RLS)**: Database-level access controls on all tables
+- **Encrypted Storage**: All sensitive data encrypted at rest and in transit
+- **Secure Authentication**: Industry-standard email/password auth with session management
+- **Privacy Controls**: Granular user preferences for data sharing and notifications
+
+### Platform Security
+- **Input Validation**: Comprehensive validation on all user inputs
+- **SQL Injection Prevention**: Parameterized queries and ORM protection
+- **CSRF Protection**: Built-in Next.js security features
+- **Rate Limiting**: API endpoint protection against abuse
+
+## API Documentation
+
+### Core Endpoints
+- **`/api/groups`** - Group management (create, update, delete)
+- **`/api/challenges`** - Weekly challenge operations
+- **`/api/proofs`** - Proof submission and verification
+- **`/api/payments`** - Stripe payment processing
+- **`/api/notify/*`** - Email notification system
+
+### Webhook Handlers
+- **`/api/webhooks/stripe`** - Stripe payment event processing
+- **`/api/webhooks/cron`** - Automated task scheduling
+
+### Testing Endpoints
+- **`/api/test-emails`** - Email template preview system
+- **`/test-payments`** - Stripe payment testing interface
+
+## Development & Deployment
+
+### Local Development
+```bash
+# Start development server with Turbopack
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm run start
+
+# Run linting
+npm run lint
+```
+
+### Testing
+- **Email Templates**: Visit `/api/test-emails` for template previews
+- **Payment Flow**: Use `/test-payments` for Stripe integration testing
+- **Database**: Supabase dashboard for direct database access
+- **Real-time Features**: Test leaderboard updates with multiple browser windows
+
+### Deployment
+1. **Vercel Deployment**: Automatic deployment from Git repository
+2. **Environment Variables**: Configure production secrets in Vercel dashboard
+3. **Database Migrations**: Apply via Supabase CLI or dashboard
+4. **Cron Jobs**: Configured in `vercel.json` for automated emails
 
 ## Contributing
 
+### Development Setup
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Install dependencies (`npm install`)
+4. Set up local environment variables
+5. Run database migrations
+6. Start development server
 
-## License
+### Code Standards
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Configured with Next.js and accessibility rules
+- **Prettier**: Consistent code formatting
+- **Component Structure**: Organized by feature with shared UI components
 
-Distributed under the MIT License. See `LICENSE` for more information.
+### Pull Request Process
+1. Ensure all tests pass and linting is clean
+2. Update documentation for new features
+3. Add appropriate commit messages
+4. Request review from maintainers
 
-## Recent Updates (2025-08-30)
+## License & Legal
 
-### 📧 Comprehensive Email Notification System
+**MIT License** - See `LICENSE` file for full terms
 
-- **Complete Email Infrastructure**: Built full-featured email notification system with Resend integration
-  - **Weekly goal reminders**: Automated Saturday evening alerts for users behind on weekly goals
-  - **Top performer celebrations**: Personal congratulation emails when users reach top 3 rankings
-  - **Admin notifications**: Alerts when new members join groups
-  - **Activity notifications**: Real-time alerts for proof submissions and top-3 milestone updates
-  - **Weekly recap emails**: Automated Monday morning summaries with leaderboards and stats
+### Third-Party Services
+- **Stripe**: Subject to Stripe's Terms of Service and privacy policy
+- **Supabase**: Subject to Supabase's Terms of Service and privacy policy
+- **Resend**: Subject to Resend's Terms of Service and privacy policy
+- **Vercel**: Subject to Vercel's Terms of Service and privacy policy
 
-- **Premium Email Templates**: Completely redesigned all email templates with professional HTML structure
-  - Table-based layouts for email client compatibility across Gmail, Outlook, Apple Mail
-  - Gradient backgrounds, shadows, and modern typography
-  - Fixed UTF-8 character encoding issues that caused "funny characters"
-  - Consistent Runpool branding and responsive design
-  - Personalized content with user names and group-specific information
+## Recent Updates & Changelog
 
-- **User Email Preferences**: Full opt-in/opt-out system with granular controls
-  - Database schema: `email_preferences` table with RLS policies
-  - Settings UI: Toggle switches for each notification type
-  - Preference checking: All email endpoints respect user preferences
-  - API: `get_user_email_preferences()` and `update_user_email_preferences()` functions
+### Version 2.0 (2025-08-30)
 
-- **Automated Scheduling**: Vercel Cron integration for hands-off email automation
-  - Saturday 8PM: Weekly goal reminder checks
-  - Monday 9AM: Weekly recap email delivery
-  - Configurable via `vercel.json` cron jobs
+#### 📧 Advanced Email Notification System
+- **Complete Email Infrastructure**: Full-featured notification system with Resend integration
+- **Premium HTML Templates**: Professional designs with cross-client compatibility
+- **Automated Scheduling**: Vercel Cron jobs for hands-off email automation
+- **User Preferences**: Granular opt-in/opt-out controls for all notification types
+- **Testing System**: Comprehensive preview and debugging tools
 
-- **Email Testing System**: Comprehensive preview and testing infrastructure
-  - Test endpoint: `/api/test-emails` with all template previews
-  - Environment-based recipient configuration
-  - Easy template debugging and validation
+#### 🐛 Critical Bug Fixes
+- **Email System Reliability**: Fixed duplicate environment variables and character encoding
+- **Payment Processing**: Resolved Stripe webhook handling and payout automation
+- **Real-time Updates**: Improved leaderboard synchronization and rank animations
+- **Security Enhancements**: Strengthened RLS policies and input validation
 
-### 🐛 Major Bugs Fixed
+#### 🎨 UI/UX Improvements (2025-08-23)
+- **Sage Theme Implementation**: Clean, light-only design system with consistent branding
+- **Gamification Features**: Podium colors, streak badges, and rank change animations
+- **Real-time Leaderboards**: Live updates via Supabase Realtime subscriptions
+- **Enhanced Invite System**: Email-based invitations with secure token validation
+- **Admin Dashboard**: Comprehensive group management and member administration
 
-- **Duplicate RESEND_FROM Environment Variables** (Critical Fix)
-  - **Problem**: `.env.local` had two `RESEND_FROM` entries, second one overriding first with incorrect format
-  - **Impact**: All email sending was failing silently
-  - **Fix**: Removed duplicate entry, kept proper format `"Runpool <no-reply@runpool.space>"`
-  - **File**: `.env.local`
+#### 🔧 Technical Debt Resolution
+- **Database Schema Consistency**: Resolved missing columns and constraint issues
+- **Security Policy Refinement**: Enhanced RLS policies for invite system
+- **TypeScript Configuration**: Improved type safety and linting rules
+- **Navigation Enhancement**: Consistent back button behavior across admin routes
 
-- **Character Encoding Issues in Emails** (Critical Fix)
-  - **Problem**: Emails displayed "funny characters that don't make sense" due to missing charset declarations
-  - **Impact**: Poor user experience with garbled text in email clients
-  - **Fix**: Added proper HTML DOCTYPE, UTF-8 charset declarations, and HTML entity encoding
-  - **Files**: All email template functions across `/api/notify/*` and `/api/weekly-recap`
+## Roadmap & Future Enhancements
 
-- **Top-Performer Template Inconsistency** (UI Fix)
-  - **Problem**: Test email template for top-performer alerts wasn't updated with premium design
-  - **Impact**: Inconsistent email appearance between test previews and actual notifications
-  - **Fix**: Updated `/api/test-emails/route.ts` with matching premium template design
-  - **Files**: `/api/test-emails/route.ts`
+### Planned Features
+- **Advanced Analytics**: Detailed performance metrics and trend analysis
+- **Mobile App**: Native iOS/Android applications with push notifications
+- **Integration Expansion**: Direct Strava/Garmin API integration for automatic proof submission
+- **Social Features**: Friend connections, cross-group challenges, and achievement sharing
+- **Gamification**: Milestone badges, streak rewards, and seasonal competitions
 
-### Previous Updates (2025-08-23)
-
-- **Light-only Sage Theme**: Removed all Tailwind `dark:` classes and disabled dark mode across the app.
-  - Forced light theme via `ThemeProvider` (`defaultTheme="light"`, `enableSystem={false}`) in `src/app/layout.tsx`.
-  - Set a single light `viewport.themeColor` of `#DAD7CD` in both `src/app/layout.tsx` and `app/layout.tsx`.
-  - Removed `@media (prefers-color-scheme: dark)` overrides from `src/app/globals.css` and `app/globals.css`.
-  - Updated shared components to ensure light surfaces/colors only: `components/ui/{card,input,badge,button,avatar,progress,label,skeleton}.tsx`.
-  - Cleaned dark classes from pages: `app/group/[id]/page.tsx`, `app/group/[id]/admin/page.tsx`, and `src/app/page.tsx`.
-
-- **Prioritized email invite flow** (`app/group/[id]/admin/page.tsx`): textarea for multiple emails; sends Supabase magic-link emails; shows active and expired invites; supports resending per-invite when `invited_email` is known; supports revoking.
-- **Legacy invites de-emphasized**: legacy "Generate invite link" moved into a `<details>` section labeled "Legacy" to steer users toward email invites.
-- **Back to dashboard**:
-  - On-page back button in the admin card header linking to `/group/[id]`.
-  - Global header shows a route-aware "Back" button on `/group/[id]/admin` (with or without trailing slash).
-- **Leaderboard gamification** (`app/group/[id]/page.tsx`):
-  - Podium colors for ranks 1–3.
-  - Streak badges derived from recent challenge participation.
-  - Rank deltas computed using a localStorage snapshot of previous ranks.
-  - Enter/leave top-3 join/drop animations.
-
-- **Realtime leaderboard** (`app/group/[id]/page.tsx`): Subscribes to `proofs` changes for the active challenge via Supabase Realtime and refreshes `leaderboard_week` instantly.
-- **Email-locked joins** (`app/join/page.tsx`): If an invite has `invited_email`, the join flow requires the signed-in email to match (case-insensitive). Uses `join_group_with_token_email` with legacy RPC fallback.
-
-- **Secure invite fetch**: Added `get_invite_public(p_token text)` security-definer RPC to fetch limited invite fields by token and updated the Join page to use it instead of reading the `invites` table directly.
-- **Weekly recap API**: Implemented `app/api/weekly-recap/route.ts` to compute recaps for recent CLOSED challenges and optionally send emails via Resend (`send=1`). Endpoint can be protected via `x-cron-secret` if `CRON_SECRET` is set.
-
-## Bugs fixed
-
-- **Missing `invited_email` column in SQL**: Applying DB enforcement failed with `column i.invited_email does not exist`.
-  - Fix: added `alter table if exists public.invites add column if not exists invited_email text;` at the top of `supabase/sql/join_enforcement.sql`.
-- **Invite visibility vs. RLS**: Join page previously read `invites` directly, which can be blocked by strict RLS.
-  - Fix: created security-definer RPC `get_invite_public(p_token text)` (limited fields) and updated `app/join/page.tsx` to call it.
-- **Deno TS import lint in Edge Function**: Local TypeScript tooling flagged Deno URL imports.
-  - Fix: added `// @ts-nocheck` to `supabase/functions/weekly-recap/index.ts` to avoid Node-oriented linting.
- - **Back navigation missing on Admin**: Back button wasn’t visible in some admin routes (e.g., trailing slash).
-  - Fix: added on-page back control and header-level route detection that handles `/group/[id]/admin` and `/group/[id]/admin/`.
-
-## What's next
-
-- **Weekly recap email**: scheduled weekly summary with winners, streaks, and deltas (Supabase Scheduled Functions / Edge Functions).
-- **Invite UX**: tooltips/docs explaining email vs legacy invites; optional full removal of legacy links.
-- **Admin enhancements**: bulk revoke, manual expire, CSV import for emails.
-- **More gamification**: milestone badges, streak decay warnings, confetti for podium changes, animated progress.
-- **Security/RLS**: tighten policies around invites and membership creation.
+### Technical Improvements
+- **Performance Optimization**: Enhanced caching and database query optimization
+- **Scalability**: Horizontal scaling preparation for larger user bases
+- **Monitoring**: Advanced error tracking and performance monitoring
+- **Testing**: Comprehensive test suite with automated CI/CD
+- **Documentation**: API documentation and developer guides
 
 
-## Getting Started
+## Support & Community
 
-First, run the development server:
+### Getting Help
+- **Documentation**: Comprehensive guides in this README
+- **Issues**: Report bugs via GitHub Issues
+- **Discussions**: Feature requests and community support
+- **Email**: Technical support for deployment issues
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-Scripts:
-
-```bash
-npm run dev       # start dev server
-npm run build     # production build (Turbopack)
-npm run start     # start production server
-npm run lint      # run ESLint
-```
+### Community Guidelines
+- **Fair Play**: Real runs only, no artificial mileage
+- **Respectful Competition**: Supportive community environment
+- **Privacy**: Respect member privacy and data protection
+- **Integrity**: Honest proof submission and verification
 
 ## Environment Variables
 

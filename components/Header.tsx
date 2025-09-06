@@ -24,8 +24,6 @@ export default function Header() {
 
   const isSignedIn = !!userId;
   const showSignIn = !isSignedIn && pathname !== '/signin';
-  const adminMatch = pathname?.match(/^\/group\/([^/]+)\/admin(?:$|\/)$/);
-  const adminGroupId = adminMatch?.[1] ?? null;
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -62,11 +60,7 @@ export default function Header() {
           </button>
 
           <nav className="nav-links desktop-only">
-            {adminGroupId ? (
-              <Link href={`/group/${adminGroupId}`} className="btn btn-ghost">
-                ← Back to Pool
-              </Link>
-            ) : pathname === '/' ? (
+            {pathname === '/' ? (
               <>
                 <a href="#how" className="btn btn-ghost">How it works</a>
                 {!isSignedIn && <Link href="/signin" className="btn">Sign in</Link>}
@@ -92,11 +86,7 @@ export default function Header() {
           className="mobile-menu" 
           hidden={!mobileMenuOpen}
         >
-          {adminGroupId ? (
-            <Link href={`/group/${adminGroupId}`} className="mobile-link" onClick={closeMobileMenu}>
-              ← Back to Pool
-            </Link>
-          ) : pathname === '/' ? (
+          {pathname === '/' ? (
             <>
               <a href="#how" className="mobile-link" onClick={closeMobileMenu}>How it works</a>
               {!isSignedIn && <Link href="/signin" className="mobile-link" onClick={closeMobileMenu}>Sign in</Link>}

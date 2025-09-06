@@ -36,14 +36,21 @@ export default function EditGroupPage() {
           throw new Error('Group not found');
         }
 
-        // Check if current user is the coach/owner of the group
-        if (group.coach_id !== user.id) {
+        // Check if current user is the owner of the group
+        if (String(group.owner_id) !== String(user.id)) {
           throw new Error('You do not have permission to edit this group');
         }
 
         setGroupData({
           ...group,
-          default_entry_fee: group.default_entry_fee / 100 // Convert from cents to dollars
+          default_entry_fee: (group.entry_fee || 1000) / 100, // Convert from cents to dollars (use entry_fee field)
+          default_distance_goal: group.rule ? parseFloat(group.rule.match(/\d+\.?\d*/)?.[0] || '5') : 5, // Extract distance from rule
+          default_duration_days: 7, // Default to weekly
+          start_date: new Date(),
+          timezone: 'America/New_York',
+          is_public: true,
+          allow_public_join: true,
+          require_approval: false
         });
       } catch (err) {
         console.error('Error fetching group:', err);
@@ -65,11 +72,11 @@ export default function EditGroupPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded mt-6"></div>
+      <div className="wrap">
+        <div>
+          <div style={{height: '32px', backgroundColor: 'var(--muted)', borderRadius: '8px', marginBottom: '16px'}}></div>
+          <div style={{height: '16px', backgroundColor: 'var(--muted)', borderRadius: '8px', marginBottom: '16px'}}></div>
+          <div style={{height: '128px', backgroundColor: 'var(--muted)', borderRadius: '8px'}}></div>
         </div>
       </div>
     );
@@ -77,43 +84,43 @@ export default function EditGroupPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-md">
-          <h2 className="text-lg font-medium">Error</h2>
-          <p>{error}</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => router.back()}
-          >
-            Go Back
-          </Button>
+      <div className="wrap">
+        <div className="card">
+          <div className="inner">
+            <h2 style={{fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#ef4444'}}>Error</h2>
+            <p style={{marginBottom: '16px'}}>{error}</p>
+            <button 
+              className="btn" 
+              onClick={() => router.back()}
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+    <div className="wrap">
+      <div style={{marginBottom: '24px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+          <button 
+            className="iconbtn" 
             onClick={() => router.back()}
-            className="rounded-full"
           >
             <ArrowLeft className="h-5 w-5" />
-          </Button>
+          </button>
           <div>
-            <h1 className="text-3xl font-bold">Edit Group</h1>
-            <p className="text-gray-500 dark:text-gray-400">
+            <h1 style={{fontSize: '24px', fontWeight: '800', marginBottom: '8px'}}>Edit Group</h1>
+            <p style={{color: 'var(--muted)'}}>
               Update your running challenge group settings.
             </p>
           </div>
         </div>
 
-        <Card className="p-6">
+        <div className="card">
+          <div className="inner">
           {groupData ? (
             <GroupForm 
               groupId={groupData.id} 
@@ -134,7 +141,8 @@ export default function EditGroupPage() {
           ) : (
             <p>Loading group data...</p>
           )}
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

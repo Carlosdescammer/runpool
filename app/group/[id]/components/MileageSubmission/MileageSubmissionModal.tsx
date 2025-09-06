@@ -74,39 +74,58 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
 
   if (isChallengeClosed) {
     return (
-      <Button disabled variant="outline" className="w-full">
+      <button disabled className="btn" style={{opacity: 0.5}}>
         Challenge Closed
-      </Button>
+      </button>
     );
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="primary" 
+        <button 
+          className="btn success" 
           disabled={isChallengeClosed}
-          className="w-full sm:w-auto"
+          id="logMiles"
         >
-          <Plus className="h-4 w-4" />
-          Log Miles
-        </Button>
+          + Log Miles
+        </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md w-[95vw] max-w-[95vw] sm:w-full sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle style={{color: 'var(--text)'}}>Log Your Miles</DialogTitle>
-        </DialogHeader>
+      <DialogContent 
+        className="card" 
+        style={{
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '95vw', 
+          maxWidth: '480px', 
+          padding: '0',
+          zIndex: 1000,
+          backgroundColor: 'var(--panel)',
+          border: '1px solid var(--line)',
+          borderRadius: 'var(--radius)',
+          boxShadow: 'var(--shadow)'
+        }}
+      >
+        <div className="inner">
+          <DialogHeader>
+            <DialogTitle style={{color: 'var(--text)', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700'}}>Log Your Miles</DialogTitle>
+          </DialogHeader>
         
         {currentMiles !== null && (
-          <div className="mb-4 p-3 rounded-md border" style={{ 
+          <div style={{ 
             background: 'linear-gradient(180deg, rgba(94, 225, 162, 0.1), rgba(94, 225, 162, 0.05))', 
-            borderColor: 'var(--brand)',
-            color: 'var(--text)'
+            border: '1px solid var(--success)',
+            color: 'var(--text)',
+            padding: '12px',
+            borderRadius: '12px',
+            marginBottom: '16px'
           }}>
-            <p className="text-sm">
-              You&apos;ve already logged <span className="font-semibold">{currentMiles.toFixed(1)} miles</span> this week.
+            <p style={{fontSize: '14px'}}>
+              You&apos;ve already logged <span style={{fontWeight: '600'}}>{currentMiles.toFixed(1)} miles</span> this week.
             </p>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+            <p style={{fontSize: '12px', marginTop: '4px', color: 'var(--muted)'}}>
               Submit again to update your entry.
             </p>
           </div>
@@ -224,7 +243,7 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
                 )}
                 
                 <div className="pt-2">
-                  <label className="btn btn-secondary text-xs cursor-pointer">
+                  <label className="btn secondary text-xs cursor-pointer">
                     {file ? 'Change File' : 'Select File'}
                     <input
                       type="file"
@@ -254,21 +273,24 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
           <div className="flex gap-2 pt-4">
             <button 
               type="button" 
-              className="btn btn-secondary flex-1"
+              className="btn ghost"
               onClick={() => setOpen(false)}
               disabled={isLoading}
+              style={{flex: 1}}
             >
               Cancel
             </button>
             <button 
               type="submit" 
-              className="btn btn-primary flex-1"
+              className="btn primary"
               disabled={isLoading || !miles}
+              style={{flex: 1}}
             >
               {isLoading ? 'Submitting...' : currentMiles !== null ? 'Update Entry' : 'Submit Miles'}
             </button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

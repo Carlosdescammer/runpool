@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     switch (type) {
       case 'activity':
-        subject = 'SF Running Club — Sarah Runner logged 5.2 miles';
+        subject = 'Sample Group — Sample Runner logged 5.2 miles';
         html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
                 <span style="font-size: 42px;">🏃‍♂️</span>
               </div>
               <h1 style="margin: 0 0 16px 0; font-size: 36px; font-weight: 900; color: #ffffff; letter-spacing: -0.025em; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Team Activity</h1>
-              <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95); font-weight: 600;">SF Running Club</p>
+              <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95); font-weight: 600;">Sample Group</p>
             </div>
           </div>
 
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
               <div style="position: absolute; top: -40%; right: -20%; width: 240px; height: 240px; background: linear-gradient(45deg, #6366f1, #8b5cf6); border-radius: 50%; opacity: 0.04;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 10px 24px; border-radius: 50px; font-size: 15px; font-weight: 800; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.8px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">Fresh Activity</div>
-                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #1e293b; letter-spacing: -0.02em;">Sarah Runner</h2>
+                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #1e293b; letter-spacing: -0.02em;">Sample Runner</h2>
                 <p style="margin: 0 0 28px 0; font-size: 22px; color: #475569; font-weight: 700;">just logged <strong style="color: #6366f1; font-size: 24px;">5.2 miles</strong></p>
                 <div style="display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 16px 32px; border-radius: 50px; font-weight: 800; font-size: 16px; box-shadow: 0 6px 20px rgba(30, 41, 59, 0.3);">
                   <span style="font-size: 20px;">🔥</span>
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
         break;
 
       case 'admin-new-user':
-        subject = 'SF Running Club — New member John Runner joined';
+        subject = 'Sample Group — New member Sample Runner joined';
         html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
                 <span style="font-size: 42px;">👋</span>
               </div>
               <h1 style="margin: 0 0 16px 0; font-size: 36px; font-weight: 900; color: #ffffff; letter-spacing: -0.025em; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Team Growth</h1>
-              <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95); font-weight: 600;">SF Running Club</p>
+              <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95); font-weight: 600;">Sample Group</p>
             </div>
           </div>
 
@@ -191,7 +191,7 @@ export async function POST(req: Request) {
               <div style="position: absolute; top: -40%; right: -20%; width: 240px; height: 240px; background: linear-gradient(45deg, #10b981, #059669); border-radius: 50%; opacity: 0.06;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 10px 24px; border-radius: 50px; font-size: 15px; font-weight: 800; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">New Member</div>
-                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #064e3b; letter-spacing: -0.02em;">John Runner</h2>
+                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #064e3b; letter-spacing: -0.02em;">Sample Runner</h2>
                 <p style="margin: 0 0 28px 0; font-size: 22px; color: #065f46; font-weight: 700;">just joined your community</p>
                 <div style="display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #064e3b 0%, #047857 100%); color: white; padding: 16px 32px; border-radius: 50px; font-weight: 800; font-size: 16px; box-shadow: 0 6px 20px rgba(6, 78, 59, 0.3);">
                   <span style="font-size: 20px;">🎉</span>
@@ -236,7 +236,7 @@ export async function POST(req: Request) {
         break;
 
       case 'admin-proof-pending':
-        subject = 'SF Running Club — New run proof needs verification';
+        subject = 'Sample Group — New run proof needs verification';
         html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +274,7 @@ export async function POST(req: Request) {
               <div style="position: absolute; top: -40%; right: -20%; width: 240px; height: 240px; background: linear-gradient(45deg, #7c3aed, #5b21b6); border-radius: 50%; opacity: 0.06;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 10px 24px; border-radius: 50px; font-size: 15px; font-weight: 800; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.8px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">Proof Submitted</div>
-                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #581c87; letter-spacing: -0.02em;">John Runner</h2>
+                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #581c87; letter-spacing: -0.02em;">Sample Runner</h2>
                 <p style="margin: 0 0 28px 0; font-size: 22px; color: #6b21a8; font-weight: 700;">submitted proof for <strong style="color: #581c87; font-size: 24px;">5.2 miles</strong></p>
                 <div style="display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #581c87 0%, #6b21a8 100%); color: white; padding: 16px 32px; border-radius: 50px; font-weight: 800; font-size: 16px; box-shadow: 0 6px 20px rgba(88, 28, 135, 0.3);">
                   <span style="font-size: 20px;">📸</span>
@@ -319,7 +319,7 @@ export async function POST(req: Request) {
         break;
 
       case 'top3-milestone':
-        subject = 'SF Running Club — Top performer Sarah Champion logged 5.2 miles 🥇';
+        subject = 'Sample Group — Top performer Sample Runner logged 5.2 miles 🥇';
         html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -357,7 +357,7 @@ export async function POST(req: Request) {
               <div style="position: absolute; top: -40%; right: -20%; width: 240px; height: 240px; background: linear-gradient(45deg, #fbbf24, #f59e0b); border-radius: 50%; opacity: 0.06;"></div>
               <div style="position: relative; z-index: 1; text-align: center;">
                 <div style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 10px 24px; border-radius: 50px; font-size: 15px; font-weight: 800; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.8px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">Top 3 Elite</div>
-                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #92400e; letter-spacing: -0.02em;">Sarah Champion</h2>
+                <h2 style="margin: 0 0 12px 0; font-size: 32px; font-weight: 900; color: #92400e; letter-spacing: -0.02em;">Sample Runner</h2>
                 <p style="margin: 0 0 28px 0; font-size: 22px; color: #a16207; font-weight: 700;">just logged <strong style="color: #92400e; font-size: 24px;">5.2 miles</strong> and is in the Top 3!</p>
                 <div style="display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #92400e 0%, #a16207 100%); color: white; padding: 16px 32px; border-radius: 50px; font-weight: 800; font-size: 16px; box-shadow: 0 6px 20px rgba(146, 64, 14, 0.3);">
                   <span style="font-size: 20px;">🔥</span>
@@ -373,21 +373,21 @@ export async function POST(req: Request) {
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 16px; margin-bottom: 16px; border: 2px solid #fbbf24; box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);">
                   <div style="display: flex; align-items: center; gap: 16px;">
                     <span style="font-size: 28px;">🥇</span>
-                    <span style="font-weight: 900; color: #92400e; font-size: 18px;">Sarah Champion</span>
+                    <span style="font-weight: 900; color: #92400e; font-size: 18px;">Runner A</span>
                   </div>
                   <span style="font-weight: 800; color: #a16207; font-size: 18px;">24.8 mi</span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; background: #f1f5f9; border-radius: 16px; margin-bottom: 16px; border: 2px solid #e2e8f0;">
                   <div style="display: flex; align-items: center; gap: 16px;">
                     <span style="font-size: 28px;">🥈</span>
-                    <span style="font-weight: 800; color: #475569; font-size: 18px;">Mike Speed</span>
+                    <span style="font-weight: 800; color: #475569; font-size: 18px;">Runner B</span>
                   </div>
                   <span style="font-weight: 700; color: #64748b; font-size: 18px;">22.1 mi</span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; background: #f1f5f9; border-radius: 16px; border: 2px solid #e2e8f0;">
                   <div style="display: flex; align-items: center; gap: 16px;">
                     <span style="font-size: 28px;">🥉</span>
-                    <span style="font-weight: 800; color: #475569; font-size: 18px;">Alex Fast</span>
+                    <span style="font-weight: 800; color: #475569; font-size: 18px;">Runner C</span>
                   </div>
                   <span style="font-weight: 700; color: #64748b; font-size: 18px;">19.7 mi</span>
                 </div>
@@ -448,11 +448,11 @@ export async function POST(req: Request) {
               <span style="font-size: 42px;">✅</span>
             </div>
             <h1 style="margin: 0 0 16px 0; font-size: 36px; font-weight: 900; color: #ffffff;">Payment Confirmed</h1>
-            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">SF Running Club</p>
+            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">Sample Group</p>
           </div>
           <div style="padding: 56px 48px; text-align: center;">
             <h2 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 800; color: #064e3b;">You're all set!</h2>
-            <p style="margin: 0 0 32px 0; font-size: 18px; color: #065f46;">Your payment of $25.00 has been processed successfully.</p>
+            <p style="margin: 0 0 32px 0; font-size: 18px; color: #065f46;">Your payment has been processed successfully.</p>
             <a href="#" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 20px 40px; border-radius: 16px; font-weight: 800; font-size: 18px;">
               View Challenge →
             </a>
@@ -487,7 +487,7 @@ export async function POST(req: Request) {
               <span style="font-size: 42px;">❌</span>
             </div>
             <h1 style="margin: 0 0 16px 0; font-size: 36px; font-weight: 900; color: #ffffff;">Payment Failed</h1>
-            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">SF Running Club</p>
+            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">Sample Group</p>
           </div>
           <div style="padding: 56px 48px; text-align: center;">
             <h2 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 800; color: #dc2626;">Payment Unsuccessful</h2>
@@ -526,11 +526,11 @@ export async function POST(req: Request) {
               <span style="font-size: 42px;">🏆</span>
             </div>
             <h1 style="margin: 0 0 16px 0; font-size: 36px; font-weight: 900; color: #ffffff;">Prize Payout!</h1>
-            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">SF Running Club</p>
+            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">Sample Group</p>
           </div>
           <div style="padding: 56px 48px; text-align: center;">
             <h2 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 800; color: #92400e;">Congratulations!</h2>
-            <p style="margin: 0 0 32px 0; font-size: 18px; color: #a16207;">Your prize of $150.00 has been sent to your account.</p>
+            <p style="margin: 0 0 32px 0; font-size: 18px; color: #a16207;">Your prize has been sent to your account.</p>
             <a href="#" style="display: inline-block; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #ffffff; text-decoration: none; padding: 20px 40px; border-radius: 16px; font-weight: 800; font-size: 18px;">
               View Account →
             </a>
@@ -565,7 +565,7 @@ export async function POST(req: Request) {
               <span style="font-size: 42px;">🔗</span>
             </div>
             <h1 style="margin: 0 0 16px 0; font-size: 36px; font-weight: 900; color: #ffffff;">Account Connected</h1>
-            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">SF Running Club</p>
+            <p style="margin: 0; font-size: 20px; color: rgba(255,255,255,0.95);">Sample Group</p>
           </div>
           <div style="padding: 56px 48px; text-align: center;">
             <h2 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 800; color: #1e40af;">Setup Complete!</h2>

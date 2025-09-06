@@ -7,6 +7,7 @@ type LeaderboardRow = {
   user_id: string;
   name: string | null;
   miles: number;
+  overallMiles: number;
   isCurrentUser?: boolean;
   isAdmin?: boolean;
   rank: number;
@@ -19,9 +20,21 @@ type LeaderboardProps = {
   currentUserId: string | null;
   groupOwnerId: string;
   isLoading?: boolean;
+  groupRule?: string;
+  challengePot?: number;
+  challengePeriod?: string | null;
 };
 
-export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoading = false }: LeaderboardProps) {
+export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoading = false, groupRule, challengePot, challengePeriod }: LeaderboardProps) {
+  // Extract goal from group rule (e.g., "Run at least 5 miles" -> 5)
+  const extractGoalFromRule = (rule: string | undefined): number => {
+    if (!rule) return 5; // default goal
+    const match = rule.match(/(\d+(?:\.\d+)?)\s*(?:total\s+)?miles?/i);
+    return match ? parseFloat(match[1]) : 5;
+  };
+  
+  const weeklyGoal = extractGoalFromRule(groupRule);
+  console.log('Weekly goal extracted from rule:', weeklyGoal, 'from rule:', groupRule);
   if (isLoading) {
     return (
       <Card className="p-4">
@@ -109,136 +122,86 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
   };
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Weekly Leaderboard - UPDATED</h3>
-        <div className="text-sm" style={{color: 'var(--muted)'}}>{leaderboard.length} participants</div>
-      </div>
-      
-      <div className="space-y-3">
-        {leaderboard.map((entry, index) => {
-          const isCurrentUser = entry.user_id === currentUserId;
-          const isAdmin = entry.user_id === groupOwnerId;
-          
-          // Get rank-specific styling to match reference image
-          const getRankStyling = (rank: number) => {
-            switch (rank) {
-              case 1:
-                return {
-                  bg: 'linear-gradient(135deg, #5ee1a2, #4ade80)',
-                  text: '#000000'
-                };
-              case 2:
-                return {
-                  bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
-                  text: '#000000'
-                };
-              case 3:
-                return {
-                  bg: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                  text: '#000000'
-                };
-              default:
-                return {
-                  bg: 'linear-gradient(135deg, #64748b, #475569)',
-                  text: '#000000'
-                };
+    <div className="card">
+      <div className="inner">
+        <div className="leader-header">
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+            <div style={{fontWeight: '800'}}>Leaderboard{challengePeriod ? ` — ${challengePeriod}` : ' — Weekly'}</div>
+            <span className="pill">Pot ${challengePot ? challengePot.toFixed(2) : (leaderboard.length * 10).toFixed(2)}</span>
+            <span className="subtle">{leaderboard.length} participants</span>
+          </div>
+          <div className="row">
+            <button className="iconbtn" id="sortBtn" title="Sort by miles">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 18h16M4 12h10M4 6h6" stroke="#9fb2ff" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <button className="iconbtn" title="Share">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 12l10-7v14L7 12z" stroke="#9fb2ff" strokeWidth="1.8" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div className="list" id="lb">
+          {leaderboard.map((entry, index) => {
+            const isCurrentUser = entry.user_id === currentUserId;
+            const isAdmin = entry.user_id === groupOwnerId;
+            
+            // Calculate progress percentage using dynamic goal
+            const progressPercent = Math.min(100, (entry.miles / weeklyGoal) * 100);
+            
+            console.log(`Progress for ${entry.name}: ${entry.miles} miles / ${weeklyGoal} goal = ${progressPercent.toFixed(1)}%`);
+            
+            // Determine status label based on dynamic goal
+            let statusLabel = "⏱ On Pace";
+            if (entry.miles >= weeklyGoal) {
+              statusLabel = "✅ Qualified";
+            } else if (entry.miles === 0) {
+              statusLabel = "🏁 Get Moving";
+            } else if (entry.miles >= weeklyGoal * 0.8) {
+              statusLabel = "⏱ On Pace";
+            } else {
+              const remaining = weeklyGoal - entry.miles;
+              statusLabel = `Need ${remaining.toFixed(1)} more`;
             }
-          };
+            
+            return (
+              <div 
+                key={entry.user_id}
+                className="row-item" 
+                data-miles={entry.miles}
+              >
+                <div className="ava">{entry.name?.[0]?.toUpperCase() || '?'}</div>
+                <div className="who">
+                  <div className="name">
+                    {entry.name || 'Anonymous'}
+                    {isCurrentUser && ' (You)'}
+                    {isAdmin && (
+                      <Crown className="ml-1 w-3 h-3 text-yellow-600" />
+                    )}
+                  </div>
+                  <div className="meta">
+                    Week: {entry.miles.toFixed(1)} · Overall: {entry.overallMiles.toFixed(1)} miles
+                    {entry.streak && entry.streak > 1 && (
+                      <span className="ml-2">🔥 {entry.streak}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="progress" aria-label={`${entry.name} weekly progress`}>
+                  <span style={{ ['--pct' as any]: `${progressPercent}%` }}></span>
+                </div>
+                <span className="pill">{statusLabel}</span>
+              </div>
+            );
+          })}
           
-          const rankStyle = getRankStyling(index + 1);
-          
-          return (
-            <div 
-              key={entry.user_id}
-              className="relative rounded-full px-4 py-3 transition-all duration-200 hover:scale-[1.02] mb-3"
-              style={{
-                background: rankStyle.bg,
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-                border: isCurrentUser ? '2px solid var(--brand)' : 'none',
-                minHeight: '60px',
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              {/* Avatar */}
-              <div className="relative flex-shrink-0 mr-3">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold border border-black/20" 
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.5)', 
-                    color: '#000000',
-                    fontSize: '14px'
-                  }}
-                >
-                  {entry.name?.[0]?.toUpperCase() || '?'}
-                </div>
-                {isAdmin && (
-                  <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-600" />
-                )}
-              </div>
-
-              {/* Name and Stats */}
-              <div className="flex-1 min-w-0 mr-3">
-                <div 
-                  className="font-bold truncate" 
-                  style={{
-                    color: '#000000',
-                    fontSize: '16px',
-                    lineHeight: '1.2'
-                  }}
-                >
-                  {entry.name || 'Anonymous'}
-                  {isCurrentUser && ' (You)'}
-                </div>
-                <div 
-                  className="font-medium truncate" 
-                  style={{
-                    color: '#000000',
-                    fontSize: '12px',
-                    opacity: 0.8,
-                    lineHeight: '1.2'
-                  }}
-                >
-                  {entry.miles.toFixed(1)} miles • PACE WARRIOR
-                </div>
-              </div>
-
-              {/* Streak */}
-              {entry.streak && entry.streak > 1 && (
-                <div 
-                  className="flex-shrink-0 mr-2 font-medium" 
-                  style={{
-                    color: '#000000',
-                    fontSize: '12px',
-                    opacity: 0.9
-                  }}
-                >
-                  🔥{entry.streak}
-                </div>
-              )}
-
-              {/* Rank Icon */}
-              <div className="flex-shrink-0">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center" 
-                  style={{backgroundColor: 'rgba(255,255,255,0.5)'}}
-                >
-                  {index === 0 ? (
-                    <Trophy className="w-4 h-4" style={{color: '#000000'}} />
-                  ) : index === 1 ? (
-                    <Medal className="w-4 h-4" style={{color: '#000000'}} />
-                  ) : index === 2 ? (
-                    <Award className="w-4 h-4" style={{color: '#000000'}} />
-                  ) : (
-                    <span className="font-bold" style={{color: '#000000', fontSize: '12px'}}>#{index + 1}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+          {leaderboard.length === 0 && (
+            <div className="empty">No entries yet. Click <strong>+ Log Miles</strong> to get on the board.</div>
+          )}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
