@@ -305,3 +305,19 @@ input.field, textarea.field{-webkit-appearance:none; -moz-appearance:none; appea
   .steps-grid{ grid-template-columns: 1fr; }
   .home-cta-strip .inner{ flex-direction: column; align-items: flex-start; }
 }
+
+/* Remove legacy marketing CTAs from the header/nav only */
+.rp header a[href="/how-it-works"],
+.rp header a[href="/create"],
+.rp header a[href="/create-a-pool"],
+.rp .nav a[href="/how-it-works"],
+.rp .nav a[href="/create"],
+.rp .nav a[href="/create-a-pool"]{
+  display: none !important;
+}
+
+/* Optional: if those links are wrapped in buttons */
+.rp header .nav-links .btn[href="/how-it-works"],
+.rp header .nav-links .btn[href^="/create"]{
+  display: none !important;
+}

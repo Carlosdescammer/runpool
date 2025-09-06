@@ -39,6 +39,9 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
+  // Only show marketing CTAs on the home page
+  const showMarketingCtas = pathname === '/';
+
   return (
     <>
       <header className="nav">
@@ -48,35 +51,16 @@ export default function Header() {
             <span>RunPool</span>
           </Link>
 
-          {/* Menu button (mobile only) */}
-          <button 
-            className="hamburger"
-            aria-expanded={mobileMenuOpen} 
-            aria-controls="mobile-menu" 
-            aria-label="Toggle menu"
-            onClick={toggleMobileMenu}
-          >
-            Menu
-          </button>
+          {/* Mobile menu toggle - hidden */}
 
           <nav className="nav-links desktop-only">
-            {pathname === '/' ? (
+            {isSignedIn ? (
               <>
-                <a href="#how" className="btn btn-ghost">How it works</a>
-                {!isSignedIn && <Link href="/signin" className="btn">Sign in</Link>}
-                <Link href="/group/new" className="btn btn-primary">Create a Pool</Link>
+                <Link href="/settings" className="btn btn-secondary">Settings</Link>
+                <button onClick={signOut} className="btn btn-primary">Sign Out</button>
               </>
             ) : (
-              <>
-                {isSignedIn ? (
-                  <>
-                    <Link href="/settings" className="btn btn-secondary">Settings</Link>
-                    <button onClick={signOut} className="btn btn-primary">Sign Out</button>
-                  </>
-                ) : (
-                  showSignIn && <Link href="/signin" className="btn btn-primary">Sign In</Link>
-                )}
-              </>
+              showSignIn && <Link href="/signin" className="btn btn-primary">Sign In</Link>
             )}
           </nav>
         </div>
@@ -86,23 +70,13 @@ export default function Header() {
           className="mobile-menu" 
           hidden={!mobileMenuOpen}
         >
-          {pathname === '/' ? (
+          {isSignedIn ? (
             <>
-              <a href="#how" className="mobile-link" onClick={closeMobileMenu}>How it works</a>
-              {!isSignedIn && <Link href="/signin" className="mobile-link" onClick={closeMobileMenu}>Sign in</Link>}
-              <Link href="/group/new" className="mobile-link primary" onClick={closeMobileMenu}>Create a Pool</Link>
+              <Link href="/settings" className="mobile-link" onClick={closeMobileMenu}>Settings</Link>
+              <button onClick={signOut} className="mobile-link primary">Sign Out</button>
             </>
           ) : (
-            <>
-              {isSignedIn ? (
-                <>
-                  <Link href="/settings" className="mobile-link" onClick={closeMobileMenu}>Settings</Link>
-                  <button onClick={signOut} className="mobile-link primary">Sign Out</button>
-                </>
-              ) : (
-                showSignIn && <Link href="/signin" className="mobile-link primary" onClick={closeMobileMenu}>Sign In</Link>
-              )}
-            </>
+            showSignIn && <Link href="/signin" className="mobile-link primary" onClick={closeMobileMenu}>Sign In</Link>
           )}
         </nav>
       </header>
