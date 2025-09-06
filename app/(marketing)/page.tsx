@@ -1,10 +1,78 @@
 // app/page.tsx
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from "next/link";
+import Header from '@/components/Header';
+import { supabase } from '@/lib/supabase/client';
 
 export default function Home() {
+  const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkAuthAndRedirect = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // User is signed in, check if they have groups (try both possible table names)
+        let memberships = null;
+        
+        // Try group_members table first
+        const { data: groupMembers, error: gmErr } = await supabase
+          .from('group_members')
+          .select('group_id')
+          .eq('user_id', user.id)
+          .limit(1);
+        
+        if (!gmErr && groupMembers) {
+          memberships = groupMembers;
+        } else {
+          // Try memberships table as fallback
+          const { data: membershipData, error: mErr } = await supabase
+            .from('memberships')
+            .select('group_id')
+            .eq('user_id', user.id)
+            .limit(1);
+          
+          if (!mErr && membershipData) {
+            memberships = membershipData;
+          }
+        }
+        
+        if (memberships && memberships.length > 0) {
+          // User has groups, redirect to their group
+          router.replace(`/group/${memberships[0].group_id}`);
+          return;
+        } else {
+          // User is signed in but has no groups, go to onboarding
+          router.replace('/onboarding');
+          return;
+        }
+      }
+      setIsCheckingAuth(false);
+    };
+
+    checkAuthAndRedirect();
+  }, [router]);
+
+  if (isCheckingAuth) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
   return (
-    <main>
-      <div className="wrap">
+    <>
+      <Header />
+      <main>
+        <div className="wrap">
         {/* HERO */}
         <section className="home-hero">
           <div className="home-hero__copy">
@@ -90,6 +158,7 @@ export default function Home() {
         </footer>
       </div>
     </main>
+    </>
   );
 }
 

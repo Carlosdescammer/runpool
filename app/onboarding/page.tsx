@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ export default function OnboardingPage() {
       }
       // If already in a group, send to that dashboard
       const { data: memberships } = await supabase
-        .from('memberships')
+        .from('group_members')
         .select('group_id')
         .eq('user_id', uid)
         .limit(1);
@@ -40,7 +40,11 @@ export default function OnboardingPage() {
   async function saveProfile() {
     if (!userId) { setStatus('Please sign in first.'); return; }
     setStatus('Saving profile…');
-    const { error } = await supabase.from('user_profiles').upsert({ id: userId, name });
+    const { error } = await supabase.from('profiles').upsert({ 
+      id: userId, 
+      full_name: name,
+      email: '' // This will be populated from auth.users
+    });
     if (error) setStatus(error.message); else setStatus('Profile saved.');
   }
 

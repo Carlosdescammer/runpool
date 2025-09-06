@@ -1,11 +1,7 @@
 // app/join/page.tsx
 'use client';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 type InviteInfo = {
@@ -77,11 +73,11 @@ export default function Join() {
 
         // Load inviter name (optional)
         const { data: p } = await supabase
-          .from('user_profiles')
-          .select('name')
+          .from('profiles')
+          .select('full_name')
           .eq('id', inv.created_by)
           .maybeSingle();
-        setInviterName((p?.name as string | null) ?? null);
+        setInviterName((p?.full_name as string | null) ?? null);
       }
 
       setLoading(false);
@@ -157,7 +153,11 @@ export default function Join() {
     // If not, we must ask the user to confirm; Supabase returns no session.
     if (data.session) {
       setUserId(data.user?.id ?? null);
-      await supabase.from('user_profiles').upsert({ id: data.user?.id, name: displayName });
+      await supabase.from('profiles').upsert({ 
+        id: data.user?.id, 
+        full_name: displayName,
+        email: data.user?.email || ''
+      });
       await joinNow();
     } else {
       setStatus('Check your email to confirm your account, then reopen this invite link to finish joining.');
@@ -206,107 +206,195 @@ export default function Join() {
   }, [inviterName, token, group]);
 
   return (
-    <div className="min-h-svh grid place-items-center px-4 py-6 md:px-6">
-      <Card className="w-full max-w-[720px] p-6">
-        {/* Invite header */}
-        <div className="text-center">
-          <h1 className="m-0 text-2xl font-extrabold">{loading ? 'Loading…' : headerLine}</h1>
-          {!loading && (
-            <div className="mt-1 text-zinc-600">{subLine}</div>
+    <div className="min-h-svh wrap">
+      <div className="card" style={{maxWidth: '720px', margin: '0 auto'}}>
+        <div className="inner">
+          {/* Invite header */}
+          <div style={{textAlign: 'center', marginBottom: '24px'}}>
+            <h1 style={{fontSize: '24px', fontWeight: '800', margin: '0 0 8px 0'}}>
+              {loading ? 'Loading…' : headerLine}
+            </h1>
+            {!loading && (
+              <p style={{color: 'var(--muted)', margin: 0}}>{subLine}</p>
+            )}
+          </div>
+
+          {!loading && group && (
+            <div className="card" style={{marginBottom: '24px'}}>
+              <div className="inner">
+                <h3 style={{fontWeight: '800', marginBottom: '12px'}}>About {group.name}</h3>
+                <div style={{lineHeight: '1.6'}}>
+                  <div><strong>Weekly rule:</strong> {group.rule || '—'}</div>
+                  {typeof group.entry_fee === 'number' && (
+                    <div><strong>Entry fee:</strong> ${(group.entry_fee / 100).toFixed(2)}</div>
+                  )}
+                  {invitedEmail && (
+                    <div style={{marginTop: '8px', color: 'var(--muted)'}}>
+                      This invite is for <strong>{invitedEmail}</strong>.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
-        </div>
 
-        {!loading && group && (
-          <div className="mt-4 card">
-            <div className="font-extrabold">About {group.name}</div>
-            <div className="mt-1 text-zinc-800">
-              <div><strong>Weekly rule:</strong> {group.rule || '—'}</div>
-              {typeof group.entry_fee === 'number' && (
-                <div><strong>Entry fee:</strong> ${group.entry_fee}</div>
-              )}
-              {invitedEmail && (
-                <div className="mt-1 text-zinc-600">
-                  This invite is for <strong>{invitedEmail}</strong>.
+          {/* Auth section */}
+          {userId ? (
+            <div style={{textAlign: 'center'}}>
+              <p style={{marginBottom: '16px', color: 'var(--muted)'}}>You're signed in.</p>
+              {!token && (
+                <div style={{marginBottom: '16px', maxWidth: '420px', margin: '0 auto 16px'}}>
+                  <label className="label">Invite link or token</label>
+                  <input 
+                    className="input" 
+                    placeholder="Paste invite link or token" 
+                    value={tokenIn} 
+                    onChange={e=>setTokenIn(e.target.value)} 
+                  />
                 </div>
               )}
+              <button 
+                onClick={joinNow} 
+                disabled={busy} 
+                className="btn btn-primary"
+                style={{minWidth: '200px'}}
+              >
+                {busy ? 'Joining…' : 'Join group'}
+              </button>
             </div>
-          </div>
-        )}
+          ) : (
+            <div>
+              {/* Toggle */}
+              <div style={{marginBottom: '16px', textAlign: 'center', fontSize: '14px', color: 'var(--muted)'}}>
+                💡 <strong>Not sure?</strong> Try either option - we'll help you if you pick the wrong one!
+              </div>
+              <div style={{display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap'}}>
+                <button 
+                  onClick={()=>setMode('signup')} 
+                  className={`btn ${mode==='signup' ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  Create account
+                </button>
+                <button 
+                  onClick={()=>setMode('signin')} 
+                  className={`btn ${mode==='signin' ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  Sign in to existing account
+                </button>
+              </div>
 
-        <div style={{ height:18 }} />
-        {/* Auth section */}
-        {userId ? (
-          <div className="text-center">
-            <div className="mb-2 text-zinc-600">You’re signed in.</div>
-            {!token && (
-              <div className="mx-auto mb-3 w-full max-w-[420px]">
-                <Label>Invite link or token</Label>
-                <Input placeholder="Paste invite link or token" value={tokenIn} onChange={e=>setTokenIn(e.target.value)} />
-              </div>
-            )}
-            <Button onClick={joinNow} disabled={busy} variant="primary" size="lg" className="w-[260px]">
-              {busy ? 'Joining…' : 'Join group'}
-            </Button>
-          </div>
-        ) : (
-          <div>
-            {/* Toggle */}
-            <div className="mb-3 text-center text-sm text-zinc-600">
-              💡 <strong>Not sure?</strong> Try either option - we&apos;ll help you if you pick the wrong one!
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={()=>setMode('signup')} variant={mode==='signup' ? 'primary' : 'secondary'}>
-                Create account
-              </Button>
-              <Button onClick={()=>setMode('signin')} variant={mode==='signin' ? 'primary' : 'secondary'}>
-                Sign in to existing account
-              </Button>
-            </div>
-
-            <div className="h-3" />
-            {mode === 'signup' ? (
-              <div className="grid gap-2.5">
-                <Label>Display name</Label>
-                <Input placeholder="e.g. Jamie" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next" />
-                <Label>Password</Label>
-                <Input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" enterKeyHint="done" />
-                <Button onClick={handleSignup} disabled={busy} variant="default" size="lg" className="mt-1">
-                  {busy ? 'Creating account…' : 'Create account & Join'}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-2.5">
-                <Label>Email</Label>
-                <Input type="email" value={emailIn} onChange={e=>setEmailIn(e.target.value)} placeholder="you@example.com" autoCapitalize="none" autoCorrect="off" inputMode="email" autoComplete="email" enterKeyHint="next" />
-                <Label>Password</Label>
-                <Input type="password" value={passwordIn} onChange={e=>setPasswordIn(e.target.value)} placeholder="••••••••" autoComplete="current-password" enterKeyHint="done" />
-                <Button onClick={handleSignin} disabled={busy} variant="primary" size="lg" className="mt-1">
-                  {busy ? 'Signing in…' : 'Sign in & Join'}
-                </Button>
-              </div>
-            )}
-            {/* Invite token input for users without a token in URL */}
-            {!token && (
-              <div className="mt-4">
-                <div className="mb-1 font-semibold">Join a group</div>
-                <div className="text-sm text-zinc-600">Paste your invite link or token.</div>
-                <div className="mt-2 grid gap-2">
-                  <Input placeholder="Paste invite link or token" value={tokenIn} onChange={e=>setTokenIn(e.target.value)} />
+              {mode === 'signup' ? (
+                <div style={{display: 'grid', gap: '12px'}}>
+                  <label className="label">Display name</label>
+                  <input 
+                    className="input" 
+                    placeholder="e.g. Jamie" 
+                    value={displayName} 
+                    onChange={e=>setDisplayName(e.target.value)} 
+                  />
+                  <label className="label">Email</label>
+                  <input 
+                    className="input" 
+                    type="email" 
+                    value={email} 
+                    onChange={e=>setEmail(e.target.value)} 
+                    placeholder="you@example.com" 
+                    autoCapitalize="none" 
+                    autoCorrect="off" 
+                    inputMode="email" 
+                    autoComplete="email" 
+                    enterKeyHint="next" 
+                  />
+                  <label className="label">Password</label>
+                  <input 
+                    className="input" 
+                    type="password" 
+                    value={password} 
+                    onChange={e=>setPassword(e.target.value)} 
+                    placeholder="••••••••" 
+                    autoComplete="new-password" 
+                    enterKeyHint="done" 
+                  />
+                  <button 
+                    onClick={handleSignup} 
+                    disabled={busy} 
+                    className="btn btn-primary"
+                    style={{marginTop: '8px'}}
+                  >
+                    {busy ? 'Creating account…' : 'Create account & Join'}
+                  </button>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{display: 'grid', gap: '12px'}}>
+                  <label className="label">Email</label>
+                  <input 
+                    className="input" 
+                    type="email" 
+                    value={emailIn} 
+                    onChange={e=>setEmailIn(e.target.value)} 
+                    placeholder="you@example.com" 
+                    autoCapitalize="none" 
+                    autoCorrect="off" 
+                    inputMode="email" 
+                    autoComplete="email" 
+                    enterKeyHint="next" 
+                  />
+                  <label className="label">Password</label>
+                  <input 
+                    className="input" 
+                    type="password" 
+                    value={passwordIn} 
+                    onChange={e=>setPasswordIn(e.target.value)} 
+                    placeholder="••••••••" 
+                    autoComplete="current-password" 
+                    enterKeyHint="done" 
+                  />
+                  <button 
+                    onClick={handleSignin} 
+                    disabled={busy} 
+                    className="btn btn-primary"
+                    style={{marginTop: '8px'}}
+                  >
+                    {busy ? 'Signing in…' : 'Sign in & Join'}
+                  </button>
+                </div>
+              )}
+              {/* Invite token input for users without a token in URL */}
+              {!token && (
+                <div style={{marginTop: '24px'}}>
+                  <h3 style={{fontWeight: '600', marginBottom: '8px'}}>Join a group</h3>
+                  <p style={{fontSize: '14px', color: 'var(--muted)', marginBottom: '12px'}}>
+                    Paste your invite link or token.
+                  </p>
+                  <input 
+                    className="input" 
+                    placeholder="Paste invite link or token" 
+                    value={tokenIn} 
+                    onChange={e=>setTokenIn(e.target.value)} 
+                  />
+                </div>
+              )}
           </div>
-        )}
+          )}
 
-        <div className="h-3" />
-        <div className="min-h-[18px] text-center text-xs text-zinc-600">{status}</div>
-        {/* Rules: Run Pool — Simple Rules */}
-        <div className="h-5" />
-        <div className="border-t border-zinc-200 pt-3">
-          <div className="mb-1 font-extrabold">Runpool — How it works</div>
-          <div className="grid gap-2 text-sm text-zinc-800">
+          {status && (
+            <div style={{
+              textAlign: 'center', 
+              fontSize: '14px', 
+              color: 'var(--muted)', 
+              marginTop: '16px',
+              padding: '12px',
+              backgroundColor: 'var(--muted-bg)',
+              borderRadius: '8px'
+            }}>
+              {status}
+            </div>
+          )}
+
+          {/* Rules: Run Pool — Simple Rules */}
+          <div style={{borderTop: '1px solid var(--stroke)', marginTop: '32px', paddingTop: '24px'}}>
+            <h3 style={{fontWeight: '800', marginBottom: '16px'}}>Runpool — How it works</h3>
+            <div style={{display: 'grid', gap: '12px', fontSize: '14px', lineHeight: '1.6'}}>
             <div><strong>1) What this is</strong><br/>A weekly running game with friends. Do the miles, show proof, and share the prize.</div>
             <div><strong>2) Roles</strong><br/>Coach: made the group and sets the weekly rule.<br/>Banker: trusted person who holds the money (Apple Pay/Venmo).<br/>Players: everyone who joins.</div>
             <div><strong>3) This week’s rule (example)</strong><br/>Goal: Run at least 5 miles between Mon–Sun 11:59 PM. The rule stays the same all week. Changes apply next week.</div>
@@ -317,10 +405,11 @@ export default function Join() {
             <div><strong>8) Deadlines (don’t miss them)</strong><br/>Proof upload closes Sun 11:59 PM. Late = FAIL. No exceptions.</div>
             <div><strong>9) Fair play (no drama)</strong><br/>One account per person. Real runs only. No treadmill “keyboard miles.” Blurry or cropped proof = FAIL. Coach can reject suspicious proofs.</div>
             <div><strong>10) Money basics (kept offline)</strong><br/>Banker holds the money. The app only tracks who entered and who won. Payouts are sent by the Banker after results are posted.</div>
-            <div><strong>Quick example</strong><br/>Entry: $25. 12 players enter. Results: 7 PASS, 5 FAIL. Prize = 5 × $25 = $125 → split by 7 winners ≈ $17 each (leftover cents roll to next week).</div>
+              <div><strong>Quick example</strong><br/>Entry: $25. 12 players enter. Results: 7 PASS, 5 FAIL. Prize = 5 × $25 = $125 → split by 7 winners ≈ $17 each (leftover cents roll to next week).</div>
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

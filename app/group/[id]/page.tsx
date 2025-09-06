@@ -10,7 +10,7 @@ import confetti from 'canvas-confetti';
 // Components
 import { Leaderboard } from './components/Leaderboard/Leaderboard';
 import { MileageSubmissionModal } from './components/MileageSubmission/MileageSubmissionModal';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 
 // Types
 type Challenge = {

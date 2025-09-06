@@ -1,6 +1,6 @@
 // app/auth/update-password/page.tsx
 'use client';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';

@@ -363,7 +363,27 @@ input.field, textarea.field{-webkit-appearance:none; -moz-appearance:none; appea
 .rp .auth-submit{ width: 100%; margin-top: 12px; }
 .rp .auth-note{ color: var(--muted); font-size: 12px; margin-top: 10px; }
 
-/* Ensure all auth inputs/buttons are skinned (in case utilities leak in) */
+/* Center & cap auth card */
+.rp .auth-shell{
+  min-height: 88dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+.rp .auth-card{
+  width: 100% !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+}
+.rp .auth-card .inner{ padding: 18px !important; }
+
+/* Form stack */
+.rp .auth-form{ display: grid; gap: 12px; }
+.rp .auth-form .field{ display:flex; flex-direction:column; gap:8px; }
+.rp .auth-form .label{ font-weight:700; }
+.rp .row-between{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+
+/* Inputs (theme) */
 .rp .auth-card input[type="email"],
 .rp .auth-card input[type="password"]{
   background: var(--panel);
@@ -379,3 +399,103 @@ input.field, textarea.field{-webkit-appearance:none; -moz-appearance:none; appea
   border-color: #3b4b7a;
   box-shadow: 0 0 0 3px var(--focus);
 }
+
+/* Full-width submit */
+.rp .auth-submit{ width: 100% !important; }
+
+/* Turn the forgot link back into a link (not a pill button) */
+.rp .auth-card .link-muted{
+  color: var(--muted) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Ensure stray white buttons get skinned */
+.rp .auth-card button,
+.rp .auth-card input[type="submit"]{
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 9px 14px;
+}
+
+/* Checkbox themed */
+.rp .auth-card input[type="checkbox"]{ width:18px; height:18px; accent-color: var(--accent); }
+
+/* Prevent full-width card from a wrapper class */
+.rp .auth-card[class*="max-w-none"]{ max-width: 480px !important; }
+
+/* Center & cap the auth card no matter what */
+.rp .auth-shell{
+  min-height: 88dvh;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px 16px !important;
+}
+
+.rp .auth-card{
+  width: 100% !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+  border-radius: 16px !important;
+}
+
+/* Kill any max-w-none/w-screen leaks from utilities */
+.rp .auth-card[class*="max-w-"],
+.rp .auth-card[class*="w-screen"],
+.rp .auth-card[class*="w-full"]{
+  max-width: 480px !important;
+  width: 100% !important;
+}
+
+/* Auth card styling - ensure ≤520px width and centered */
+.auth-card {
+  max-width: 520px !important;
+  width: 100% !important;
+  margin-inline: auto !important;
+}
+
+/* Fallback: any card containing a form that posts to /signin is capped and centered */
+.rp main:has(form[action*="signin"]) .card{
+  max-width: 520px !important;
+  margin-inline: auto !important;
+}
+
+/* Auth layout container ensures no marketing chrome */
+.auth main, .auth .card { isolation: isolate; }
+
+/* Inputs/buttons default to your atoms if a vendor comp doesn't set classes */
+.auth input[type="email"],
+.auth input[type="password"],
+.auth input[type="text"],
+.auth select,
+.auth textarea { 
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-height: 44px;
+  box-shadow: var(--shadow);
+}
+
+.auth button[type="submit"] { 
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 9px 14px;
+  font-weight: 600;
+}
+
+/* Kill old hero chips anywhere outside marketing segment */
+:not(.marketing) .home-nav { display: none !important; }
