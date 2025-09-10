@@ -80,12 +80,10 @@ export default function GroupPage() {
       }
       
       if (!user) {
-        console.log('No user found, redirecting to signin');
         router.replace('/signin');
         return;
       }
       
-      console.log('User authenticated:', user.id);
       setUserId(user.id);
     };
     
@@ -95,82 +93,46 @@ export default function GroupPage() {
   // Load group data
   useEffect(() => {
     if (!groupId || !userId) {
-      console.log('Missing groupId or userId:', { groupId, userId });
       return;
     }
     
     const loadGroupData = async () => {
-      console.log('Loading group data for:', { groupId, userId });
       setLoading(prev => ({ ...prev, group: true }));
       
       try {
-        console.log('=== DISCOVERING DATABASE SCHEMA ===');
-        
         // First, let's discover what tables and columns actually exist
-        console.log('Step 1: Discovering memberships table schema...');
         const { data: sampleMembership, error: membershipSchemaError } = await supabase
           .from('memberships')
           .select('*')
           .limit(1);
         
-        if (sampleMembership && sampleMembership.length > 0) {
-          console.log('MEMBERSHIPS table columns:', Object.keys(sampleMembership[0]));
-        } else {
-          console.log('No memberships data found or error:', membershipSchemaError);
-        }
         
-        console.log('Step 2: Discovering groups table schema...');
         const { data: sampleGroup, error: groupSchemaError } = await supabase
           .from('groups')
           .select('*')
           .limit(1);
         
-        if (sampleGroup && sampleGroup.length > 0) {
-          console.log('GROUPS table columns:', Object.keys(sampleGroup[0]));
-        } else {
-          console.log('No groups data found or error:', groupSchemaError);
-        }
         
-        console.log('Step 3: Discovering challenges table schema...');
         const { data: sampleChallenge, error: challengeSchemaError } = await supabase
           .from('challenges')
           .select('*')
           .limit(1);
         
-        if (sampleChallenge && sampleChallenge.length > 0) {
-          console.log('CHALLENGES table columns:', Object.keys(sampleChallenge[0]));
-        } else {
-          console.log('No challenges data found or error:', challengeSchemaError);
-        }
         
-        console.log('Step 4: Discovering proofs table schema...');
         const { data: sampleProof, error: proofSchemaError } = await supabase
           .from('proofs')
           .select('*')
           .limit(1);
         
-        if (sampleProof && sampleProof.length > 0) {
-          console.log('PROOFS table columns:', Object.keys(sampleProof[0]));
-        } else {
-          console.log('No proofs data found or error:', proofSchemaError);
-        }
         
-        console.log('Step 5: Discovering user_profiles table schema...');
         const { data: sampleProfile, error: profileSchemaError } = await supabase
           .from('user_profiles')
           .select('*')
           .limit(1);
         
-        if (sampleProfile && sampleProfile.length > 0) {
-          console.log('USER_PROFILES table columns:', Object.keys(sampleProfile[0]));
-        } else {
-          console.log('No user_profiles data found or error:', profileSchemaError);
-        }
         
-        console.log('=== NOW LOADING ACTUAL DATA ===');
         
         // Now check if user is a member of this group using discovered schema
-        console.log('Step 6: Checking membership with discovered schema...');
         const { data: membershipData, error: membershipError } = await supabase
           .from('memberships')
           .select('*')
@@ -189,17 +151,14 @@ export default function GroupPage() {
           return;
         }
         
-        console.log('Step 7: Membership found:', membershipData);
         
         // Load group data using discovered schema
-        console.log('Step 8: Loading group data with discovered schema...');
         const { data: groupData, error: groupError } = await supabase
           .from('groups')
           .select('*')
           .eq('id', groupId)
           .single();
         
-        console.log('Loaded group data:', groupData);
         
         if (groupError) {
           console.error('Group error:', groupError.message, groupError.details, groupError.code);
@@ -207,7 +166,6 @@ export default function GroupPage() {
           return;
         }
         
-        console.log('Step 9: Group data loaded:', groupData);
         
         const groupWithMemberCount = {
           ...groupData,
@@ -218,12 +176,9 @@ export default function GroupPage() {
         setGroup(groupWithMemberCount);
         
         // Check admin status using actual membership data structure
-        console.log('Membership data structure:', membershipData);
         const userRole = membershipData?.role || membershipData?.user_role || 'member';
-        console.log('User role:', userRole);
         setIsAdmin(['admin', 'owner'].includes(userRole));
         
-        console.log('Step 10: Loading challenges with discovered schema...');
         // Load current challenge
         const { data: challengeData, error: challengeError } = await supabase
           .from('challenges')
@@ -232,28 +187,21 @@ export default function GroupPage() {
           .order('week_start', { ascending: false })
           .limit(1);
         
-        console.log('Challenge data loaded:', challengeData);
-        if (challengeData && challengeData.length > 0) {
-          console.log('Challenge columns available:', Object.keys(challengeData[0]));
-        }
           
         if (challengeError) {
           console.error('Challenge error:', challengeError.message, challengeError.details);
           // Don't fail if no challenges exist, just log it
         }
         
-        console.log('Step 6: Challenge data:', challengeData);
         
         if (challengeData && challengeData.length > 0) {
           setChallenge(challengeData[0]);
           await loadLeaderboard(challengeData[0].id);
         } else {
-          console.log('No active challenges found');
           setLeaderboard([]);
           setLoading(prev => ({ ...prev, leaderboard: false }));
         }
         
-        console.log('Step 7: Group loading completed successfully');
         
       } catch (error: any) {
         console.error('Unexpected error loading group data:', {
@@ -388,44 +336,30 @@ export default function GroupPage() {
     setLoading(prev => ({ ...prev, leaderboard: true }));
     
     try {
-      console.log('=== LOADING ACCURATE LEADERBOARD DATA ===');
-      console.log('Loading leaderboard for challenge:', challengeId, 'in group:', groupId);
       
       // First, get all group members with accurate schema
-      console.log('Step 1: Loading all group members...');
       const { data: members, error: membersError } = await supabase
         .from('memberships')
         .select('*')
         .eq('group_id', groupId);
       
-      console.log('Members data loaded:', members);
-      if (members && members.length > 0) {
-        console.log('Membership record structure:', Object.keys(members[0]));
-      }
       
       if (membersError) {
         console.error('Members error:', membersError);
         throw membersError;
       }
       
-      console.log('Group members found:', members?.length || 0);
       
       // Now get user profiles for all members
       const userIds = members?.map(m => m.user_id).filter(Boolean) || [];
-      console.log('Step 2: Loading user profiles for user IDs:', userIds);
       
       const { data: profiles, error: profilesError } = await supabase
         .from('user_profiles')
         .select('*')
         .in('id', userIds);
       
-      console.log('User profiles loaded:', profiles);
-      if (profiles && profiles.length > 0) {
-        console.log('Profile record structure:', Object.keys(profiles[0]));
-      }
       
       // Fetch weekly proofs for the current challenge
-      console.log('Step 3: Loading proofs for challenge:', challengeId);
       const { data: proofs, error: proofsError } = await supabase
         .from('proofs')
         .select('*')
@@ -436,21 +370,13 @@ export default function GroupPage() {
         // Don't throw - it's OK if there are no proofs yet
       }
       
-      console.log('Proofs found for this challenge:', proofs?.length || 0);
-      console.log('Proof data:', proofs);
-      if (proofs && proofs.length > 0) {
-        console.log('Proof record structure:', Object.keys(proofs[0]));
-      }
       
       // Aggregate miles by user from current challenge
-      console.log('Step 4: Calculating weekly miles from proofs...');
       const milesByUser: Record<string, number> = {};
       proofs?.forEach((proof, index) => {
-        console.log(`Processing proof ${index + 1}:`, proof);
         
         const userId = proof.user_id;
         if (!userId) {
-          console.warn('Proof missing user_id:', proof);
           return;
         }
         
@@ -461,22 +387,17 @@ export default function GroupPage() {
         for (const col of possibleColumns) {
           if (proof[col] !== undefined && proof[col] !== null) {
             miles = parseFloat(proof[col]) || 0;
-            console.log(`Found miles in column '${col}': ${miles}`);
             break;
           }
         }
         
         if (miles === 0) {
-          console.warn('No miles value found in proof:', proof);
         }
         
         milesByUser[userId] = (milesByUser[userId] || 0) + miles;
-        console.log(`Added ${miles} miles for user ${userId}, total now: ${milesByUser[userId]}`);
       });
-      console.log('Weekly miles by user:', milesByUser);
       
       // Fetch all-time proofs for overall miles calculation
-      console.log('Step 5: Loading all-time proofs for overall miles...');
       const { data: allProofs, error: allProofsError } = await supabase
         .from('proofs')
         .select('*');
@@ -486,7 +407,6 @@ export default function GroupPage() {
         // Don't throw - overall miles is optional
       }
       
-      console.log('All-time proofs loaded:', allProofs?.length || 0);
       
       // Calculate overall miles by user
       const overallMilesByUser: Record<string, number> = {};
@@ -507,10 +427,8 @@ export default function GroupPage() {
         
         overallMilesByUser[userId] = (overallMilesByUser[userId] || 0) + miles;
       });
-      console.log('Overall miles by user:', overallMilesByUser);
       
       // Create leaderboard rows for ALL group members using actual data structure
-      console.log('Step 6: Creating leaderboard with accurate data...');
       const rows: LeaderboardRow[] = members?.map(member => {
         const userId = member.user_id;
         const profile = profiles?.find(p => p.id === userId);
@@ -519,23 +437,8 @@ export default function GroupPage() {
         const totalMiles = overallMilesByUser[userId] || 0;
         const userName = profile?.name || profile?.display_name || profile?.full_name || `User ${userId.slice(0, 8)}`;
         
-        console.log(`Processing member ${userId}:`, {
-          membership: member,
-          profile: profile,
-          userName: userName,
-          weeklyMiles: weeklyMiles,
-          overallMiles: totalMiles,
-          milesType: typeof weeklyMiles,
-          isValidMiles: !isNaN(weeklyMiles) && weeklyMiles >= 0
-        });
         
         // Validate miles data
-        if (isNaN(weeklyMiles) || weeklyMiles < 0) {
-          console.warn(`Invalid weekly miles for user ${userId}: ${weeklyMiles}`);
-        }
-        if (isNaN(totalMiles) || totalMiles < 0) {
-          console.warn(`Invalid total miles for user ${userId}: ${totalMiles}`);
-        }
         
         return {
           user_id: userId,
@@ -554,12 +457,6 @@ export default function GroupPage() {
         row.rank = index + 1;
       });
       
-      console.log('=== FINAL LEADERBOARD DATA ===');
-      console.log('Leaderboard created with', rows.length, 'members');
-      rows.forEach((row, index) => {
-        console.log(`${index + 1}. ${row.name} - Weekly: ${row.miles} miles, Overall: ${row.overallMiles} miles, UserID: ${row.user_id}`);
-      });
-      console.log('================================');
       
       setLeaderboard(rows);
     } catch (error) {

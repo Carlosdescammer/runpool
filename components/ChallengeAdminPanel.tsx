@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase/client';
+import Image from 'next/image';
 
 interface Participant {
   id: string;
@@ -292,9 +293,11 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       {participant.avatar_url ? (
-                        <img 
+                        <Image 
                           src={participant.avatar_url} 
                           alt={participant.full_name || participant.email}
+                          width={32}
+                          height={32}
                           className="h-8 w-8 rounded-full"
                         />
                       ) : (

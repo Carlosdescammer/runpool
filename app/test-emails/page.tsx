@@ -11,7 +11,7 @@ import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react';
 export default function TestEmailsPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<{ type: string; success: boolean; error?: string; email_sent_to?: string; timestamp?: string }[]>([]);
 
   const emailTypes = [
     { id: 'activity', type: 'activity', name: 'Activity Notification', description: 'When someone logs miles' },

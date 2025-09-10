@@ -109,7 +109,7 @@ export default function Home() {
               </ul>
 
               <div className="home-progress">
-                <div className="progress"><span style={{ ["--pct" as any]: "64%" }} /></div>
+                <div className="progress"><span style={{ "--pct": "64%" } as React.CSSProperties} /></div>
                 <div className="home-progress__label">
                   <span>Team total</span>
                   <b>160 / 250 miles</b>

@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 import { connectStripeAccount } from '@/lib/stripe/connect';
-import { createClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -27,7 +24,7 @@ export async function GET(request: Request) {
 
   try {
     // Connect the Stripe account
-    const result = await connectStripeAccount(code);
+    await connectStripeAccount(code);
 
     // Get the redirect URL from state if provided
     let redirectUrl = '/settings/billing?success=stripe_connected';

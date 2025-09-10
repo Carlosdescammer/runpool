@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { ArrowUp, ArrowDown, Crown, Trophy, Medal, Award } from 'lucide-react';
+import { Crown, Trophy, Medal, Award } from 'lucide-react';
 
 type LeaderboardRow = {
   user_id: string;
@@ -34,7 +34,6 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
   };
   
   const weeklyGoal = extractGoalFromRule(groupRule);
-  console.log('Weekly goal extracted from rule:', weeklyGoal, 'from rule:', groupRule);
   if (isLoading) {
     return (
       <Card className="p-4">
@@ -152,7 +151,6 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
             // Calculate progress percentage using dynamic goal
             const progressPercent = Math.min(100, (entry.miles / weeklyGoal) * 100);
             
-            console.log(`Progress for ${entry.name}: ${entry.miles} miles / ${weeklyGoal} goal = ${progressPercent.toFixed(1)}%`);
             
             // Determine status label based on dynamic goal
             let statusLabel = "⏱ On Pace";
@@ -190,7 +188,7 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
                   </div>
                 </div>
                 <div className="progress" aria-label={`${entry.name} weekly progress`}>
-                  <span style={{ ['--pct' as any]: `${progressPercent}%` }}></span>
+                  <span style={{ "--pct": `${progressPercent}%` } as React.CSSProperties}></span>
                 </div>
                 <span className="pill">{statusLabel}</span>
               </div>

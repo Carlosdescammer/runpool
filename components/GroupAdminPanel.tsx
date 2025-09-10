@@ -161,7 +161,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
       .in('id', userIds);
 
     if (profilesError) {
-      console.warn('Error loading profiles:', profilesError);
+      // Continue without profiles if there's an error
     }
 
     const profileMap = new Map();

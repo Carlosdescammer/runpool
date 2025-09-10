@@ -1,6 +1,6 @@
 import { stripe } from './client';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 // Connect a Stripe account to our platform
 export async function connectStripeAccount(authorizationCode: string) {
@@ -165,7 +165,7 @@ export async function processPayout(
 }
 
 // Handle Stripe webhook events
-export async function handleStripeWebhook(event: any) {
+export async function handleStripeWebhook(event: Stripe.Event) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -182,9 +182,8 @@ export async function handleStripeWebhook(event: any) {
       await handlePaymentIntentFailed(failedPaymentIntent, supabase);
       break;
       
-    case 'transfer.paid':
-    case 'transfer.failed':
-      const transfer = event.data.object;
+    case 'transfer.updated':
+      const transfer = event.data.object as Stripe.Transfer;
       await handleTransferUpdate(transfer, supabase);
       break;
       
@@ -193,7 +192,7 @@ export async function handleStripeWebhook(event: any) {
 }
 
 // Helper function to handle successful payments
-async function handlePaymentIntentSucceeded(paymentIntent: any, supabase: any) {
+async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent, supabase: SupabaseClient) {
   const { week_id: weekId, user_id: userId } = paymentIntent.metadata;
   
   if (!weekId || !userId || paymentIntent.metadata.purpose !== 'run_pool_entry') {
@@ -236,7 +235,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: any, supabase: any) {
     }
 
     if (userEmail) {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3006'}/api/notify/payment-success`, {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.runpool.space';
+      await fetch(`${appUrl}/api/notify/payment-success`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -253,7 +253,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: any, supabase: any) {
 }
 
 // Helper function to handle failed payments
-async function handlePaymentIntentFailed(paymentIntent: any, supabase: any) {
+async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent, supabase: SupabaseClient) {
   const { week_id: weekId, user_id: userId } = paymentIntent.metadata;
   
   if (!weekId || !userId || paymentIntent.metadata.purpose !== 'run_pool_entry') {
@@ -282,7 +282,8 @@ async function handlePaymentIntentFailed(paymentIntent: any, supabase: any) {
       .single();
 
     if (userData.user?.email && weekData) {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/notify/payment-failure`, {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.runpool.space';
+      await fetch(`${appUrl}/api/notify/payment-failure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -300,16 +301,16 @@ async function handlePaymentIntentFailed(paymentIntent: any, supabase: any) {
 }
 
 // Helper function to handle transfer updates
-async function handleTransferUpdate(transfer: any, supabase: any) {
+async function handleTransferUpdate(transfer: Stripe.Transfer, supabase: SupabaseClient) {
   // Update the payout status in the database
   const { error } = await supabase
     .from('payouts')
     .update({
-      status: transfer.status === 'paid' ? 'completed' : 'failed',
+      status: (transfer as any).status === 'paid' ? 'completed' : 'failed',
       metadata: {
         ...transfer.metadata,
-        transfer_status: transfer.status,
-        failure_message: transfer.failure_message || null,
+        transfer_status: (transfer as any).status,
+        failure_message: (transfer as any).failure_message || null,
       },
       updated_at: new Date().toISOString(),
     })
@@ -321,7 +322,7 @@ async function handleTransferUpdate(transfer: any, supabase: any) {
   }
 
   // Send payout success email if transfer completed
-  if (transfer.status === 'paid') {
+  if ((transfer as any).status === 'paid') {
     try {
       const { data: payoutData } = await supabase
         .from('payouts')
@@ -333,7 +334,8 @@ async function handleTransferUpdate(transfer: any, supabase: any) {
         const { data: userData } = await supabase.auth.admin.getUserById(payoutData.recipient_id);
         
         if (userData.user?.email) {
-          await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/notify/payout-success`, {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.runpool.space';
+          await fetch(`${appUrl}/api/notify/payout-success`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

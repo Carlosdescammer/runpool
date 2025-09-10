@@ -2,9 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { GroupForm } from '@/components/GroupForm';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
@@ -12,7 +10,21 @@ export default function EditGroupPage() {
   const { id } = useParams();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [groupData, setGroupData] = useState<any>(null);
+  const [groupData, setGroupData] = useState<{ 
+    id: string; 
+    name: string; 
+    description: string; 
+    rule: string; 
+    entry_fee: number;
+    default_entry_fee: number;
+    default_distance_goal: number;
+    default_duration_days: number;
+    start_date: Date;
+    timezone: string;
+    is_public: boolean;
+    allow_public_join: boolean;
+    require_approval: boolean;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,15 +54,19 @@ export default function EditGroupPage() {
         }
 
         setGroupData({
-          ...group,
+          id: group.id,
+          name: group.name,
+          description: group.description || '',
+          rule: group.rule,
+          entry_fee: group.entry_fee,
           default_entry_fee: (group.entry_fee || 1000) / 100, // Convert from cents to dollars (use entry_fee field)
           default_distance_goal: group.rule ? parseFloat(group.rule.match(/\d+\.?\d*/)?.[0] || '5') : 5, // Extract distance from rule
           default_duration_days: 7, // Default to weekly
-          start_date: new Date(),
-          timezone: 'America/New_York',
-          is_public: true,
-          allow_public_join: true,
-          require_approval: false
+          start_date: group.start_date || new Date(),
+          timezone: group.timezone || 'America/New_York',
+          is_public: group.is_public || true,
+          allow_public_join: group.allow_public_join || true,
+          require_approval: group.require_approval || false
         });
       } catch (err) {
         console.error('Error fetching group:', err);

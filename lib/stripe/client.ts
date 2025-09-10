@@ -5,7 +5,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  console.warn('STRIPE_WEBHOOK_SECRET is not set in environment variables');
+  // STRIPE_WEBHOOK_SECRET is required for webhook verification
 }
 
 // Initialize Stripe with your secret key

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { stripe, verifyWebhookSignature } from '@/lib/stripe/client';
+import { verifyWebhookSignature } from '@/lib/stripe/client';
 import { handleStripeWebhook } from '@/lib/stripe/connect';
 
 // Disable body parsing, we need the raw body to verify the signature

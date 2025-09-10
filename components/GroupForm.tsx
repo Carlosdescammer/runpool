@@ -71,7 +71,6 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
       setIsLoading(true);
       setError(null);
 
-      console.log('Form data:', data);
 
       // Map form data to database schema (based on actual database columns)
       const groupData = {
@@ -80,7 +79,6 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
         entry_fee: Math.round(data.default_entry_fee * 100), // Convert to cents (database uses entry_fee, not default_entry_fee)
       };
 
-      console.log('Mapped group data:', groupData);
 
       if (groupId) {
         // Update existing group
@@ -90,7 +88,6 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
           .eq('id', groupId)
           .select();
 
-        console.log('Update result:', updateResult);
         
         if (error) {
           console.error('Supabase error:', error);

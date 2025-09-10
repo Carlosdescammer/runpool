@@ -1,8 +1,6 @@
 // app/api/test-email-send/route.ts
 // Test endpoint to send actual emails and verify delivery
 
-import { createClient } from '@supabase/supabase-js';
-
 export const runtime = 'nodejs';
 
 async function sendResendEmail(to: string[], subject: string, html: string) {

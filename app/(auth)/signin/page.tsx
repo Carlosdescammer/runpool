@@ -2,7 +2,6 @@
 import { supabase } from '@/lib/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -14,15 +13,11 @@ export default function SignInPage() {
   const [isSmartAuth, setIsSmartAuth] = useState(false);
 
   useEffect(() => {
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('Supabase client initialized:', !!supabase);
     
     supabase.auth.getUser().then(({ data }) => {
-      console.log('Initial getUser result:', data);
       setUserId(data.user?.id ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      console.log('Auth state change:', { event: _e, session });
       setUserId(session?.user?.id ?? null);
     });
     return () => sub.subscription.unsubscribe();
@@ -40,40 +35,32 @@ export default function SignInPage() {
   }, []);
 
   const postAuthRedirect = useCallback(async () => {
-    console.log('postAuthRedirect called');
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('Current user:', user);
     setStatus(`Signed in as ${user?.email}. Checking your groups...`);
     if (!user) return;
     
     // Try both possible table names to see which exists
-    console.log('Trying group_members table...');
     const { data: groupMembers, error: gmErr } = await supabase
       .from('group_members')
       .select('group_id, role')
       .eq('user_id', user.id);
-    console.log('group_members query result:', { data: groupMembers, error: gmErr });
     
-    console.log('Trying memberships table...');  
+  
     const { data: memberships, error: mErr } = await supabase
       .from('memberships')
       .select('group_id, role')
       .eq('user_id', user.id);
-    console.log('memberships query result:', { data: memberships, error: mErr });
     
     // Use whichever table worked
     const userGroups = (!gmErr && groupMembers) ? groupMembers : (!mErr && memberships) ? memberships : null;
-    console.log('Final user groups:', userGroups);
     
     if (userGroups && userGroups.length > 0) {
-      console.log('User has groups, redirecting to:', userGroups[0].group_id);
       setStatus(`Found your group! Redirecting...`);
       router.replace(`/group/${userGroups[0].group_id}`);
       return;
     }
     
     // Otherwise go to onboarding to complete profile and create/join a group
-    console.log('No groups found, redirecting to onboarding');
     setStatus('No groups found. Redirecting to setup...');
     router.replace('/onboarding');
   }, [router]);
@@ -101,14 +88,12 @@ export default function SignInPage() {
     setIsSmartAuth(true);
     setStatus('Checking your account...');
     
-    console.log('Attempting sign-in with email:', email);
     
     if (remember && typeof window !== 'undefined') localStorage.setItem('rememberEmail', email);
     if (!remember && typeof window !== 'undefined') localStorage.removeItem('rememberEmail');
     
     // Try sign-in first
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    console.log('Sign-in result:', { error: signInError });
     
     if (!signInError) {
       // Sign-in successful

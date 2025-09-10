@@ -11,7 +11,6 @@ export async function POST(req: Request) {
     const recipientEmail = email || userEmail;
     const displayName = challengeName || 'Test Challenge';
     
-    console.log('Payment success email request:', { recipientEmail, amount, displayName });
     
     if (!recipientEmail) {
       console.error('No email address provided');
@@ -143,7 +142,6 @@ export async function POST(req: Request) {
       html,
     });
 
-    console.log('Email sent successfully:', emailResult);
     return NextResponse.json({ success: true, emailId: emailResult.data?.id });
   } catch (error) {
     console.error('Payment success email error:', error);

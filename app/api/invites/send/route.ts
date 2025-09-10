@@ -223,7 +223,6 @@ export async function POST(req: Request) {
       );
     }
     const data = await res.json();
-    console.log('[invites/send] Resend sent', { to: email, groupId, id: data?.id });
 
     return new Response(JSON.stringify({ ok: true, invite_url: inviteUrl, email_sent: true, resend: data }), {
       status: 200,
