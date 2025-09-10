@@ -9,6 +9,10 @@
     {
       "path": "/api/weekly-recap",
       "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/email-campaigns",
+      "schedule": "0 8,18 * * *"
     }
   ]
 }

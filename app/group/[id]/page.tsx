@@ -10,6 +10,7 @@ import confetti from 'canvas-confetti';
 // Components
 import { Leaderboard } from './components/Leaderboard/Leaderboard';
 import { MileageSubmissionModal } from './components/MileageSubmission/MileageSubmissionModal';
+import { StreakCounter } from '@/components/StreakCounter';
 import { supabase } from '@/lib/supabase/client';
 
 // Types
@@ -319,6 +320,17 @@ export default function GroupPage() {
 
       if (error) throw error;
 
+      // Record daily activity for streak tracking
+      try {
+        await supabase.rpc('record_daily_activity', {
+          activity_type_param: 'mileage_log',
+          metadata_param: { miles, source: 'proof_submission' }
+        });
+      } catch (streakError) {
+        console.error('Error recording streak activity:', streakError);
+        // Don't fail the entire submission if streak recording fails
+      }
+
       toast.success('Proof submitted successfully!');
       setStatus('success');
       
@@ -518,9 +530,12 @@ export default function GroupPage() {
           <h1>RunPool</h1>
           {group && <span className="chip" title="Group status"><span className="dot"></span> {group.name}</span>}
         </div>
-        <div className="actions">
-          <button onClick={() => router.push('/settings')} className="btn ghost">Settings</button>
-          <button onClick={async () => { await supabase.auth.signOut(); router.replace('/signin'); }} className="btn success">Sign Out</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <StreakCounter compact={true} showBest={false} />
+          <div className="actions">
+            <button onClick={() => router.push('/settings')} className="btn ghost">Settings</button>
+            <button onClick={async () => { await supabase.auth.signOut(); router.replace('/signin'); }} className="btn success">Sign Out</button>
+          </div>
         </div>
       </div>
 
@@ -605,6 +620,9 @@ export default function GroupPage() {
             <button onClick={() => setShowWelcome(true)} className="btn ghost">View Rules</button>
           </div>
         </section>
+
+        {/* Daily Streak */}
+        <StreakCounter showBest={true} />
 
         {/* Submit weekly data */}
         <section className="card" style={{gridColumn: '1 / -1'}}>
