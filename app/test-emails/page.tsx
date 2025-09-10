@@ -20,6 +20,7 @@ export default function TestEmailsPage() {
     { id: 'top3-milestone', type: 'top3-milestone', name: 'Top 3 Achievement', description: 'Top performer milestone alert' },
     { id: 'payment-success', type: 'payment-success', name: 'Payment Success', description: 'Payment confirmation email' },
     { id: 'payment-failure', type: 'payment-failure', name: 'Payment Failed', description: 'Payment failure notification' },
+    { id: 'payment-reminder', type: 'payment-reminder', name: 'Payment Reminder', description: 'Reminder for unpaid participants' },
     { id: 'payout-success', type: 'payout-success', name: 'Prize Payout', description: 'Winner payout notification' },
     { id: 'stripe-setup', type: 'stripe-setup', name: 'Stripe Setup', description: 'Account connection confirmation' },
   ];

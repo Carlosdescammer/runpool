@@ -3,14 +3,8 @@
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { GroupAdminPanel } from '@/components/GroupAdminPanel';
-import { NotificationSwitch } from '@/components/NotificationSwitch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UserSettings {
   weekly_goal_reminders: boolean;
@@ -49,6 +43,8 @@ export default function Settings() {
   const [emailPrefsStatus, setEmailPrefsStatus] = useState<string>('');
   const [adminGroups, setAdminGroups] = useState<AdminGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('profile');
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -256,11 +252,62 @@ export default function Settings() {
 
   // Toast function
   const showToast = (msg = 'Saved') => {
-    const toastElement = document.getElementById('toast');
-    if (toastElement) {
-      toastElement.textContent = msg;
-      toastElement.classList.add('show');
-      setTimeout(() => toastElement.classList.remove('show'), 1300);
+    toast(msg);
+  };
+
+  // Get contextual help content based on active tab
+  const getHelpContent = () => {
+    switch (activeTab) {
+      case 'profile':
+        return {
+          title: '📝 Profile Help',
+          content: [
+            'Your display name is shown to all members in your groups.',
+            'Choose a name that helps others identify you during challenges.',
+            'Your email address cannot be changed from this page - contact support if needed.',
+            'Profile updates are saved immediately and will be visible to all group members.'
+          ]
+        };
+      case 'notifications':
+        return {
+          title: '🔔 Notification Settings',
+          content: [
+            'Weekly goal reminders: Get notified when you\'re behind on your weekly mileage.',
+            'Top performer alerts: Receive notifications when you enter the top 3 rankings.',
+            'Activity notifications: Get updates when other group members log their miles.',
+            'Admin alerts: (Admin only) Get notified when new users join groups you manage.',
+            'Weekly recap: Receive weekly summaries of your group\'s performance.',
+            'All notifications are sent to your registered email address.'
+          ]
+        };
+      case 'security':
+        return {
+          title: '🔒 Security & Password',
+          content: [
+            'Use a strong password with at least 6 characters.',
+            'Your current password is required to make changes.',
+            'New passwords must be different from your current password.',
+            'Password changes take effect immediately.',
+            'If you forget your password, use the "Forgot Password" link on the sign-in page.'
+          ]
+        };
+      case 'admin':
+        return {
+          title: '⚡ Admin Panel Guide',
+          content: [
+            'Create weekly challenges: Set distance goals and entry fees for your group.',
+            'Manage payments: Track who has paid and send reminders to unpaid participants.',
+            'Invite links: Generate shareable links for new members to join your group.',
+            'Member management: View group members and manage their roles.',
+            'Delete expired invites: Clean up old invitation links that are no longer valid.',
+            'Group settings: Update group name, description, and notification preferences.'
+          ]
+        };
+      default:
+        return {
+          title: '❓ Settings Help',
+          content: ['Navigate between tabs to access different settings and features.']
+        };
     }
   };
 
@@ -325,263 +372,359 @@ export default function Settings() {
           <button onClick={backToDashboard} className="btn ghost">
             ← Back to Dashboard
           </button>
-          <button className="btn">Help</button>
+          <button onClick={() => setShowHelpModal(true)} className="btn">Help</button>
           <button onClick={signOut} className="btn primary">
             Sign Out
           </button>
         </div>
       </div>
 
-      {/* Profile */}
+      {/* Tab Navigation */}
       <section className="card">
         <div className="inner">
-          <h2>Profile</h2>
-          <div className="grid-2">
-            <div>
-              <label htmlFor="gname">Display name</label>
-              <input
-                id="gname"
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="field"
-                autoComplete="name"
-              />
-              <div className="muted" style={{marginTop: '4px'}}>
-                This name will be shown to other members in your groups.
-              </div>
-            </div>
-          </div>
-          <div className="divider"></div>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div className="muted" style={{minHeight: '18px', fontSize: '12px'}}>{nameStatus}</div>
+          <div className="tabs">
             <button 
-              onClick={updateName} 
-              className="btn primary"
-              disabled={name.trim() === originalName.trim() || !name.trim()}
+              className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
+              onClick={() => setActiveTab('profile')}
             >
-              Update Name
+              Profile
             </button>
+            <button 
+              className={`tab ${activeTab === 'notifications' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notifications')}
+            >
+              Notifications
+            </button>
+            <button 
+              className={`tab ${activeTab === 'security' ? 'active' : ''}`}
+              onClick={() => setActiveTab('security')}
+            >
+              Security
+            </button>
+            {adminGroups.length > 0 && (
+              <button 
+                className={`tab ${activeTab === 'admin' ? 'active' : ''}`}
+                onClick={() => setActiveTab('admin')}
+              >
+                Admin
+              </button>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Manage group selector */}
-      {adminGroups.length > 0 && (
+      {/* Profile Tab */}
+      {activeTab === 'profile' && (
         <section className="card">
           <div className="inner">
-            <label htmlFor="groupSelect">Select a group to manage</label>
-            <select 
-              id="groupSelect" 
-              className="field" 
-              value={selectedGroupId ?? ''}
-              onChange={(e) => setSelectedGroupId(e.target.value)}
-            >
-              {adminGroups.map(group => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
+            <h2>Profile</h2>
+            <div className="grid-2">
+              <div>
+                <label htmlFor="gname">Display name</label>
+                <input
+                  id="gname"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="field"
+                  autoComplete="name"
+                />
+                <div className="muted" style={{marginTop: '4px'}}>
+                  This name will be shown to other members in your groups.
+                </div>
+              </div>
+              <div>
+                <label>Email address</label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="field"
+                />
+                <div className="muted" style={{marginTop: '4px'}}>
+                  Contact support to change your email address.
+                </div>
+              </div>
+            </div>
+            <div className="divider"></div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div className="muted" style={{minHeight: '18px', fontSize: '12px'}}>{nameStatus}</div>
+              <button 
+                onClick={updateName} 
+                className="btn primary"
+                disabled={name.trim() === originalName.trim() || !name.trim()}
+              >
+                Update Profile
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Notifications Tab */}
+      {activeTab === 'notifications' && (
+        <section className="card">
+          <div className="inner">
+            <h2>Email Notifications</h2>
+            <div className="muted" style={{marginBottom: '12px'}}>Choose which email notifications you'd like to receive.</div>
+
+            <div id="prefs">
+              <div className="inline" data-key="weekly_goal_reminders" style={{marginBottom: '8px'}}>
+                <div><div style={{fontWeight: '600'}}>Weekly goal reminders</div><div className="muted">Get reminded when you're behind on your weekly mileage goal</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.weekly_goal_reminders} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.weekly_goal_reminders.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, weekly_goal_reminders: !prev.weekly_goal_reminders }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+
+              <div className="inline" data-key="top_performer_alerts" style={{marginBottom: '8px'}}>
+                <div><div style={{fontWeight: '600'}}>Top performer alerts</div><div className="muted">Get notified when you enter the top 3 rankings</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.top_performer_alerts} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.top_performer_alerts.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, top_performer_alerts: !prev.top_performer_alerts }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+
+              <div className="inline" data-key="top_three_milestone" style={{marginBottom: '8px'}}>
+                <div><div style={{fontWeight: '600'}}>Top 3 milestone notifications</div><div className="muted">Get notified when top 3 performers log new miles</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.top_three_milestone} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.top_three_milestone.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, top_three_milestone: !prev.top_three_milestone }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+
+              <div className="inline" data-key="proof_notifications" style={{marginBottom: '8px'}}>
+                <div><div style={{fontWeight: '600'}}>Activity notifications</div><div className="muted">Get notified when other group members log miles</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.proof_notifications} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.proof_notifications.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, proof_notifications: !prev.proof_notifications }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+
+              <div className="inline" data-key="admin_new_user_alerts" style={{marginBottom: '8px'}}>
+                <div><div style={{fontWeight: '600'}}>New member alerts (Admin only)</div><div className="muted">Get notified when new users join groups you admin</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.admin_new_user_alerts} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.admin_new_user_alerts.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, admin_new_user_alerts: !prev.admin_new_user_alerts }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+
+              <div className="inline" data-key="weekly_recap" style={{marginBottom: '8px'}}>
+                <div><div style={{fontWeight: '600'}}>Weekly recap emails</div><div className="muted">Receive weekly summaries of group performance</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.weekly_recap} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.weekly_recap.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, weekly_recap: !prev.weekly_recap }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+
+              <div className="inline" data-key="invite_notifications">
+                <div><div style={{fontWeight: '600'}}>Invite notifications</div><div className="muted">Receive group invitations and related emails</div></div>
+                <div 
+                  className="switch" 
+                  role="switch" 
+                  aria-checked={emailPrefs.invite_notifications} 
+                  tabIndex={0} 
+                  data-on={emailPrefs.invite_notifications.toString()}
+                  onClick={() => setEmailPrefs(prev => ({ ...prev, invite_notifications: !prev.invite_notifications }))}
+                >
+                  <span></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="divider"></div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div className="muted" style={{minHeight: '18px', fontSize: '12px'}}>{emailPrefsStatus}</div>
+              <button onClick={updateEmailPreferences} className="btn primary">
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Security Tab */}
+      {activeTab === 'security' && (
+        <section className="card">
+          <div className="inner">
+            <h2>Security</h2>
+            <div className="grid-2">
+              <div>
+                <label htmlFor="curpass">Current password</label>
+                <input 
+                  id="curpass" 
+                  type="password" 
+                  placeholder="Enter current password" 
+                  value={currentPassword} 
+                  onChange={(e) => setCurrentPassword(e.target.value)} 
+                  className="field" 
+                  autoComplete="current-password" 
+                />
+              </div>
+              <div></div>
+              <div>
+                <label htmlFor="newpass">New password</label>
+                <input 
+                  id="newpass" 
+                  type="password" 
+                  placeholder="Enter new password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  className="field" 
+                  autoComplete="new-password" 
+                />
+              </div>
+              <div>
+                <label htmlFor="confpass">Confirm new password</label>
+                <input 
+                  id="confpass" 
+                  type="password" 
+                  placeholder="Confirm new password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  className="field" 
+                  autoComplete="new-password" 
+                />
+              </div>
+            </div>
+            <div className="divider"></div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div className="muted" style={{minHeight: '18px', fontSize: '12px', color: status.includes('✅') ? 'var(--success)' : '#ef4444'}}>{status}</div>
+              <button onClick={changePassword} className="btn">
+                Change Password
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Admin Tab */}
+      {activeTab === 'admin' && adminGroups.length > 0 && (
+        <section className="card">
+          <div className="inner">
+            <h2>Group Management</h2>
+            <div style={{marginBottom: '16px'}}>
+              <label htmlFor="groupSelect">Select a group to manage</label>
+              <select 
+                id="groupSelect" 
+                className="field" 
+                value={selectedGroupId ?? ''}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+              >
+                {adminGroups.map(group => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedGroupId && (
+              <div>
+                <div className="divider"></div>
+                <GroupAdminPanel groupId={selectedGroupId} />
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Help Modal */}
+      {showHelpModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setShowHelpModal(false)}
+        >
+          <div 
+            className="card"
+            style={{
+              maxWidth: '500px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              margin: 0
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="inner">
+            <div className="inline" style={{marginBottom: '16px'}}>
+              <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>
+                {getHelpContent().title}
+              </h3>
+              <button 
+                onClick={() => setShowHelpModal(false)}
+                className="btn ghost"
+                style={{fontSize: '12px', padding: '4px 8px'}}
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            <div style={{lineHeight: '1.6'}}>
+              {getHelpContent().content.map((item, index) => (
+                <div key={index} style={{marginBottom: '12px', paddingLeft: '8px'}}>
+                  • {item}
+                </div>
               ))}
-            </select>
+            </div>
+
+            <div className="divider"></div>
+            
+            <div style={{fontSize: '14px', color: '#6c757d', textAlign: 'center'}}>
+              Need more help? Contact support or check our documentation.
+            </div>
+            </div>
           </div>
-        </section>
+        </div>
       )}
-
-      {/* Group Settings */}
-      {selectedGroupId && (
-        <section className="card">
-          <div className="inner">
-            <h2>Group Settings</h2>
-            <GroupAdminPanel groupId={selectedGroupId} />
-          </div>
-        </section>
-      )}
-
-      {/* Email Notifications */}
-      <section className="card">
-        <div className="inner">
-          <h2>Email Notifications</h2>
-          <div className="muted" style={{marginBottom: '12px'}}>Choose which email notifications you'd like to receive.</div>
-
-          <div id="prefs">
-            <div className="inline" data-key="weekly_goal_reminders" style={{marginBottom: '8px'}}>
-              <div><div style={{fontWeight: '600'}}>Weekly goal reminders</div><div className="muted">Get reminded when you're behind on your weekly mileage goal</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.weekly_goal_reminders} 
-                tabIndex={0} 
-                data-on={emailPrefs.weekly_goal_reminders.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, weekly_goal_reminders: !prev.weekly_goal_reminders }))}
-              >
-                <span></span>
-              </div>
-            </div>
-
-            <div className="inline" data-key="top_performer_alerts" style={{marginBottom: '8px'}}>
-              <div><div style={{fontWeight: '600'}}>Top performer alerts</div><div className="muted">Get notified when you enter the top 3 rankings</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.top_performer_alerts} 
-                tabIndex={0} 
-                data-on={emailPrefs.top_performer_alerts.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, top_performer_alerts: !prev.top_performer_alerts }))}
-              >
-                <span></span>
-              </div>
-            </div>
-
-            <div className="inline" data-key="top_three_milestone" style={{marginBottom: '8px'}}>
-              <div><div style={{fontWeight: '600'}}>Top 3 milestone notifications</div><div className="muted">Get notified when top 3 performers log new miles</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.top_three_milestone} 
-                tabIndex={0} 
-                data-on={emailPrefs.top_three_milestone.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, top_three_milestone: !prev.top_three_milestone }))}
-              >
-                <span></span>
-              </div>
-            </div>
-
-            <div className="inline" data-key="proof_notifications" style={{marginBottom: '8px'}}>
-              <div><div style={{fontWeight: '600'}}>Activity notifications</div><div className="muted">Get notified when other group members log miles</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.proof_notifications} 
-                tabIndex={0} 
-                data-on={emailPrefs.proof_notifications.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, proof_notifications: !prev.proof_notifications }))}
-              >
-                <span></span>
-              </div>
-            </div>
-
-            <div className="inline" data-key="admin_new_user_alerts" style={{marginBottom: '8px'}}>
-              <div><div style={{fontWeight: '600'}}>New member alerts (Admin only)</div><div className="muted">Get notified when new users join groups you admin</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.admin_new_user_alerts} 
-                tabIndex={0} 
-                data-on={emailPrefs.admin_new_user_alerts.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, admin_new_user_alerts: !prev.admin_new_user_alerts }))}
-              >
-                <span></span>
-              </div>
-            </div>
-
-            <div className="inline" data-key="weekly_recap" style={{marginBottom: '8px'}}>
-              <div><div style={{fontWeight: '600'}}>Weekly recap emails</div><div className="muted">Receive weekly summaries of group performance</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.weekly_recap} 
-                tabIndex={0} 
-                data-on={emailPrefs.weekly_recap.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, weekly_recap: !prev.weekly_recap }))}
-              >
-                <span></span>
-              </div>
-            </div>
-
-            <div className="inline" data-key="invite_notifications">
-              <div><div style={{fontWeight: '600'}}>Invite notifications</div><div className="muted">Receive group invitations and related emails</div></div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={emailPrefs.invite_notifications} 
-                tabIndex={0} 
-                data-on={emailPrefs.invite_notifications.toString()}
-                onClick={() => setEmailPrefs(prev => ({ ...prev, invite_notifications: !prev.invite_notifications }))}
-              >
-                <span></span>
-              </div>
-            </div>
-          </div>
-
-          <div className="divider"></div>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div className="muted" style={{minHeight: '18px', fontSize: '12px'}}>{emailPrefsStatus}</div>
-            <button onClick={updateEmailPreferences} className="btn primary">
-              Save Preferences
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Security */}
-      <section className="card">
-        <div className="inner">
-          <h2>Security</h2>
-          <div className="grid-2">
-            <div>
-              <label htmlFor="curpass">Current password</label>
-              <input 
-                id="curpass" 
-                type="password" 
-                placeholder="Enter current password" 
-                value={currentPassword} 
-                onChange={(e) => setCurrentPassword(e.target.value)} 
-                className="field" 
-                autoComplete="current-password" 
-              />
-            </div>
-            <div></div>
-            <div>
-              <label htmlFor="newpass">New password</label>
-              <input 
-                id="newpass" 
-                type="password" 
-                placeholder="Enter new password" 
-                value={newPassword} 
-                onChange={(e) => setNewPassword(e.target.value)} 
-                className="field" 
-                autoComplete="new-password" 
-              />
-            </div>
-            <div>
-              <label htmlFor="confpass">Confirm new password</label>
-              <input 
-                id="confpass" 
-                type="password" 
-                placeholder="Confirm new password" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-                className="field" 
-                autoComplete="new-password" 
-              />
-            </div>
-          </div>
-          <div className="divider"></div>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div className="muted" style={{minHeight: '18px', fontSize: '12px', color: status.includes('✅') ? 'var(--success)' : '#ef4444'}}>{status}</div>
-            <button onClick={changePassword} className="btn">
-              Change Password
-            </button>
-          </div>
-        </div>
-      </section>
-        
-      {/* Account */}
-      <section className="card">
-        <div className="inner">
-          <h2>Account</h2>
-          <div className="inline">
-            <div>
-              <div className="muted">Signed in as</div>
-              <div style={{fontWeight: '600'}}>{user?.email}</div>
-            </div>
-            <button onClick={signOut} className="btn">
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Toast placeholder */}
       <div className="toast" id="toast" role="status" aria-live="polite">Saved</div>

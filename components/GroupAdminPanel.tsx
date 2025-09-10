@@ -2,10 +2,7 @@
 'use client';
 import { supabase } from '@/lib/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { PaymentStatusCard } from '@/components/PaymentStatusCard';
 
 type InviteRow = { token: string; expires_at: string | null; created_at?: string | null };
 
@@ -26,7 +23,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
   const [name, setName] = useState('');
   const [rule, setRule] = useState('');
   const [entryFee, setEntryFee] = useState<number>(100);
-  const [pot, setPot] = useState(100);
+  const [distanceGoal, setDistanceGoal] = useState<number>(5.0);
   const [weekStart, setWeekStart] = useState<string>(new Date().toISOString().slice(0,10));
   const [weekEnd, setWeekEnd] = useState<string>(new Date(Date.now()+6*86400000).toISOString().slice(0,10));
   const [msg, setMsg] = useState('');
@@ -36,6 +33,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
   const [copyAnimating, setCopyAnimating] = useState(false);
   const [notifyOnProof, setNotifyOnProof] = useState<boolean>(true);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [currentWeekId, setCurrentWeekId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const copyWithAnim = useCallback(async (text: string, key: string) => {
@@ -109,7 +107,6 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
         setName(g.name ?? '');
         setRule(g.rule ?? '');
         setEntryFee(g.entry_fee ?? 100);
-        setPot(g.entry_fee ?? 100);
         setNotifyOnProof((g as { notify_on_proof?: boolean } | null)?.notify_on_proof ?? true);
       }
     })();
@@ -191,6 +188,46 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
     loadGroupMembers();
   }, [groupId, loadInvites, loadGroupMembers]);
 
+  const loadCurrentWeek = useCallback(async () => {
+    if (!groupId) return;
+    try {
+      // Try RPC function first for in_progress weeks
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_current_week', { group_id_param: groupId });
+      
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        setCurrentWeekId(rpcData[0].id);
+        console.log('Current week loaded via RPC:', rpcData[0].id);
+        return;
+      }
+      
+      // If no in_progress week, look for upcoming weeks as well
+      const { data: upcomingWeeks, error: upcomingError } = await supabase
+        .from('weeks')
+        .select('*')
+        .eq('group_id', groupId)
+        .in('status', ['upcoming', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (!upcomingError && upcomingWeeks && upcomingWeeks.length > 0) {
+        setCurrentWeekId(upcomingWeeks[0].id);
+        console.log('Found upcoming/in_progress week:', upcomingWeeks[0].id);
+        return;
+      }
+      
+      console.log('No current week available - payment status card will be hidden');
+      setCurrentWeekId(null);
+      
+    } catch (error) {
+      console.log('Current week lookup failed - payment status card will be hidden');
+      setCurrentWeekId(null);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    loadCurrentWeek();
+  }, [loadCurrentWeek]);
+
   async function revokeInvite(token: string) {
     setMsg('Revoking invite…');
     const { error } = await supabase.from('invites').delete().eq('group_id', groupId).eq('token', token);
@@ -268,10 +305,36 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
   }
 
   async function createWeek() {
-    const { error } = await supabase.from('challenges').insert({
-      group_id: groupId, pot, week_start: weekStart, week_end: weekEnd, status:'OPEN'
+    // Calculate week number - get the latest week number for this group and increment
+    const { data: existingWeeks, error: weekError } = await supabase
+      .from('weeks')
+      .select('week_number')
+      .eq('group_id', groupId)
+      .order('week_number', { ascending: false })
+      .limit(1);
+
+    let weekNumber = 1;
+    if (!weekError && existingWeeks && existingWeeks.length > 0) {
+      weekNumber = existingWeeks[0].week_number + 1;
+    }
+
+    const { error } = await supabase.from('weeks').insert({
+      group_id: groupId, 
+      week_number: weekNumber,
+      start_date: weekStart, 
+      end_date: weekEnd, 
+      distance_goal_km: distanceGoal,
+      entry_fee_cents: entryFee * 100, // Convert dollars to cents
+      status: 'upcoming'
     });
-    setMsg(error ? error.message : 'Week created.');
+    
+    if (error) {
+      setMsg(error.message);
+    } else {
+      setMsg('Week created successfully!');
+      // Refresh the current week to show payment status card
+      loadCurrentWeek();
+    }
   }
 
   async function deleteGroupCascade() {
@@ -289,15 +352,18 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
       // fall through to client-side cascade
     }
 
-    const { data: ch, error: chErr } = await supabase.from('challenges').select('id').eq('group_id', groupId);
-    if (chErr) { setMsg(chErr.message); return; }
-    const challengeIds = (ch ?? []).map(c => c.id);
-    if (challengeIds.length > 0) {
-      const { error: pErr } = await supabase.from('proofs').delete().in('challenge_id', challengeIds);
-      if (pErr) { setMsg(pErr.message); return; }
+    const { data: weeks, error: weekErr } = await supabase.from('weeks').select('id').eq('group_id', groupId);
+    if (weekErr) { setMsg(weekErr.message); return; }
+    const weekIds = (weeks ?? []).map(w => w.id);
+    if (weekIds.length > 0) {
+      // Delete participants and payouts for these weeks
+      const { error: partErr } = await supabase.from('participants').delete().in('week_id', weekIds);
+      if (partErr) { setMsg(partErr.message); return; }
+      const { error: payoutErr } = await supabase.from('payouts').delete().in('week_id', weekIds);
+      if (payoutErr) { setMsg(payoutErr.message); return; }
     }
-    const { error: dChErr } = await supabase.from('challenges').delete().eq('group_id', groupId);
-    if (dChErr) { setMsg(dChErr.message); return; }
+    const { error: dWeekErr } = await supabase.from('weeks').delete().eq('group_id', groupId);
+    if (dWeekErr) { setMsg(dWeekErr.message); return; }
     const { error: mErr } = await supabase.from('memberships').delete().eq('group_id', groupId);
     if (mErr) { setMsg(mErr.message); return; }
     const { error: iErr } = await supabase.from('invites').delete().eq('group_id', groupId);
@@ -309,196 +375,339 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Group Settings */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium leading-none">Group Settings</h3>
-        <div className="space-y-2">
-          <Label htmlFor="group-name">Name</Label>
-          <Input id="group-name" value={name} onChange={e => setName(e.target.value)} placeholder="Group name" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="group-rule">Weekly rule</Label>
-          <Input id="group-rule" value={rule} onChange={e => setRule(e.target.value)} placeholder="e.g. Run at least 5 miles" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="group-entry-fee">Entry Fee ($)</Label>
-          <Input id="group-entry-fee" type="number" value={entryFee} onChange={e => setEntryFee(Number(e.target.value))} />
-        </div>
-        <div className="flex items-center justify-between rounded-lg border p-3">
+      <div style={{marginBottom: '24px'}}>
+        <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Group Settings</h3>
+        <div className="grid-2" style={{marginBottom: '16px'}}>
           <div>
-            <Label htmlFor="notify-on-proof" className="font-medium">Instant email on miles</Label>
-            <p className="text-xs text-zinc-600">Email the group when a member logs miles</p>
+            <label htmlFor="group-name">Name</label>
+            <input 
+              id="group-name" 
+              className="field" 
+              value={name} 
+              onChange={e => setName(e.target.value)} 
+              placeholder="Group name" 
+            />
           </div>
-          <Switch
-            id="notify-on-proof"
-            checked={notifyOnProof}
-            onCheckedChange={setNotifyOnProof}
-          />
+          <div>
+            <label htmlFor="group-rule">Weekly rule</label>
+            <input 
+              id="group-rule" 
+              className="field" 
+              value={rule} 
+              onChange={e => setRule(e.target.value)} 
+              placeholder="e.g. Run at least 5 miles" 
+            />
+          </div>
         </div>
-        <Button onClick={saveGroup} className="w-full">Save Settings</Button>
+        <div className="grid-2" style={{marginBottom: '16px'}}>
+          <div>
+            <label htmlFor="group-entry-fee">Entry Fee ($)</label>
+            <input 
+              id="group-entry-fee" 
+              className="field" 
+              type="number" 
+              value={entryFee} 
+              onChange={e => setEntryFee(Number(e.target.value))} 
+            />
+          </div>
+          <div>
+            <div className="inline">
+              <div>
+                <div style={{fontWeight: '600'}}>Instant email on miles</div>
+                <div className="muted">Email the group when a member logs miles</div>
+              </div>
+              <div 
+                className="switch" 
+                role="switch" 
+                aria-checked={notifyOnProof} 
+                tabIndex={0} 
+                data-on={notifyOnProof.toString()}
+                onClick={() => setNotifyOnProof(!notifyOnProof)}
+              >
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button onClick={saveGroup} className="btn primary" style={{width: '100%'}}>Save Settings</button>
       </div>
 
-      <div className="border-t"></div>
+      <div className="divider"></div>
 
       {/* Create New Week */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium leading-none">Create New Week</h3>
-        <div className="space-y-2">
-          <Label htmlFor="week-pot">Pot ($)</Label>
-          <Input id="week-pot" type="number" value={pot} onChange={e => setPot(Number(e.target.value))} />
-        </div>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[200px] space-y-2">
-            <Label htmlFor="week-start">Week start</Label>
-            <Input id="week-start" type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} />
+      <div style={{marginBottom: '24px'}}>
+        <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Create New Week</h3>
+        <div className="grid-2" style={{marginBottom: '16px'}}>
+          <div>
+            <label htmlFor="distance-goal">Distance Goal (km)</label>
+            <input 
+              id="distance-goal" 
+              className="field" 
+              type="number" 
+              step="0.1" 
+              value={distanceGoal} 
+              onChange={e => setDistanceGoal(Number(e.target.value))} 
+              placeholder="5.0" 
+            />
           </div>
-          <div className="flex-1 min-w-[200px] space-y-2">
-            <Label htmlFor="week-end">Week end</Label>
-            <Input id="week-end" type="date" value={weekEnd} onChange={e => setWeekEnd(e.target.value)} />
+          <div></div>
+        </div>
+        <div className="grid-2" style={{marginBottom: '16px'}}>
+          <div>
+            <label htmlFor="week-start">Week start</label>
+            <input 
+              id="week-start" 
+              className="field" 
+              type="date" 
+              value={weekStart} 
+              onChange={e => setWeekStart(e.target.value)} 
+            />
+          </div>
+          <div>
+            <label htmlFor="week-end">Week end</label>
+            <input 
+              id="week-end" 
+              className="field" 
+              type="date" 
+              value={weekEnd} 
+              onChange={e => setWeekEnd(e.target.value)} 
+            />
           </div>
         </div>
-        <Button onClick={createWeek} className="w-full">Create Week</Button>
+        <button onClick={createWeek} className="btn primary" style={{width: '100%'}}>Create Week</button>
       </div>
 
-      <div className="border-t"></div>
+      <div className="divider"></div>
+
+      {/* Current Week Payment Status */}
+      {currentWeekId ? (
+        <div style={{marginBottom: '24px'}}>
+          <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Current Week Payment Status</h3>
+          <PaymentStatusCard weekId={currentWeekId} groupId={groupId} />
+        </div>
+      ) : (
+        <div style={{marginBottom: '24px'}}>
+          <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Payment Status</h3>
+          <div style={{padding: '16px'}}>
+            <h4 style={{fontWeight: '600', marginBottom: '8px'}}>💳 Payment Tracking</h4>
+            <p className="muted" style={{marginBottom: '8px'}}>
+              You have created weeks, but none are currently active for payment tracking.
+            </p>
+            <button 
+              onClick={async () => {
+                // Look for the most recent upcoming week and activate it
+                const { data: weeks, error } = await supabase
+                  .from('weeks')
+                  .select('*')
+                  .eq('group_id', groupId)
+                  .eq('status', 'upcoming')
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+                
+                if (!error && weeks && weeks.length > 0) {
+                  const { error: updateError } = await supabase
+                    .from('weeks')
+                    .update({ status: 'in_progress' })
+                    .eq('id', weeks[0].id);
+                  
+                  if (!updateError) {
+                    setMsg('Week activated for payment tracking!');
+                    loadCurrentWeek();
+                  } else {
+                    setMsg('Failed to activate week: ' + updateError.message);
+                  }
+                } else {
+                  setMsg('No upcoming weeks found to activate.');
+                }
+              }}
+              className="btn primary"
+              style={{fontSize: '12px', padding: '6px 12px'}}
+            >
+              Activate Latest Week
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="divider"></div>
 
       {/* Invite Links */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium leading-none">Invite Links</h3>
-        <div className="rounded-lg border bg-card text-card-foreground p-4 space-y-2">
-          <h4 className="font-semibold">🔗 Create Invite Link</h4>
-          <p className="text-sm text-muted-foreground">Generate a shareable link that anyone can use to join your group.</p>
-          <Button onClick={createInviteLink} className="w-full">Create New Invite Link</Button>
+      <div style={{marginBottom: '24px'}}>
+        <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Invite Links</h3>
+        <div style={{marginBottom: '16px'}}>
+          <h4 style={{fontWeight: '600', marginBottom: '8px'}}>🔗 Create Invite Link</h4>
+          <p className="muted" style={{marginBottom: '12px'}}>Generate a shareable link that anyone can use to join your group.</p>
+          <button onClick={createInviteLink} className="btn primary" style={{width: '100%'}}>Create New Invite Link</button>
         </div>
         {activeInvites.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="font-semibold">Active Invites</h4>
+          <div style={{marginBottom: '16px'}}>
+            <h4 style={{fontWeight: '600', marginBottom: '8px'}}>Active Invites</h4>
             {activeInvites.map((inv) => (
-              <div key={inv.token} className="flex items-center justify-between gap-2 rounded-lg border p-3">
-                <div className="text-sm break-all font-mono">{`${window.location.origin}/join?token=${inv.token}`}</div>
-                <div className="flex gap-2 shrink-0">
-                  <Button onClick={() => copyWithAnim(`${window.location.origin}/join?token=${inv.token}`, inv.token)} variant="outline" size="sm">
+              <div key={inv.token} className="inline" style={{padding: '12px', marginBottom: '8px'}}>
+                <div className="muted" style={{fontFamily: 'monospace', fontSize: '12px', wordBreak: 'break-all'}}>{`${window.location.origin}/join?token=${inv.token}`}</div>
+                <div style={{display: 'flex', gap: '8px'}}>
+                  <button 
+                    onClick={() => copyWithAnim(`${window.location.origin}/join?token=${inv.token}`, inv.token)} 
+                    className="btn ghost" 
+                    style={{fontSize: '12px', padding: '4px 8px'}}
+                  >
                     {copiedKey === inv.token && copyAnimating ? 'Copied!' : 'Copy'}
-                  </Button>
-                  <Button onClick={() => revokeInvite(inv.token)} variant="destructive" size="sm">Revoke</Button>
+                  </button>
+                  <button 
+                    onClick={() => revokeInvite(inv.token)} 
+                    className="btn" 
+                    style={{fontSize: '12px', padding: '4px 8px', backgroundColor: '#dc3545', color: 'white'}}
+                  >
+                    Revoke
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
         {expiredInvites.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="font-semibold text-muted-foreground">Expired Invites</h4>
+          <div style={{marginBottom: '16px'}}>
+            <div className="inline" style={{marginBottom: '8px'}}>
+              <h4 className="muted" style={{fontWeight: '600'}}>Expired Invites</h4>
+              <button 
+                onClick={async () => {
+                  setMsg('Deleting all expired invites...');
+                  try {
+                    const deletePromises = expiredInvites.map(inv => revokeInvite(inv.token));
+                    await Promise.all(deletePromises);
+                    setMsg('All expired invites deleted.');
+                  } catch (error) {
+                    setMsg('Error deleting expired invites. Please try again.');
+                  }
+                }}
+                className="btn ghost" 
+                style={{fontSize: '12px', padding: '4px 8px', color: '#dc3545'}}
+              >
+                🗑️ Delete All
+              </button>
+            </div>
             {expiredInvites.map((inv) => (
-              <div key={inv.token} className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground break-all font-mono">
-                {`${window.location.origin}/join?token=${inv.token}`}
+              <div key={inv.token} className="inline" style={{padding: '12px', marginBottom: '8px'}}>
+                <div className="muted" style={{fontFamily: 'monospace', fontSize: '12px', wordBreak: 'break-all'}}>
+                  {`${window.location.origin}/join?token=${inv.token}`}
+                </div>
+                <button 
+                  onClick={() => revokeInvite(inv.token)} 
+                  className="btn ghost" 
+                  style={{fontSize: '12px', padding: '4px 8px', color: '#dc3545'}}
+                >
+                  🗑️ Delete
+                </button>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="border-t"></div>
+      <div className="divider"></div>
 
       {/* Member Management */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium leading-none">Group Members</h3>
-          <Button onClick={loadGroupMembers} variant="secondary" size="sm">Refresh</Button>
+      <div style={{marginBottom: '24px'}}>
+        <div className="inline" style={{marginBottom: '16px'}}>
+          <h3 style={{fontSize: '18px', fontWeight: '500'}}>Group Members</h3>
+          <button onClick={loadGroupMembers} className="btn ghost" style={{fontSize: '12px', padding: '4px 8px'}}>Refresh</button>
         </div>
-        <div className="rounded-lg border">
-          <div className="divide-y">
-            {groupMembers.map((member) => {
-              const isCurrentUser = member.user_id === currentUserId;
-              const isOwner = member.role === 'owner';
-              const joinedDate = new Date(member.joined_at).toLocaleDateString();
-              return (
-                <div key={member.user_id} className="p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold shrink-0">
-                        {(member.name || '?')[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {member.name || 'Anonymous'}
-                          {isCurrentUser && <span className="ml-2 text-xs font-normal text-blue-600">(You)</span>}
-                          {isOwner && <span className="ml-2 text-xs font-normal text-amber-600">👑 Owner</span>}
-                          {member.role === 'admin' && <span className="ml-2 text-xs font-normal text-purple-600">⚡ Admin</span>}
-                        </div>
-                        {member.additional_roles && member.additional_roles.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {member.additional_roles.map((role: string) => (
-                              <span key={role} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-                                {role === 'runner' && '🏃‍♂️ Runner'}
-                                {role === 'banker' && '💰 Banker'}
-                                {role !== 'runner' && role !== 'banker' && role}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+        <div>
+          {groupMembers.map((member) => {
+            const isCurrentUser = member.user_id === currentUserId;
+            const isOwner = member.role === 'owner';
+            const joinedDate = new Date(member.joined_at).toLocaleDateString();
+            return (
+              <div key={member.user_id} style={{padding: '12px', borderBottom: '1px solid #f0f0f0'}}>
+                <div className="inline" style={{gap: '8px'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '12px', flex: '1'}}>
+                    <div style={{width: '40px', height: '40px', backgroundColor: '#f0f0f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', color: '#6c757d'}}>
+                      {(member.name || '?')[0].toUpperCase()}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        onClick={() => {
-                          const currentRoles = member.additional_roles || [];
-                          const hasRunner = currentRoles.includes('runner');
-                          const newRoles = hasRunner
-                            ? currentRoles.filter(r => r !== 'runner')
-                            : [...currentRoles, 'runner'];
-                          updateMemberRoles(member.user_id, newRoles, member.name || 'Member');
-                        }}
-                        variant={member.additional_roles?.includes('runner') ? 'default' : 'secondary'}
-                        size="sm"
-                        className="text-xs h-7"
-                      >
-                        🏃‍♂️ Runner
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          const currentRoles = member.additional_roles || [];
-                          const hasBanker = currentRoles.includes('banker');
-                          const newRoles = hasBanker
-                            ? currentRoles.filter(r => r !== 'banker')
-                            : [...currentRoles, 'banker'];
-                          updateMemberRoles(member.user_id, newRoles, member.name || 'Member');
-                        }}
-                        variant={member.additional_roles?.includes('banker') ? 'default' : 'secondary'}
-                        size="sm"
-                        className="text-xs h-7"
-                      >
-                        💰 Banker
-                      </Button>
-                      {!isCurrentUser && !isOwner && (
-                        <Button onClick={() => removeMember(member.user_id, member.name || 'Member')} variant="destructive" size="sm" className="text-xs h-7">Remove</Button>
+                    <div style={{flex: '1'}}>
+                      <div style={{fontWeight: '500'}}>
+                        {member.name || 'Anonymous'}
+                        {isCurrentUser && <span style={{marginLeft: '8px', fontSize: '12px', color: '#0066cc'}}>(You)</span>}
+                        {isOwner && <span style={{marginLeft: '8px', fontSize: '12px', color: '#ff6b35'}}>👑 Owner</span>}
+                        {member.role === 'admin' && <span style={{marginLeft: '8px', fontSize: '12px', color: '#6f42c1'}}>⚡ Admin</span>}
+                      </div>
+                      {member.additional_roles && member.additional_roles.length > 0 && (
+                        <div style={{display: 'flex', gap: '4px', marginTop: '4px'}}>
+                          {member.additional_roles.map((role: string) => (
+                            <span key={role} style={{fontSize: '10px', padding: '2px 6px', backgroundColor: '#e3f2fd', color: '#1976d2', borderRadius: '12px'}}>
+                              {role === 'runner' && '🏃‍♂️ Runner'}
+                              {role === 'banker' && '💰 Banker'}
+                              {role !== 'runner' && role !== 'banker' && role}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
+                  <div style={{display: 'flex', gap: '4px'}}>
+                    <button
+                      onClick={() => {
+                        const currentRoles = member.additional_roles || [];
+                        const hasRunner = currentRoles.includes('runner');
+                        const newRoles = hasRunner
+                          ? currentRoles.filter(r => r !== 'runner')
+                          : [...currentRoles, 'runner'];
+                        updateMemberRoles(member.user_id, newRoles, member.name || 'Member');
+                      }}
+                      className={`btn ${member.additional_roles?.includes('runner') ? 'primary' : 'ghost'}`}
+                      style={{fontSize: '10px', padding: '2px 6px', height: '28px'}}
+                    >
+                      🏃‍♂️ Runner
+                    </button>
+                    <button
+                      onClick={() => {
+                        const currentRoles = member.additional_roles || [];
+                        const hasBanker = currentRoles.includes('banker');
+                        const newRoles = hasBanker
+                          ? currentRoles.filter(r => r !== 'banker')
+                          : [...currentRoles, 'banker'];
+                        updateMemberRoles(member.user_id, newRoles, member.name || 'Member');
+                      }}
+                      className={`btn ${member.additional_roles?.includes('banker') ? 'primary' : 'ghost'}`}
+                      style={{fontSize: '10px', padding: '2px 6px', height: '28px'}}
+                    >
+                      💰 Banker
+                    </button>
+                    {!isCurrentUser && !isOwner && (
+                      <button 
+                        onClick={() => removeMember(member.user_id, member.name || 'Member')} 
+                        className="btn" 
+                        style={{fontSize: '10px', padding: '2px 6px', height: '28px', backgroundColor: '#dc3545', color: 'white'}}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-            {groupMembers.length === 0 && (
-              <div className="p-8 text-center text-gray-500">
-                <div className="text-sm">No members found</div>
-                <div className="text-xs mt-1">Click Refresh to load members</div>
               </div>
-            )}
-          </div>
+            );
+          })}
+          {groupMembers.length === 0 && (
+            <div style={{padding: '32px', textAlign: 'center'}}>
+              <div className="muted" style={{marginBottom: '4px'}}>No members found</div>
+              <div className="muted" style={{fontSize: '12px'}}>Click Refresh to load members</div>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="border-t"></div>
+      <div className="divider"></div>
 
       {/* Danger Zone */}
-      <div className="space-y-3 rounded-lg border border-destructive p-4">
-        <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-        <p className="text-sm text-destructive/80">Deleting the group is a permanent action and cannot be undone.</p>
-        <Button onClick={deleteGroupCascade} variant="destructive" className="w-full sm:w-auto">Delete Group</Button>
+      <div style={{marginBottom: '24px'}}>
+        <h3 style={{fontSize: '18px', fontWeight: '500', color: '#dc3545', marginBottom: '8px'}}>⚠️ Danger Zone</h3>
+        <p className="muted" style={{marginBottom: '12px', color: '#dc3545'}}>Deleting the group is a permanent action and cannot be undone.</p>
+        <button onClick={deleteGroupCascade} className="btn" style={{backgroundColor: '#dc3545', color: 'white'}}>Delete Group</button>
       </div>
 
-      {msg && <div className="text-sm text-muted-foreground pt-4">{msg}</div>}
+      {msg && <div className="muted" style={{paddingTop: '16px', fontSize: '12px'}}>{msg}</div>}
     </div>
   );
 }
