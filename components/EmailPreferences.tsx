@@ -143,7 +143,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
             role="switch" 
             aria-checked={preferences.all_emails} 
             tabIndex={0} 
-            data-on={preferences.all_emails.toString()}
+            data-on={preferences.all_emails?.toString() ?? 'false'}
             onClick={() => handleMasterToggle(!preferences.all_emails)}
           >
             <span></span>
@@ -178,7 +178,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
               role="switch" 
               aria-checked={preferences.all_emails} 
               tabIndex={0} 
-              data-on={preferences.all_emails.toString()}
+              data-on={preferences.all_emails?.toString() ?? 'false'}
               onClick={() => handleMasterToggle(!preferences.all_emails)}
             >
               <span></span>
@@ -203,7 +203,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.streak_reminders} 
                     tabIndex={0} 
-                    data-on={preferences.streak_reminders.toString()}
+                    data-on={preferences.streak_reminders?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ streak_reminders: !preferences.streak_reminders })}
                   >
                     <span></span>
@@ -220,7 +220,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.daily_motivation} 
                     tabIndex={0} 
-                    data-on={preferences.daily_motivation.toString()}
+                    data-on={preferences.daily_motivation?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ daily_motivation: !preferences.daily_motivation })}
                   >
                     <span></span>
@@ -237,7 +237,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.achievement_celebrations} 
                     tabIndex={0} 
-                    data-on={preferences.achievement_celebrations.toString()}
+                    data-on={preferences.achievement_celebrations?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ achievement_celebrations: !preferences.achievement_celebrations })}
                   >
                     <span></span>
@@ -254,7 +254,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.comeback_encouragement} 
                     tabIndex={0} 
-                    data-on={preferences.comeback_encouragement.toString()}
+                    data-on={preferences.comeback_encouragement?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ comeback_encouragement: !preferences.comeback_encouragement })}
                   >
                     <span></span>
@@ -278,7 +278,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.weekly_recap} 
                     tabIndex={0} 
-                    data-on={preferences.weekly_recap.toString()}
+                    data-on={preferences.weekly_recap?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ weekly_recap: !preferences.weekly_recap })}
                   >
                     <span></span>
@@ -295,7 +295,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.group_activity_updates} 
                     tabIndex={0} 
-                    data-on={preferences.group_activity_updates.toString()}
+                    data-on={preferences.group_activity_updates?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ group_activity_updates: !preferences.group_activity_updates })}
                   >
                     <span></span>
@@ -312,7 +312,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.challenge_updates} 
                     tabIndex={0} 
-                    data-on={preferences.challenge_updates.toString()}
+                    data-on={preferences.challenge_updates?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ challenge_updates: !preferences.challenge_updates })}
                   >
                     <span></span>
@@ -336,7 +336,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.running_tips} 
                     tabIndex={0} 
-                    data-on={preferences.running_tips.toString()}
+                    data-on={preferences.running_tips?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ running_tips: !preferences.running_tips })}
                   >
                     <span></span>
@@ -353,7 +353,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.weather_updates} 
                     tabIndex={0} 
-                    data-on={preferences.weather_updates.toString()}
+                    data-on={preferences.weather_updates?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ weather_updates: !preferences.weather_updates })}
                   >
                     <span></span>
@@ -377,7 +377,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.payment_reminders} 
                     tabIndex={0} 
-                    data-on={preferences.payment_reminders.toString()}
+                    data-on={preferences.payment_reminders?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ payment_reminders: !preferences.payment_reminders })}
                   >
                     <span></span>
@@ -394,7 +394,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                     role="switch" 
                     aria-checked={preferences.system_notifications} 
                     tabIndex={0} 
-                    data-on={preferences.system_notifications.toString()}
+                    data-on={preferences.system_notifications?.toString() ?? 'false'}
                     onClick={() => updatePreferences({ system_notifications: !preferences.system_notifications })}
                   >
                     <span></span>

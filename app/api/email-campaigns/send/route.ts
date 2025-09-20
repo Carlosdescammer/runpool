@@ -50,7 +50,7 @@ async function sendEmail(user: User, template: EmailTemplate, variables: Record<
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'RunPool <noreply@runpool.app>',
+      from: 'RunPool <no-reply@runpool.space>',
       to: [user.email],
       subject: subject,
       html: htmlContent,

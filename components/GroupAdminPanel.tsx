@@ -401,37 +401,48 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
             />
           </div>
         </div>
-        <div className="grid-2" style={{marginBottom: '16px'}}>
-          <div>
-            <label htmlFor="group-entry-fee">Entry Fee ($)</label>
-            <input 
-              id="group-entry-fee" 
-              className="field" 
-              type="number" 
-              value={entryFee} 
-              onChange={e => setEntryFee(Number(e.target.value))} 
-            />
-          </div>
-          <div>
+        <div style={{marginBottom: '16px'}}>
+          <label htmlFor="group-entry-fee">Entry Fee ($)</label>
+          <input
+            id="group-entry-fee"
+            className="field"
+            type="number"
+            value={entryFee}
+            onChange={e => setEntryFee(Number(e.target.value))}
+          />
+        </div>
+        <button onClick={saveGroup} className="btn primary" style={{width: '100%'}}>Save Settings</button>
+      </div>
+
+      <div className="divider"></div>
+
+      {/* Email Notifications */}
+      <div style={{marginBottom: '24px'}}>
+        <div className="card">
+          <div className="inner">
+            <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>📧 Email Status</h3>
             <div className="inline">
               <div>
                 <div style={{fontWeight: '600'}}>Instant email on miles</div>
                 <div className="muted">Email the group when a member logs miles</div>
               </div>
-              <div 
-                className="switch" 
-                role="switch" 
-                aria-checked={notifyOnProof} 
-                tabIndex={0} 
-                data-on={notifyOnProof.toString()}
+              <div
+                className="switch"
+                role="switch"
+                aria-checked={notifyOnProof}
+                tabIndex={0}
+                data-on={notifyOnProof?.toString() ?? 'false'}
                 onClick={() => setNotifyOnProof(!notifyOnProof)}
               >
                 <span></span>
               </div>
             </div>
+            <div className="divider"></div>
+            <button onClick={saveGroup} className="btn" style={{fontSize: '14px'}}>
+              Save Email Settings
+            </button>
           </div>
         </div>
-        <button onClick={saveGroup} className="btn primary" style={{width: '100%'}}>Save Settings</button>
       </div>
 
       <div className="divider"></div>

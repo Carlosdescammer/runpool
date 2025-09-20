@@ -139,24 +139,39 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-0px)] grid place-items-center px-4 py-10">
-      <div className="card w-full max-w-xl">
-        <div className="inner space-y-6">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div className="card" style={{ width: '100%', maxWidth: '480px' }}>
+        <div className="inner">
           {userId && (
-            <div className="text-sm">You're already signed in.</div>
+            <div style={{ fontSize: '14px', marginBottom: '16px' }}>
+              You're already signed in.
+            </div>
           )}
-          
-          <div>
-            <h1 className="text-2xl font-bold">Sign in to your account</h1>
-            <p className="text-sm text-[var(--muted)] mt-1">
+
+          <div style={{ marginBottom: '32px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0' }}>
+              Sign in to your account
+            </h1>
+            <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0 }}>
               Welcome back — let's get you on the board.
             </p>
           </div>
 
-          <form onSubmit={smartAuth} method="post" className="space-y-5">
+          <form onSubmit={smartAuth} method="post">
             {/* Email */}
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium">
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="email" style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                marginBottom: '8px'
+              }}>
                 Email
               </label>
               <input
@@ -167,7 +182,7 @@ export default function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="input"
+                className="field"
                 autoComplete="email"
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -177,15 +192,30 @@ export default function SignInPage() {
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium">
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '8px'
+              }}>
+                <label htmlFor="password" style={{
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
                   Password
                 </label>
-                <button 
+                <button
                   type="button"
                   onClick={forgotPassword}
-                  className="text-sm text-[var(--accent)] hover:underline"
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--accent)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
                 >
                   Forgot your password?
                 </button>
@@ -198,39 +228,64 @@ export default function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="input"
+                className="field"
                 autoComplete="current-password"
                 enterKeyHint="done"
               />
             </div>
 
             {/* Remember me */}
-            <label className="flex items-center gap-2 text-sm">
-              <input 
-                type="checkbox" 
-                checked={remember} 
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              marginBottom: '24px',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--stroke)] bg-[var(--card)]" 
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  margin: 0
+                }}
               />
               Remember me
             </label>
 
             {/* Submit */}
-            <button 
-              type="submit" 
-              className="btn btn-primary w-full"
+            <button
+              type="submit"
+              className="btn primary"
+              style={{ width: '100%', marginBottom: '20px' }}
               disabled={isSmartAuth}
             >
               {isSmartAuth ? 'Checking...' : 'Sign in / Create account'}
             </button>
           </form>
 
-          <p className="text-sm text-[var(--muted)]">
+          <p style={{
+            fontSize: '14px',
+            color: 'var(--muted)',
+            textAlign: 'center',
+            marginBottom: '16px'
+          }}>
             We'll automatically sign you in or create an account as needed.
           </p>
-          
+
           {status && (
-            <div className="text-sm">{status}</div>
+            <div style={{
+              fontSize: '14px',
+              padding: '12px',
+              background: 'var(--chip)',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              {status}
+            </div>
           )}
         </div>
       </div>

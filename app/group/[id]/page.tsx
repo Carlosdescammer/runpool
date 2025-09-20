@@ -1,7 +1,7 @@
 // app/group/[id]/page.tsx
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -10,17 +10,22 @@ import confetti from 'canvas-confetti';
 // Components
 import { Leaderboard } from './components/Leaderboard/Leaderboard';
 import { MileageSubmissionModal } from './components/MileageSubmission/MileageSubmissionModal';
+import { CreateWeekModal } from './components/CreateWeekModal';
 import { StreakCounter } from '@/components/StreakCounter';
 import { supabase } from '@/lib/supabase/client';
 
 // Types
-type Challenge = {
+type Week = {
   id: string;
   group_id: string;
-  week_start: string;
-  week_end: string;
-  pot: number;
-  status: 'OPEN' | 'CLOSED';
+  week_number: number;
+  start_date: string;
+  end_date: string;
+  distance_goal_km: number;
+  entry_fee_cents: number;
+  status: 'upcoming' | 'in_progress' | 'completed';
+  created_at: string;
+  updated_at: string;
 };
 
 type Group = {
@@ -53,7 +58,7 @@ export default function GroupPage() {
   // State
   const [userId, setUserId] = useState<string | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
-  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -70,6 +75,7 @@ export default function GroupPage() {
   
   // Animation/UI State
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showCreateWeekModal, setShowCreateWeekModal] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -91,13 +97,11 @@ export default function GroupPage() {
     checkAuth();
   }, [router]);
 
-  // Load group data
-  useEffect(() => {
+  // Load group data function
+  const loadGroupData = useCallback(async () => {
     if (!groupId || !userId) {
       return;
     }
-    
-    const loadGroupData = async () => {
       setLoading(prev => ({ ...prev, group: true }));
       
       try {
@@ -114,8 +118,8 @@ export default function GroupPage() {
           .limit(1);
         
         
-        const { data: sampleChallenge, error: challengeSchemaError } = await supabase
-          .from('challenges')
+        const { data: sampleWeek, error: weekSchemaError } = await supabase
+          .from('weeks')
           .select('*')
           .limit(1);
         
@@ -180,24 +184,24 @@ export default function GroupPage() {
         const userRole = membershipData?.role || membershipData?.user_role || 'member';
         setIsAdmin(['admin', 'owner'].includes(userRole));
         
-        // Load current challenge
-        const { data: challengeData, error: challengeError } = await supabase
-          .from('challenges')
+        // Load current week
+        const { data: weekData, error: weekError } = await supabase
+          .from('weeks')
           .select('*')
           .eq('group_id', groupId)
-          .order('week_start', { ascending: false })
+          .order('start_date', { ascending: false })
           .limit(1);
         
           
-        if (challengeError) {
-          console.error('Challenge error:', challengeError.message, challengeError.details);
-          // Don't fail if no challenges exist, just log it
+        if (weekError) {
+          console.error('Week error:', weekError.message, weekError.details);
+          // Don't fail if no weeks exist, just log it
         }
-        
-        
-        if (challengeData && challengeData.length > 0) {
-          setChallenge(challengeData[0]);
-          await loadLeaderboard(challengeData[0].id);
+
+
+        if (weekData && weekData.length > 0) {
+          setCurrentWeek(weekData[0]);
+          await loadLeaderboard(weekData[0].id);
         } else {
           setLeaderboard([]);
           setLoading(prev => ({ ...prev, leaderboard: false }));
@@ -215,10 +219,12 @@ export default function GroupPage() {
       } finally {
         setLoading(prev => ({ ...prev, group: false, challenge: false }));
       }
-    };
-    
-    loadGroupData();
   }, [groupId, userId, router]);
+
+  // Load group data on mount and when dependencies change
+  useEffect(() => {
+    loadGroupData();
+  }, [loadGroupData]);
 
   useEffect(() => {
     try { 
@@ -259,28 +265,28 @@ export default function GroupPage() {
 
   // Calculate period string from challenge dates
   const period = useMemo(() => {
-    if (!challenge) return '';
-    const s = new Date(challenge.week_start).toLocaleDateString(undefined, { month:'short', day:'numeric' });
-    const e = new Date(challenge.week_end).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+    if (!currentWeek) return '';
+    const s = new Date(currentWeek.start_date).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+    const e = new Date(currentWeek.end_date).toLocaleDateString(undefined, { month:'short', day:'numeric' });
     return `${s} – ${e}`;
-  }, [challenge]);
+  }, [currentWeek]);
 
   // Calculate deadline label
   const deadlineLabel = useMemo(() => {
-    if (!challenge) return '';
+    if (!currentWeek) return '';
     try {
-      const d = new Date(challenge.week_end);
+      const d = new Date(currentWeek.end_date);
       return d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).replace(',', '');
     } catch (e) {
       console.error('Error formatting date:', e);
       return '';
     }
-  }, [challenge]);
+  }, [currentWeek]);
 
   // Submit proof function
   const submitProof = async (miles: number, file: File | null) => {
-    if (!userId || !challenge) {
-      toast.error('You must be logged in and have an active challenge to submit proof');
+    if (!userId || !currentWeek) {
+      toast.error('You must be logged in and have an active week to submit proof');
       return;
     }
 
@@ -313,7 +319,7 @@ export default function GroupPage() {
         .from('proofs')
         .upsert({
           user_id: userId,
-          challenge_id: challenge.id,
+          week_id: currentWeek.id,
           miles,
           image_url: imageUrl,
         });
@@ -335,7 +341,7 @@ export default function GroupPage() {
       setStatus('success');
       
       // Refresh leaderboard
-      loadLeaderboard(challenge.id);
+      loadLeaderboard(currentWeek.id);
     } catch (error) {
       console.error('Error submitting proof:', error);
       toast.error('Failed to submit proof. Please try again.');
@@ -556,7 +562,7 @@ export default function GroupPage() {
       )}
 
       {/* Grid */}
-      <div className="grid">
+      <div className="grid" style={{gridTemplateColumns: '1.1fr 1fr'}}>
         {/* Group / Left */}
         <section className="card">
           <div className="inner">
@@ -565,7 +571,6 @@ export default function GroupPage() {
                 <div style={{fontWeight: '700', fontSize: '16px'}}>{group?.name || 'Loading...'}</div>
                 <div className="subtle" style={{marginTop: '2px'}}>{group?.rule || 'No rule specified'}</div>
               </div>
-              {isAdmin && <a href={`/group/${groupId}/edit`} className="muted-link">Edit</a>}
             </div>
 
             <div className="divider"></div>
@@ -583,9 +588,17 @@ export default function GroupPage() {
             <div className="divider"></div>
 
             <div className="row">
-              {isAdmin && <a className="btn" href={`/group/${groupId}/edit`} style={{padding: '8px 12px'}}>Admin Settings</a>}
-              <button 
-                className="btn" 
+              {isAdmin && (
+                <button
+                  className="btn primary"
+                  style={{padding: '8px 12px'}}
+                  onClick={() => setShowCreateWeekModal(true)}
+                >
+                  Create Week
+                </button>
+              )}
+              <button
+                className="btn"
                 style={{padding: '8px 12px'}}
                 onClick={async () => {
                   try {
@@ -599,6 +612,22 @@ export default function GroupPage() {
                 Share Group
               </button>
             </div>
+
+            <div className="divider"></div>
+
+            {/* Submit Miles - Primary Action */}
+            <div>
+              <div style={{fontWeight: '700', fontSize: '16px', marginBottom: '4px'}}>Submit Weekly Data</div>
+              <div className="subtle" style={{marginBottom: '12px'}}>Log your miles before the deadline.</div>
+              <div className="row">
+                <MileageSubmissionModal
+                  onSubmit={submitProof}
+                  isLoading={status === 'loading'}
+                  currentMiles={userId && leaderboard ? leaderboard.find(r => r.user_id === userId)?.miles : null}
+                  isChallengeClosed={currentWeek?.status === 'completed'}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -610,62 +639,103 @@ export default function GroupPage() {
               <span className="pill">{period}</span>
             </div>
 
-            <div className="row" style={{margin: '12px 0 8px'}}>
-              {group?.rule && <span className="kv"><span className="tag">Rule: {group.rule}</span></span>}
-              {typeof group?.entry_fee === 'number' && <span className="kv"><span className="tag">Entry: ${(group.entry_fee / 100).toFixed(2)}</span></span>}
-              {deadlineLabel && <span className="kv"><span className="tag">Deadline: {deadlineLabel}</span></span>}
-              {group?.entry_fee && leaderboard.length > 0 && <span className="kv"><span className="tag">Pot: ${((leaderboard.length * group.entry_fee) / 100).toFixed(2)}</span></span>}
-            </div>
+            {(() => {
+              const currentUser = userId && leaderboard ? leaderboard.find(r => r.user_id === userId) : null;
+              const userMiles = currentUser?.miles || 0;
+              const userRank = currentUser?.rank || leaderboard.length + 1;
+              const totalParticipants = leaderboard.length;
+              const leadingMiles = leaderboard.length > 0 ? leaderboard[0].miles : 0;
+              const averageMiles = leaderboard.length > 0 ? leaderboard.reduce((sum, r) => sum + r.miles, 0) / leaderboard.length : 0;
 
-            <button onClick={() => setShowWelcome(true)} className="btn ghost">View Rules</button>
+              // Calculate days remaining
+              const daysLeft = currentWeek ? Math.max(0, Math.ceil((new Date(currentWeek.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+
+              return (
+                <div style={{marginTop: '16px'}}>
+                  {/* User's Progress */}
+                  <div style={{marginBottom: '16px', padding: '12px', backgroundColor: 'var(--subtle)', borderRadius: '8px'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                      <span style={{fontWeight: '600', color: 'var(--primary)'}}>Your Progress</span>
+                      <span style={{fontSize: '20px', fontWeight: '700'}}>{userMiles.toFixed(1)} mi</span>
+                    </div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--muted)'}}>
+                      <span>Rank: #{userRank} of {totalParticipants}</span>
+                      <span>{daysLeft} days left</span>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats Grid */}
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
+                    <div style={{textAlign: 'center', padding: '8px'}}>
+                      <div style={{fontSize: '18px', fontWeight: '700', color: 'var(--success)'}}>{leadingMiles.toFixed(1)}</div>
+                      <div style={{fontSize: '12px', color: 'var(--muted)'}}>Leader</div>
+                    </div>
+                    <div style={{textAlign: 'center', padding: '8px'}}>
+                      <div style={{fontSize: '18px', fontWeight: '700', color: 'var(--accent)'}}>{averageMiles.toFixed(1)}</div>
+                      <div style={{fontSize: '12px', color: 'var(--muted)'}}>Average</div>
+                    </div>
+                    <div style={{textAlign: 'center', padding: '8px'}}>
+                      <div style={{fontSize: '18px', fontWeight: '700', color: 'var(--warning)'}}>${group?.entry_fee && leaderboard.length > 0 ? ((leaderboard.length * group.entry_fee) / 100).toFixed(0) : '0'}</div>
+                      <div style={{fontSize: '12px', color: 'var(--muted)'}}>Prize Pot</div>
+                    </div>
+                    <div style={{textAlign: 'center', padding: '8px'}}>
+                      <div style={{fontSize: '18px', fontWeight: '700'}}>{totalParticipants}</div>
+                      <div style={{fontSize: '12px', color: 'var(--muted)'}}>Runners</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{display: 'flex', gap: '8px'}}>
+                    <button onClick={() => setShowWelcome(true)} className="btn ghost" style={{flex: 1, fontSize: '14px', padding: '6px 12px'}}>
+                      Rules
+                    </button>
+                    {userMiles === 0 && (
+                      <span style={{flex: 1, fontSize: '12px', color: 'var(--muted)', textAlign: 'center', alignSelf: 'center'}}>
+                        Log miles to join!
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </section>
 
         {/* Daily Streak */}
         <StreakCounter showBest={true} />
 
-        {/* Submit weekly data */}
-        <section className="card" style={{gridColumn: '1 / -1'}}>
-          <div className="inner submit">
-            <div>
-              <div style={{fontWeight: '700', fontSize: '16px', marginBottom: '4px'}}>Submit Weekly Data</div>
-              <div className="subtle">Log your miles before the deadline.</div>
-            </div>
-            <div className="row">
-              <MileageSubmissionModal
-                onSubmit={submitProof}
-                isLoading={status === 'loading'}
-                currentMiles={userId && leaderboard ? leaderboard.find(r => r.user_id === userId)?.miles : null}
-                isChallengeClosed={challenge?.status === 'CLOSED'}
-              />
-              <button 
-                className="btn" 
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(joinLink);
-                    toast.success('Invite link copied!');
-                  } catch {
-                    toast.error('Failed to copy link');
-                  }
-                }}
-              >
-                Share
-              </button>
-            </div>
-          </div>
-        </section>
 
-        {/* Leaderboard */}
-        <Leaderboard 
-          leaderboard={leaderboard ?? []}
-          currentUserId={userId}
-          groupOwnerId={''}
-          isLoading={loading.leaderboard}
-          groupRule={group?.rule}
-          challengePot={group?.entry_fee && leaderboard ? (leaderboard.length * group.entry_fee) / 100 : undefined}
-          challengePeriod={challenge ? `${new Date(challenge.week_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(challenge.week_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : null}
-        />
       </div>
+
+      {/* Leaderboard - Full Width */}
+      <section className="card" style={{marginTop: '18px'}}>
+        <div className="inner">
+          <Leaderboard
+            leaderboard={leaderboard ?? []}
+            currentUserId={userId}
+            groupOwnerId={''}
+            isLoading={loading.leaderboard}
+            groupRule={group?.rule}
+            challengePot={group?.entry_fee && leaderboard ? (leaderboard.length * group.entry_fee) / 100 : undefined}
+            challengePeriod={currentWeek ? `${new Date(currentWeek.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(currentWeek.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : null}
+          />
+        </div>
+      </section>
+
+
+      {/* Create Week Modal */}
+      <CreateWeekModal
+        groupId={groupId}
+        isOpen={showCreateWeekModal}
+        onClose={() => setShowCreateWeekModal(false)}
+        onWeekCreated={() => {
+          setShowCreateWeekModal(false);
+          // Refresh the group data to load the new week
+          if (groupId && userId) {
+            loadGroupData();
+          }
+        }}
+      />
     </div>
   );
 }

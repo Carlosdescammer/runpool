@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
-export default function UnsubscribePage() {
+function UnsubscribePageContent() {
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -146,5 +146,23 @@ export default function UnsubscribePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function UnsubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="wrap">
+        <section className="card">
+          <div className="inner" style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '24px', marginBottom: '16px' }}>🔄</div>
+            <h2>Loading...</h2>
+            <p className="muted">Please wait...</p>
+          </div>
+        </section>
+      </div>
+    }>
+      <UnsubscribePageContent />
+    </Suspense>
   );
 }
