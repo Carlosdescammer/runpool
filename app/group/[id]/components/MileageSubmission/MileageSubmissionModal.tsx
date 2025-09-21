@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
@@ -89,24 +88,24 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
           + Log Miles
         </button>
       </DialogTrigger>
-      <DialogContent 
-        className="card" 
+      <DialogContent
+        className="rp"
         style={{
           position: 'fixed',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '95vw', 
-          maxWidth: '480px', 
+          width: '95vw',
+          maxWidth: '480px',
           padding: '0',
           zIndex: 1000,
-          backgroundColor: 'var(--panel)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius)',
-          boxShadow: 'var(--shadow)'
+          backgroundColor: 'var(--card)',
+          border: '1px solid var(--stroke)',
+          borderRadius: '16px',
+          boxShadow: '0 10px 24px rgba(0,0,0,.35)'
         }}
       >
-        <div className="inner">
+        <div style={{ padding: '18px' }}>
           <DialogHeader>
             <DialogTitle style={{color: 'var(--text)', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700'}}>Log Your Miles</DialogTitle>
           </DialogHeader>
@@ -129,24 +128,32 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
           </div>
         )}
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Activity Type Toggle */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
               Activity Type
             </label>
-            <div className="flex rounded-lg border p-1" style={{ borderColor: 'var(--stroke)', background: 'var(--card)' }}>
+            <div style={{
+              display: 'flex',
+              border: '1px solid var(--stroke)',
+              borderRadius: '12px',
+              padding: '4px',
+              background: '#0f1427'
+            }}>
               <button
                 type="button"
                 onClick={() => setActivityType('running')}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                  activityType === 'running'
-                    ? 'shadow-sm'
-                    : 'hover:opacity-80'
-                }`}
+                className="btn"
                 style={{
+                  flex: 1,
+                  margin: '2px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  minHeight: '36px',
                   background: activityType === 'running' ? 'var(--brand)' : 'transparent',
-                  color: activityType === 'running' ? 'var(--brand-ink)' : 'var(--text)'
+                  color: activityType === 'running' ? 'var(--brand-ink)' : 'var(--text)',
+                  border: activityType === 'running' ? 'none' : '1px solid var(--stroke)'
                 }}
                 disabled={isLoading}
               >
@@ -155,14 +162,16 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
               <button
                 type="button"
                 onClick={() => setActivityType('walking')}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                  activityType === 'walking'
-                    ? 'shadow-sm'
-                    : 'hover:opacity-80'
-                }`}
+                className="btn"
                 style={{
+                  flex: 1,
+                  margin: '2px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  minHeight: '36px',
                   background: activityType === 'walking' ? '#10b981' : 'transparent',
-                  color: activityType === 'walking' ? 'white' : 'var(--text)'
+                  color: activityType === 'walking' ? 'white' : 'var(--text)',
+                  border: activityType === 'walking' ? 'none' : '1px solid var(--stroke)'
                 }}
                 disabled={isLoading}
               >
@@ -170,9 +179,13 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
               </button>
             </div>
             {activityType === 'walking' && (
-              <p className="text-xs mt-1 p-2 rounded border" style={{ 
-                background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05))',
-                borderColor: '#10b981',
+              <p style={{
+                fontSize: '12px',
+                marginTop: '8px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid #10b981',
                 color: 'var(--text)'
               }}>
                 💡 2 walking miles = 1 running mile for challenge purposes
@@ -184,7 +197,7 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
             <label htmlFor="miles" className="block text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
               {activityType === 'running' ? 'Running Miles' : 'Walking Miles'} This Week
             </label>
-            <Input
+            <input
               id="miles"
               type="number"
               step="0.1"
@@ -192,7 +205,15 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
               placeholder={`Enter ${activityType} miles`}
               value={miles}
               onChange={(e) => setMiles(e.target.value)}
-              className="input w-full"
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                border: '1px solid var(--stroke)',
+                background: 'var(--card)',
+                color: 'var(--text)',
+                fontSize: '14px'
+              }}
               required
               disabled={isLoading}
             />
@@ -209,39 +230,40 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
               <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>Optional but recommended</span>
             </label>
             
-            <div 
-              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                isDragging ? 'border-opacity-80' : 'hover:border-opacity-60'
-              }`}
+            <div
               style={{
-                background: isDragging ? 'linear-gradient(180deg, rgba(94, 225, 162, 0.1), rgba(94, 225, 162, 0.05))' : 'var(--card)',
-                borderColor: isDragging ? 'var(--brand)' : 'var(--stroke)'
+                border: `2px dashed ${isDragging ? '#2eeaa0' : 'var(--stroke)'}`,
+                borderRadius: '12px',
+                padding: '24px',
+                textAlign: 'center',
+                background: isDragging ? 'rgba(46, 234, 160, 0.1)' : '#0f1427',
+                transition: 'all 0.2s ease'
               }}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {file ? (
-                  <div className="text-sm" style={{ color: 'var(--text)' }}>
-                    <p>Selected: <span className="font-medium">{file.name}</span></p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text)' }}>
+                    <p>Selected: <span style={{ fontWeight: '600' }}>{file.name}</span></p>
+                    <p style={{ fontSize: '12px', marginTop: '4px', color: '#8892b0' }}>
                       {(file.size / 1024).toFixed(1)} KB
                     </p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm" style={{ color: 'var(--text)' }}>
+                    <p style={{ fontSize: '14px', color: 'var(--text)' }}>
                       Drag &amp; drop a screenshot here, or click to select
                     </p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    <p style={{ fontSize: '12px', color: '#8892b0' }}>
                       Max file size: 5MB (PNG, JPG, or WebP)
                     </p>
                   </>
                 )}
                 
-                <div className="pt-2">
-                  <label className="btn secondary text-xs cursor-pointer">
+                <div style={{ paddingTop: '8px' }}>
+                  <label className="btn" style={{ fontSize: '12px', cursor: 'pointer', background: 'var(--card)', border: '1px solid var(--stroke)' }}>
                     {file ? 'Change File' : 'Select File'}
                     <input
                       type="file"
@@ -256,8 +278,14 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
                     <button
                       type="button"
                       onClick={() => setFile(null)}
-                      className="ml-2 text-xs hover:opacity-80"
-                      style={{ color: '#ef4444' }}
+                      style={{
+                        marginLeft: '8px',
+                        fontSize: '12px',
+                        color: '#ef4444',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
                       disabled={isLoading}
                     >
                       Remove
@@ -268,21 +296,31 @@ export function MileageSubmissionModal({ onSubmit, isLoading = false, currentMil
             </div>
           </div>
           
-          <div className="flex gap-2 pt-4">
-            <button 
-              type="button" 
-              className="btn ghost"
+          <div style={{ display: 'flex', gap: '8px', paddingTop: '16px' }}>
+            <button
+              type="button"
+              className="btn"
               onClick={() => setOpen(false)}
               disabled={isLoading}
-              style={{flex: 1}}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: '1px solid var(--stroke)'
+              }}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="btn primary"
+            <button
+              type="submit"
+              className="btn"
               disabled={isLoading || !miles}
-              style={{flex: 1}}
+              style={{
+                flex: 1,
+                background: 'var(--brand)',
+                color: 'var(--brand-ink)',
+                border: 'none',
+                boxShadow: '0 8px 24px rgba(46, 234, 160, 0.35)'
+              }}
             >
               {isLoading ? 'Submitting...' : currentMiles !== null ? 'Update Entry' : 'Submit Miles'}
             </button>
