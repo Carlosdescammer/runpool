@@ -35,7 +35,6 @@ type Group = {
   member_count: number;
   is_member: boolean;
   rule?: string;
-  entry_fee?: number;
 };
 
 type LeaderboardRow = {
@@ -577,7 +576,6 @@ export default function GroupPage() {
 
             <div className="inline-actions" style={{marginBottom: '8px'}}>
               <span className="subtle">Entry Fee</span>
-              <span className="chip green"><span className="dot"></span>${group?.entry_fee ? (group.entry_fee / 100).toFixed(2) : '0.00'} / week</span>
             </div>
 
             <div style={{margin: '12px 0 6px', fontWeight: '600'}}>Invite Link <span className="subtle">· share to join</span></div>
@@ -675,7 +673,7 @@ export default function GroupPage() {
                       <div style={{fontSize: '12px', color: 'var(--muted)'}}>Average</div>
                     </div>
                     <div style={{textAlign: 'center', padding: '8px'}}>
-                      <div style={{fontSize: '18px', fontWeight: '700', color: 'var(--warning)'}}>${group?.entry_fee && leaderboard.length > 0 ? ((leaderboard.length * group.entry_fee) / 100).toFixed(0) : '0'}</div>
+                      <div style={{fontSize: '18px', fontWeight: '700', color: 'var(--warning)'}}>No Prize Pool</div>
                       <div style={{fontSize: '12px', color: 'var(--muted)'}}>Prize Pot</div>
                     </div>
                     <div style={{textAlign: 'center', padding: '8px'}}>
@@ -716,7 +714,6 @@ export default function GroupPage() {
             groupOwnerId={''}
             isLoading={loading.leaderboard}
             groupRule={group?.rule}
-            challengePot={group?.entry_fee && leaderboard ? (leaderboard.length * group.entry_fee) / 100 : undefined}
             challengePeriod={currentWeek ? `${new Date(currentWeek.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(currentWeek.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : null}
           />
         </div>

@@ -160,7 +160,7 @@ export function SocialShare({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium text-gray-700">
-                🎉 Shared! Here's the current leaderboard:
+                🎉 Shared! Here&apos;s the current leaderboard:
               </div>
               <Button
                 variant="ghost"

@@ -196,7 +196,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                 <div className="inline" style={{ marginBottom: '8px' }}>
                   <div>
                     <div style={{ fontWeight: '600' }}>Streak Reminders</div>
-                    <div className="muted">Don't let your running streak die!</div>
+                    <div className="muted">Don&apos;t let your running streak die!</div>
                   </div>
                   <div 
                     className="switch" 
@@ -247,7 +247,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                 <div className="inline" style={{ marginBottom: '8px' }}>
                   <div>
                     <div style={{ fontWeight: '600' }}>Comeback Encouragement</div>
-                    <div className="muted">"We miss you!" emails when you've been away</div>
+                    <div className="muted">&quot;We miss you!&quot; emails when you&apos;ve been away</div>
                   </div>
                   <div 
                     className="switch" 
@@ -346,7 +346,7 @@ export function EmailPreferences({ compact = false }: EmailPreferencesProps) {
                 <div className="inline" style={{ marginBottom: '8px' }}>
                   <div>
                     <div style={{ fontWeight: '600' }}>Weather Updates</div>
-                    <div className="muted">"Perfect day for a run!" notifications</div>
+                    <div className="muted">&quot;Perfect day for a run!&quot; notifications</div>
                   </div>
                   <div 
                     className="switch" 

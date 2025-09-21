@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check what tables exist in the database
     const { data, error } = await supabase
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
           if (!testError) {
             tables.push(tableName);
           }
-        } catch (err) {
+        } catch (_err) {
           // Table doesn't exist or we can't access it
         }
       }
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Also create a simple function to check the auth system
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // Try to get current user tables
     const { data: authData, error: authError } = await supabase.auth.getUser();

@@ -21,11 +21,10 @@ type LeaderboardProps = {
   groupOwnerId: string;
   isLoading?: boolean;
   groupRule?: string;
-  challengePot?: number;
   challengePeriod?: string | null;
 };
 
-export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoading = false, groupRule, challengePot, challengePeriod }: LeaderboardProps) {
+export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoading = false, groupRule, challengePeriod }: LeaderboardProps) {
   // Extract goal from group rule (e.g., "Run at least 5 miles" -> 5)
   const extractGoalFromRule = (rule: string | undefined): number => {
     if (!rule) return 5; // default goal
@@ -126,7 +125,6 @@ export function Leaderboard({ leaderboard, currentUserId, groupOwnerId, isLoadin
         <div className="leader-header">
           <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
             <div style={{fontWeight: '800'}}>Leaderboard{challengePeriod ? ` — ${challengePeriod}` : ' — Weekly'}</div>
-            <span className="pill">Pot ${challengePot ? challengePot.toFixed(2) : (leaderboard.length * 10).toFixed(2)}</span>
             <span className="subtle">{leaderboard.length} participants</span>
           </div>
           <div className="row">

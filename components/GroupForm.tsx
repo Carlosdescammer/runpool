@@ -25,7 +25,6 @@ const groupFormSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   description: z.string().optional(),
   is_public: z.boolean().default(true),
-  default_entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
   default_distance_goal: z.number().min(1, 'Distance goal must be at least 1 km'),
   default_duration_days: z.number().min(1, 'Duration must be at least 1 day'),
   start_date: z.date(),
@@ -55,7 +54,6 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
       name: '',
       description: '',
       is_public: true,
-      default_entry_fee: 25, // $25 default
       default_distance_goal: 25, // 25 km default
       default_duration_days: 7, // 1 week default
       start_date: new Date(),
@@ -76,7 +74,7 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
       const groupData = {
         name: data.name,
         rule: `Run at least ${data.default_distance_goal} miles per ${data.default_duration_days === 7 ? 'week' : 'period'}`,
-        entry_fee: Math.round(data.default_entry_fee * 100), // Convert to cents (database uses entry_fee, not default_entry_fee)
+        entry_fee: 0, // No entry fee
       };
 
 
@@ -151,7 +149,6 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
           name: group.name,
           description: group.description || '',
           is_public: group.is_public || true,
-          default_entry_fee: group.entry_fee ? group.entry_fee / 100 : 25, // Convert from cents to dollars
           default_distance_goal: group.default_distance_goal || 25,
           default_duration_days: group.default_duration_days || 7,
           start_date: group.start_date ? new Date(group.start_date) : new Date(),
@@ -219,40 +216,6 @@ export function GroupForm({ groupId, onSuccess, defaultValues }: GroupFormProps)
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="default_entry_fee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Default Entry Fee ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="25.00"
-                      value={field.value || ''}
-                      disabled={isLoading}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '') {
-                          field.onChange('');
-                          return;
-                        }
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue) && numValue >= 0) {
-                          field.onChange(numValue);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Default amount members pay to join a challenge.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
             <FormField
               control={form.control}

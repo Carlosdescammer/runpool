@@ -40,7 +40,7 @@ export default function Error({
             marginBottom: '24px',
             lineHeight: '1.5'
           }}>
-            We're sorry, but something unexpected happened. Please try again.
+            We&apos;re sorry, but something unexpected happened. Please try again.
           </p>
 
           {/* Show error details in development */}

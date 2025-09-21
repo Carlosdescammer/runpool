@@ -107,7 +107,7 @@ export async function POST(req: Request) {
 
     const groupName = (group?.name as string) || 'Runpool Group';
     const submitterName = (submitterProfile?.name as string) || submitterAuth.user?.email?.split('@')[0] || 'A runner';
-    const submitterEmail = submitterAuth.user?.email || 'unknown@example.com';
+    const _submitterEmail = submitterAuth.user?.email || 'unknown@example.com';
     const milesText = typeof body.miles === 'number' ? `${body.miles.toFixed(1)} miles` : 'miles';
 
     // Get all group admins and owners

@@ -22,7 +22,6 @@ interface Participant {
   proof_submitted_at: string | null;
   verification_status: 'pending' | 'approved' | 'rejected' | null;
   verification_notes: string | null;
-  payment_status: string;
   distance_km: number | null;
 }
 
@@ -56,7 +55,6 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
             proof_submitted_at,
             verification_status,
             verification_notes,
-            payment_status,
             distance_km,
             profiles:user_id (id, full_name, email, avatar_url)
           `)
@@ -75,7 +73,6 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
           proof_submitted_at: p.proof_submitted_at,
           verification_status: p.verification_status,
           verification_notes: p.verification_notes,
-          payment_status: p.payment_status,
           distance_km: p.distance_km,
         }));
 
@@ -188,18 +185,6 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
     }
   };
 
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
-      case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
 
   const hasPendingVerifications = participants.some(
     p => p.verification_status === 'pending' && p.proof_url
@@ -225,7 +210,7 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
         <div>
           <h2 className="text-lg font-semibold">Participant Submissions</h2>
           <p className="text-sm text-muted-foreground">
-            Review and verify run proofs for this week's challenge.
+            Review and verify run proofs for this week&apos;s challenge.
           </p>
         </div>
         
@@ -241,7 +226,7 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
               Finalizing...
             </>
           ) : (
-            'Finalize Week & Process Payouts'
+'Finalize Week'
           )}
         </Button>
       </div>
@@ -271,7 +256,7 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>No participants yet</AlertTitle>
           <AlertDescription>
-            No one has joined this week's challenge yet.
+            No one has joined this week&apos;s challenge yet.
           </AlertDescription>
         </Alert>
       ) : (
@@ -282,7 +267,6 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
                 <TableHead>Participant</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Distance</TableHead>
-                <TableHead>Payment</TableHead>
                 <TableHead>Proof</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -322,9 +306,6 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
                     {participant.distance_km !== null 
                       ? `${participant.distance_km} km` 
                       : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {getPaymentStatusBadge(participant.payment_status)}
                   </TableCell>
                   <TableCell>
                     {participant.proof_url ? (
@@ -391,7 +372,7 @@ export function ChallengeAdminPanel({ weekId, isAdmin, distanceGoal, endDate }: 
           <AlertTitle>Challenge in Progress</AlertTitle>
           <AlertDescription>
             The challenge is still in progress until {format(new Date(endDate), 'MMMM d, yyyy')}. 
-            You can review submissions, but you won't be able to finalize the week until after the end date.
+            You can review submissions, but you won&apos;t be able to finalize the week until after the end date.
           </AlertDescription>
         </Alert>
       )}

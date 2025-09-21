@@ -35,7 +35,7 @@ export function StreakCounter({ compact = false, showBest = true, autoRecord = t
       const { data, error } = await supabase.rpc('get_user_streak');
       
       if (error) {
-        console.error('Error loading streak data:', error);
+        console.error('Error loading streak data:', error.message || error);
         return;
       }
 
@@ -52,7 +52,7 @@ export function StreakCounter({ compact = false, showBest = true, autoRecord = t
       const { data, error } = await supabase.rpc('record_login_activity');
       
       if (error) {
-        console.error('Error recording activity:', error);
+        console.error('Error recording activity:', error.message || error);
         return;
       }
 
@@ -77,7 +77,7 @@ export function StreakCounter({ compact = false, showBest = true, autoRecord = t
       });
       
       if (error) {
-        console.error('Error recording mileage activity:', error);
+        console.error('Error recording mileage activity:', error.message || error);
         return;
       }
 
@@ -228,7 +228,7 @@ export function StreakCounter({ compact = false, showBest = true, autoRecord = t
             className="btn primary" 
             style={{ width: '100%', fontSize: '14px' }}
           >
-            Start Today's Streak! 🚀
+            Start Today&apos;s Streak! 🚀
           </button>
         )}
 
@@ -240,7 +240,7 @@ export function StreakCounter({ compact = false, showBest = true, autoRecord = t
               <div>Keep your streak alive by logging miles daily!</div>
               {current_streak >= 7 && (
                 <div style={{ marginTop: '4px', color: 'var(--success)' }}>
-                  🏆 You're in the streak zone!
+                  🏆 You&apos;re in the streak zone!
                 </div>
               )}
             </>

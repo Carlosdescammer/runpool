@@ -128,7 +128,7 @@ export default function SetupDatabase() {
 
           <div style={{ marginTop: '32px', fontSize: '14px', color: '#6b7280' }}>
             <h4>Manual Setup Instructions</h4>
-            <p>If the automated setup doesn't work, you can manually run these SQL files in your Supabase dashboard:</p>
+            <p>If the automated setup doesn&apos;t work, you can manually run these SQL files in your Supabase dashboard:</p>
             <ul>
               <li><code>supabase/migrations/20241210000001_email_campaigns.sql</code></li>
               <li><code>supabase/migrations/20241210000002_email_templates.sql</code></li>

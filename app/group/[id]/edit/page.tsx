@@ -145,7 +145,6 @@ export default function EditGroupPage() {
                 name: groupData.name,
                 description: groupData.description || '',
                 is_public: groupData.is_public,
-                default_entry_fee: groupData.default_entry_fee,
                 default_distance_goal: groupData.default_distance_goal,
                 default_duration_days: groupData.default_duration_days,
                 start_date: new Date(groupData.start_date),

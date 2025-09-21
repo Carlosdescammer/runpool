@@ -2,7 +2,6 @@
 'use client';
 import { supabase } from '@/lib/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
-import { PaymentStatusCard } from '@/components/PaymentStatusCard';
 
 type InviteRow = { token: string; expires_at: string | null; created_at?: string | null };
 
@@ -22,7 +21,6 @@ interface GroupAdminPanelProps {
 export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
   const [name, setName] = useState('');
   const [rule, setRule] = useState('');
-  const [entryFee, setEntryFee] = useState<number>(100);
   const [distanceGoal, setDistanceGoal] = useState<number>(5.0);
   const [weekStart, setWeekStart] = useState<string>(new Date().toISOString().slice(0,10));
   const [weekEnd, setWeekEnd] = useState<string>(new Date(Date.now()+6*86400000).toISOString().slice(0,10));
@@ -106,7 +104,6 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
       if (g) {
         setName(g.name ?? '');
         setRule(g.rule ?? '');
-        setEntryFee(g.entry_fee ?? 100);
         setNotifyOnProof((g as { notify_on_proof?: boolean } | null)?.notify_on_proof ?? true);
       }
     })();
@@ -299,7 +296,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
     setMsg('Saving…');
     const { error } = await supabase
       .from('groups')
-      .update({ name, rule, entry_fee: entryFee, notify_on_proof: notifyOnProof })
+      .update({ name, rule, notify_on_proof: notifyOnProof })
       .eq('id', groupId);
     setMsg(error ? error.message : 'Saved.');
   }
@@ -324,7 +321,7 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
       start_date: weekStart, 
       end_date: weekEnd, 
       distance_goal_km: distanceGoal,
-      entry_fee_cents: entryFee * 100, // Convert dollars to cents
+      entry_fee_cents: 0, // No entry fee
       status: 'upcoming'
     });
     
@@ -400,16 +397,6 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
               placeholder="e.g. Run at least 5 miles" 
             />
           </div>
-        </div>
-        <div style={{marginBottom: '16px'}}>
-          <label htmlFor="group-entry-fee">Entry Fee ($)</label>
-          <input
-            id="group-entry-fee"
-            className="field"
-            type="number"
-            value={entryFee}
-            onChange={e => setEntryFee(Number(e.target.value))}
-          />
         </div>
         <button onClick={saveGroup} className="btn primary" style={{width: '100%'}}>Save Settings</button>
       </div>
@@ -492,55 +479,6 @@ export function GroupAdminPanel({ groupId }: GroupAdminPanelProps) {
 
       <div className="divider"></div>
 
-      {/* Current Week Payment Status */}
-      {currentWeekId ? (
-        <div style={{marginBottom: '24px'}}>
-          <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Current Week Payment Status</h3>
-          <PaymentStatusCard weekId={currentWeekId} groupId={groupId} />
-        </div>
-      ) : (
-        <div style={{marginBottom: '24px'}}>
-          <h3 style={{marginBottom: '16px', fontSize: '18px', fontWeight: '500'}}>Payment Status</h3>
-          <div style={{padding: '16px'}}>
-            <h4 style={{fontWeight: '600', marginBottom: '8px'}}>💳 Payment Tracking</h4>
-            <p className="muted" style={{marginBottom: '8px'}}>
-              You have created weeks, but none are currently active for payment tracking.
-            </p>
-            <button 
-              onClick={async () => {
-                // Look for the most recent upcoming week and activate it
-                const { data: weeks, error } = await supabase
-                  .from('weeks')
-                  .select('*')
-                  .eq('group_id', groupId)
-                  .eq('status', 'upcoming')
-                  .order('created_at', { ascending: false })
-                  .limit(1);
-                
-                if (!error && weeks && weeks.length > 0) {
-                  const { error: updateError } = await supabase
-                    .from('weeks')
-                    .update({ status: 'in_progress' })
-                    .eq('id', weeks[0].id);
-                  
-                  if (!updateError) {
-                    setMsg('Week activated for payment tracking!');
-                    loadCurrentWeek();
-                  } else {
-                    setMsg('Failed to activate week: ' + updateError.message);
-                  }
-                } else {
-                  setMsg('No upcoming weeks found to activate.');
-                }
-              }}
-              className="btn primary"
-              style={{fontSize: '12px', padding: '6px 12px'}}
-            >
-              Activate Latest Week
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="divider"></div>
 

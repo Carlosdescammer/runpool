@@ -57,7 +57,7 @@ export function CreateWeekModal({ groupId, isOpen, onClose, onWeekCreated }: Cre
       // Get group entry fee
       const { data: group, error: groupError } = await supabase
         .from('groups')
-        .select('entry_fee')
+        .select('id')
         .eq('id', groupId)
         .single();
 
@@ -75,7 +75,7 @@ export function CreateWeekModal({ groupId, isOpen, onClose, onWeekCreated }: Cre
         start_date: weekStart,
         end_date: weekEnd,
         distance_goal_km: distanceGoal * 1.60934, // Convert miles to km for storage
-        entry_fee_cents: (group?.entry_fee || 100) * 100, // Convert dollars to cents
+        entry_fee_cents: 0, // No entry fee
         status: 'upcoming'
       };
 

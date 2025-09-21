@@ -16,7 +16,6 @@ type GroupInfo = {
   id: string;
   name: string;
   rule: string | null;
-  entry_fee: number | null;
 };
 
 export default function Join() {
@@ -66,7 +65,7 @@ export default function Join() {
         // Load group
         const { data: g } = await supabase
           .from('groups')
-          .select('id, name, rule, entry_fee')
+          .select('id, name, rule')
           .eq('id', inv.group_id)
           .single();
         setGroup(g as GroupInfo);
@@ -224,9 +223,6 @@ export default function Join() {
                 <h3 style={{fontWeight: '800', marginBottom: '12px'}}>About {group.name}</h3>
                 <div style={{lineHeight: '1.6'}}>
                   <div><strong>Weekly rule:</strong> {group.rule || '—'}</div>
-                  {typeof group.entry_fee === 'number' && (
-                    <div><strong>Entry fee:</strong> ${(group.entry_fee / 100).toFixed(2)}</div>
-                  )}
                   {invitedEmail && (
                     <div style={{marginTop: '8px', color: 'var(--muted)'}}>
                       This invite is for <strong>{invitedEmail}</strong>.
@@ -240,7 +236,7 @@ export default function Join() {
           {/* Auth section */}
           {userId ? (
             <div style={{textAlign: 'center'}}>
-              <p style={{marginBottom: '16px', color: 'var(--muted)'}}>You're signed in.</p>
+              <p style={{marginBottom: '16px', color: 'var(--muted)'}}>You&apos;re signed in.</p>
               {!token && (
                 <div style={{marginBottom: '16px', maxWidth: '420px', margin: '0 auto 16px'}}>
                   <label className="label">Invite link or token</label>
@@ -265,7 +261,7 @@ export default function Join() {
             <div>
               {/* Toggle */}
               <div style={{marginBottom: '16px', textAlign: 'center', fontSize: '14px', color: 'var(--muted)'}}>
-                💡 <strong>Not sure?</strong> Try either option - we'll help you if you pick the wrong one!
+                💡 <strong>Not sure?</strong> Try either option - we&apos;ll help you if you pick the wrong one!
               </div>
               <div style={{display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap'}}>
                 <button 

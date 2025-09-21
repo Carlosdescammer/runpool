@@ -150,7 +150,7 @@ export default function SignInPage() {
         <div className="inner">
           {userId && (
             <div style={{ fontSize: '14px', marginBottom: '16px' }}>
-              You're already signed in.
+              You&apos;re already signed in.
             </div>
           )}
 
@@ -159,7 +159,7 @@ export default function SignInPage() {
               Sign in to your account
             </h1>
             <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0 }}>
-              Welcome back — let's get you on the board.
+              Welcome back — let&apos;s get you on the board.
             </p>
           </div>
 
@@ -273,7 +273,7 @@ export default function SignInPage() {
             textAlign: 'center',
             marginBottom: '16px'
           }}>
-            We'll automatically sign you in or create an account as needed.
+            We&apos;ll automatically sign you in or create an account as needed.
           </p>
 
           {status && (
